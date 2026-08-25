@@ -1,0 +1,25 @@
+{
+  "$schema": "https://rork.com/schema/rork.json",
+  "apps": [
+    {
+      "name": "NutriPlan AI",
+      "path": "expo",
+      "framework": "react-native"
+    },
+    {
+      "name": "FuelUp",
+      "path": "expo",
+      "framework": "react-native"
+    },
+    {
+      "name": "FuelUp",
+      "path": "ios-fuelup",
+      "framework": "swift"
+    },
+    {
+      "name": "Backend",
+      "path": "backend",
+      "framework": "supabase"
+    }
+  ]
+}
