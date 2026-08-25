@@ -51,7 +51,54 @@ const DEFAULT_PROFILE: UserProfile = {
   parentalConsent: "not_required",
   cookAvailability: "quick",
 };
+const { user, isAuthenticated } = useAuth();
+/** Maps the local UserProfile to the `profiles` columns that exist server-side.
+ * Keep in sync with the add_football_profile_fields migration. */
+function profileToSupabaseRow(p: UserProfile): Record<string, unknown> {
+  return {
+    age: p.age,
+    gender: p.gender,
+    weight_kg: p.weight,
+    height_cm: p.height,
+    diet_type: p.dietType,
+    allergies: p.allergies,
+    position: p.position,
+    player_level: p.level,
+    training_frequency: p.trainingFrequency,
+    season_phase: p.seasonPhase,
+    performance_goal: p.performanceGoal,
+    weekly_schedule: p.weeklySchedule,
+    default_kickoff_time: p.defaultKickoffTime,
+    default_training_time: p.defaultTrainingTime,
+    parental_consent_status: p.parentalConsent ?? "not_required",
+  };
+}
 
+/** Merges a fetched `profiles` row into the local UserProfile. Only touches
+ * fields Supabase owns -- everything else stays as-is. */
+function applySupabaseRow(local: UserProfile, row: Record<string, any>): UserProfile {
+  return {
+    ...local,
+    age: row.age ?? local.age,
+    gender: row.gender ?? local.gender,
+    weight: row.weight_kg ?? local.weight,
+    height: row.height_cm ?? local.height,
+    dietType: row.diet_type ?? local.dietType,
+    allergies: row.allergies ?? local.allergies,
+    position: row.position ?? local.position,
+    level: row.player_level ?? local.level,
+    trainingFrequency: row.training_frequency ?? local.trainingFrequency,
+    seasonPhase: row.season_phase ?? local.seasonPhase,
+    performanceGoal: row.performance_goal ?? local.performanceGoal,
+    weeklySchedule:
+      row.weekly_schedule && row.weekly_schedule.length === 7
+        ? row.weekly_schedule
+        : local.weeklySchedule,
+    defaultKickoffTime: row.default_kickoff_time ?? local.defaultKickoffTime,
+    defaultTrainingTime: row.default_training_time ?? local.defaultTrainingTime,
+    parentalConsent: row.parental_consent_status ?? local.parentalConsent,
+  };
+}
 const PROFILE_KEY = "nutriplan_profile";
 const ONBOARDED_KEY = "nutriplan_onboarded";
 const AUTH_KEY = "nutriplan_auth";
@@ -62,7 +109,22 @@ interface AuthData {
   password: string;
   name: string;
 }
-
+const saveProfileMutation = useMutation({
+  mutationFn: async (newProfile: UserProfile) => {
+    await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(newProfile));
+    if (isAuthenticated && user) {
+      try {
+        await supabase.from("profiles").eq("id", user.id).update(profileToSupabaseRow(newProfile));
+      } catch (e) {
+        console.log("[MealPlanProvider] Supabase profile sync failed:", e);
+      }
+    }
+    return newProfile;
+  },
+  onSuccess: (data) => {
+    setProfile(data);
+  },
+});
 export const [MealPlanProvider, useMealPlan] = createContextHook(() => {
   const [profile, setProfile] = useState<UserProfile>(DEFAULT_PROFILE);
   const [todayPlan, setTodayPlan] = useState<MealPlan>(sampleMealPlan);
@@ -126,10 +188,18 @@ export const [MealPlanProvider, useMealPlan] = createContextHook(() => {
     });
   }, [saveProfileMutation]);
 
-  const completeOnboarding = useCallback(async () => {
-    await AsyncStorage.setItem(ONBOARDED_KEY, "true");
-    setHasOnboarded(true);
-  }, []);
+ const completeOnboarding = useCallback(async () => {
+  await AsyncStorage.setItem(ONBOARDED_KEY, "true");
+  if (isAuthenticated && user) {
+    try {
+      await supabase.from("profiles").eq("id", user.id).update(profileToSupabaseRow(profile));
+    } catch (e) {
+      console.log("[MealPlanProvider] Supabase profile sync failed on onboarding complete:", e);
+    }
+  }
+  setHasOnboarded(true);
+}, [isAuthenticated, user, profile]);
+  },
 
   const signUp = useCallback(async (email: string, password: string, name: string) => {
     const authData: AuthData = { email: email.toLowerCase().trim(), password, name };
