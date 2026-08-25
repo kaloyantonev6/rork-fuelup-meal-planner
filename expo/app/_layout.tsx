@@ -27,6 +27,7 @@ function RootLayoutNav() {
       <Stack.Screen name="modal" options={{ headerShown: false, presentation: "modal" }} />
       <Stack.Screen name="checkout" options={{ headerShown: false }} />
       <Stack.Screen name="saved-plan-detail" options={{ headerShown: false }} />
+      <Stack.Screen name="consent-pending" options={{ headerShown: false, gestureEnabled: false }} />
       <Stack.Screen name="match-day" options={{ headerShown: false }} />
     </Stack>
   );
