@@ -35,7 +35,6 @@ export default function AuthScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { isLoading: planLoading, hasOnboarded, profile } = useMealPlan();
-  const { isLoading: planLoading, hasOnboarded } = useMealPlan();
   const { isLoading: authLoading, isAuthenticated, lastEmail, signIn, signUp } = useAuth();
 
   const appLoading = planLoading || authLoading;
@@ -60,12 +59,15 @@ export default function AuthScreen() {
   useEffect(() => {
     if (appLoading || hasRedirected) return;
 
-    if (isAuthenticated && hasOnboarded) {
-      console.log("User already logged in and onboarded, redirecting to home");
-      setHasRedirected(true);
-      router.replace("/(tabs)/home");
-      return;
-    }
+if (isAuthenticated && hasOnboarded) {
+  setHasRedirected(true);
+  if (profile.parentalConsent === "pending") {
+    router.replace("/consent-pending");
+  } else {
+    router.replace("/(tabs)/home");
+  }
+  return;
+}
 
     if (isAuthenticated && !hasOnboarded) {
       console.log("User logged in but not onboarded, redirecting to onboarding");
