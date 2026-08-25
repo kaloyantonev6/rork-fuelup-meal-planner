@@ -34,6 +34,7 @@ type AuthMode = "signin" | "signup";
 export default function AuthScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { isLoading: planLoading, hasOnboarded, profile } = useMealPlan();
   const { isLoading: planLoading, hasOnboarded } = useMealPlan();
   const { isLoading: authLoading, isAuthenticated, lastEmail, signIn, signUp } = useAuth();
 
