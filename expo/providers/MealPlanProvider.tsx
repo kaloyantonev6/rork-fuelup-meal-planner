@@ -4,7 +4,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import createContextHook from "@nkzw/create-context-hook";
 import { MealPlan, ShoppingItem, UserProfile } from "@/types";
 import { sampleMealPlan, weeklyMealPlans, sampleShoppingList } from "@/mocks/recipes";
-
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/providers/AuthProvider";
 const DEFAULT_PROFILE: UserProfile = {
   name: "",
   age: 18,
