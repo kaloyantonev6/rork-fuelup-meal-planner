@@ -74,6 +74,25 @@ function profileToSupabaseRow(p: UserProfile): Record<string, unknown> {
   };
 }
 
+// Pull the server-side profile once authenticated, so a fresh install or
+// a new device gets real data instead of DEFAULT_PROFILE.
+useEffect(() => {
+  if (!isAuthenticated || !user) return;
+  (async () => {
+    try {
+      const row = await supabase.from<Record<string, any>>("profiles").eq("id", user.id).single();
+      if (row) {
+        setProfile((prev) => {
+          const merged = applySupabaseRow(prev, row);
+          void AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(merged));
+          return merged;
+        });
+      }
+    } catch (e) {
+      console.log("[MealPlanProvider] Could not fetch profile from Supabase:", e);
+    }
+  })();
+}, [isAuthenticated, user]);
 /** Merges a fetched `profiles` row into the local UserProfile. Only touches
  * fields Supabase owns -- everything else stays as-is. */
 function applySupabaseRow(local: UserProfile, row: Record<string, any>): UserProfile {
