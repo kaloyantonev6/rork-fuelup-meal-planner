@@ -229,7 +229,10 @@ export default function OnboardingScreen() {
       cookAvailability: "quick",
     });
     await completeOnboarding();
-    router.replace("/(tabs)/home");
+if (ageNum < 16) {
+  router.replace("/consent-pending");
+} else {
+  router.replace("/(tabs)/home");
   }, [data, updateProfile, completeOnboarding, router]);
 
   const canProceed = useCallback((): boolean => {
