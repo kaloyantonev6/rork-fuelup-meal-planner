@@ -12,7 +12,6 @@ import {
   KeyboardAvoidingView,
   Modal,
   FlatList,
-  Switch,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -46,7 +45,25 @@ import {
 import { countryNameToCode, getTopRetailers } from "@/lib/priceEngine";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const TOTAL_STEPS = 7;
+
+// One question per screen (except the weekly-schedule step, which is a
+// single interactive concept, not a splittable question).
+// 0  Welcome
+// 1  Gender
+// 2  Age
+// 3  Height
+// 4  Weight
+// 5  Position
+// 6  Training frequency
+// 7  Season phase
+// 8  Performance goal
+// 9  Diet type
+// 10 Allergies
+// 11 Cooking skill
+// 12 Weekly schedule
+// 13 Weekly budget
+// 14 Country
+const TOTAL_STEPS = 15;
 
 interface OnboardingData {
   gender: Gender | null;
@@ -228,29 +245,31 @@ export default function OnboardingScreen() {
       parentalConsent: ageNum < 16 ? "pending" : "not_required",
       cookAvailability: "quick",
     });
-  await completeOnboarding();
-if (ageNum < 16) {
-  router.replace("/consent-pending");
-} else {
-  router.replace("/(tabs)/home");
-}
-}, [data, updateProfile, completeOnboarding, router]);
+    await completeOnboarding();
+    if (ageNum < 16) {
+      router.replace("/consent-pending");
+    } else {
+      router.replace("/(tabs)/home");
+    }
+  }, [data, updateProfile, completeOnboarding, router]);
+
   const canProceed = useCallback((): boolean => {
     switch (step) {
-      case 0: return true;
-      case 1:
-        return data.gender !== null && data.age.trim().length > 0 &&
-          data.height.trim().length > 0 && data.weight.trim().length > 0;
-      case 2:
-        return data.position !== null && data.trainingFrequency !== null;
-      case 3:
-        return data.seasonPhase !== null && data.performanceGoal !== null;
-      case 4:
-        return data.dietType !== null && data.allergies.length > 0;
-      case 5:
-        return data.weeklySchedule.length === 7;
-      case 6:
-        return data.country.length > 0;
+      case 0: return true; // Welcome
+      case 1: return data.gender !== null;
+      case 2: return data.age.trim().length > 0;
+      case 3: return data.height.trim().length > 0;
+      case 4: return data.weight.trim().length > 0;
+      case 5: return data.position !== null;
+      case 6: return data.trainingFrequency !== null;
+      case 7: return data.seasonPhase !== null;
+      case 8: return data.performanceGoal !== null;
+      case 9: return data.dietType !== null;
+      case 10: return data.allergies.length > 0;
+      case 11: return true; // Cooking skill has a default, never blocks
+      case 12: return data.weeklySchedule.length === 7;
+      case 13: return true; // Budget has a default, never blocks
+      case 14: return data.country.length > 0;
       default: return false;
     }
   }, [step, data]);
@@ -319,14 +338,12 @@ if (ageNum < 16) {
     </View>
   );
 
-  // Step 1 — Body Profile
+  // Step 1 — Gender
   const renderStep1 = () => (
     <View style={styles.stepContent}>
-      <Text style={styles.stepTitle}>Body Profile</Text>
-      <Text style={styles.stepSubtitle}>For calculating your fuel targets — not weight loss</Text>
-
+      <Text style={styles.stepTitle}>What's your gender?</Text>
+      <Text style={styles.stepSubtitle}>This helps us calculate accurate fuel targets</Text>
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Gender</Text>
         <View style={styles.chipRow}>
           {GENDER_OPTIONS.map((g) =>
             renderChip(g.label, g.icon, data.gender === g.id, () => {
@@ -336,9 +353,15 @@ if (ageNum < 16) {
           )}
         </View>
       </View>
+    </View>
+  );
 
+  // Step 2 — Age
+  const renderStep2 = () => (
+    <View style={styles.stepContent}>
+      <Text style={styles.stepTitle}>How old are you?</Text>
+      <Text style={styles.stepSubtitle}>We tailor calorie and macro targets to your age</Text>
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Age</Text>
         <TextInput
           style={styles.textInput}
           placeholder="e.g. 19"
@@ -347,46 +370,58 @@ if (ageNum < 16) {
           onChangeText={(v) => setData((p) => ({ ...p, age: v.replace(/[^0-9]/g, "") }))}
           keyboardType="number-pad"
           maxLength={3}
+          autoFocus
         />
-      </View>
-
-      <View style={styles.rowInputs}>
-        <View style={[styles.inputGroup, { flex: 1 }]}>
-          <Text style={styles.label}>Height (cm)</Text>
-          <TextInput
-            style={styles.textInput}
-            placeholder="e.g. 178"
-            placeholderTextColor={Colors.textTertiary}
-            value={data.height}
-            onChangeText={(v) => setData((p) => ({ ...p, height: v.replace(/[^0-9]/g, "") }))}
-            keyboardType="number-pad"
-            maxLength={3}
-          />
-        </View>
-        <View style={[styles.inputGroup, { flex: 1 }]}>
-          <Text style={styles.label}>Weight (kg)</Text>
-          <TextInput
-            style={styles.textInput}
-            placeholder="e.g. 72"
-            placeholderTextColor={Colors.textTertiary}
-            value={data.weight}
-            onChangeText={(v) => setData((p) => ({ ...p, weight: v.replace(/[^0-9]/g, "") }))}
-            keyboardType="number-pad"
-            maxLength={3}
-          />
-        </View>
       </View>
     </View>
   );
 
-  // Step 2 — Football Profile
-  const renderStep2 = () => (
+  // Step 3 — Height
+  const renderStep3 = () => (
     <View style={styles.stepContent}>
-      <Text style={styles.stepTitle}>Your Football Profile</Text>
-      <Text style={styles.stepSubtitle}>So we can fuel the right position the right way</Text>
-
+      <Text style={styles.stepTitle}>What's your height?</Text>
+      <Text style={styles.stepSubtitle}>Used to calculate your baseline energy needs</Text>
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Position</Text>
+        <TextInput
+          style={styles.textInput}
+          placeholder="e.g. 178 cm"
+          placeholderTextColor={Colors.textTertiary}
+          value={data.height}
+          onChangeText={(v) => setData((p) => ({ ...p, height: v.replace(/[^0-9]/g, "") }))}
+          keyboardType="number-pad"
+          maxLength={3}
+          autoFocus
+        />
+      </View>
+    </View>
+  );
+
+  // Step 4 — Weight
+  const renderStep4 = () => (
+    <View style={styles.stepContent}>
+      <Text style={styles.stepTitle}>What's your weight?</Text>
+      <Text style={styles.stepSubtitle}>For calculating your fuel targets — not weight loss</Text>
+      <View style={styles.inputGroup}>
+        <TextInput
+          style={styles.textInput}
+          placeholder="e.g. 72 kg"
+          placeholderTextColor={Colors.textTertiary}
+          value={data.weight}
+          onChangeText={(v) => setData((p) => ({ ...p, weight: v.replace(/[^0-9]/g, "") }))}
+          keyboardType="number-pad"
+          maxLength={3}
+          autoFocus
+        />
+      </View>
+    </View>
+  );
+
+  // Step 5 — Position
+  const renderStep5 = () => (
+    <View style={styles.stepContent}>
+      <Text style={styles.stepTitle}>What position do you play?</Text>
+      <Text style={styles.stepSubtitle}>So we can fuel the right position the right way</Text>
+      <View style={styles.inputGroup}>
         <View style={styles.chipColumn}>
           {FOOTBALL_POSITIONS.map((pos) =>
             renderChip(pos.label, pos.icon, data.position === pos.id, () => {
@@ -396,9 +431,15 @@ if (ageNum < 16) {
           )}
         </View>
       </View>
+    </View>
+  );
 
+  // Step 6 — Training Frequency
+  const renderStep6 = () => (
+    <View style={styles.stepContent}>
+      <Text style={styles.stepTitle}>How often do you train?</Text>
+      <Text style={styles.stepSubtitle}>This shapes how much fuel you actually need</Text>
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Training Frequency</Text>
         <View style={styles.chipColumn}>
           {TRAINING_FREQUENCIES.map((tf) =>
             renderChip(tf.label, tf.icon, data.trainingFrequency === tf.id, () => {
@@ -411,14 +452,12 @@ if (ageNum < 16) {
     </View>
   );
 
-  // Step 3 — Season & Goal
-  const renderStep3 = () => (
+  // Step 7 — Season Phase
+  const renderStep7 = () => (
     <View style={styles.stepContent}>
-      <Text style={styles.stepTitle}>Season & Goal</Text>
+      <Text style={styles.stepTitle}>What's your season phase?</Text>
       <Text style={styles.stepSubtitle}>Every option here is about performance, not the scale</Text>
-
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Current Season Phase</Text>
         <View style={styles.chipColumn}>
           {SEASON_PHASES.map((sp) =>
             renderChip(sp.label, sp.icon, data.seasonPhase === sp.id, () => {
@@ -428,9 +467,15 @@ if (ageNum < 16) {
           )}
         </View>
       </View>
+    </View>
+  );
 
+  // Step 8 — Performance Goal
+  const renderStep8 = () => (
+    <View style={styles.stepContent}>
+      <Text style={styles.stepTitle}>What's your performance goal?</Text>
+      <Text style={styles.stepSubtitle}>Tell us what you're building toward</Text>
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Performance Goal</Text>
         <View style={styles.chipColumn}>
           {PERFORMANCE_GOALS.map((g) =>
             renderChip(g.label, g.icon, data.performanceGoal === g.id, () => {
@@ -443,14 +488,12 @@ if (ageNum < 16) {
     </View>
   );
 
-  // Step 4 — Diet & Restrictions
-  const renderStep4 = () => (
+  // Step 9 — Diet Type
+  const renderStep9 = () => (
     <View style={styles.stepContent}>
-      <Text style={styles.stepTitle}>Diet & Restrictions</Text>
-      <Text style={styles.stepSubtitle}>What you eat and what you avoid</Text>
-
+      <Text style={styles.stepTitle}>Any dietary preference?</Text>
+      <Text style={styles.stepSubtitle}>What you eat day to day</Text>
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Diet Type</Text>
         <View style={styles.chipRow}>
           {DIET_TYPES.map((d) =>
             renderChip(d.label, d.icon, data.dietType === d.id, () => {
@@ -460,9 +503,15 @@ if (ageNum < 16) {
           )}
         </View>
       </View>
+    </View>
+  );
 
+  // Step 10 — Allergies
+  const renderStep10 = () => (
+    <View style={styles.stepContent}>
+      <Text style={styles.stepTitle}>Any allergies or restrictions?</Text>
+      <Text style={styles.stepSubtitle}>We'll make sure your plan avoids them</Text>
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Allergies & Restrictions</Text>
         <View style={styles.chipRow}>
           {ALLERGY_OPTIONS.map((a) =>
             renderChip(a.label, a.icon, data.allergies.includes(a.id), () =>
@@ -471,9 +520,15 @@ if (ageNum < 16) {
           )}
         </View>
       </View>
+    </View>
+  );
 
+  // Step 11 — Cooking Skill
+  const renderStep11 = () => (
+    <View style={styles.stepContent}>
+      <Text style={styles.stepTitle}>How comfortable are you in the kitchen?</Text>
+      <Text style={styles.stepSubtitle}>We'll match recipes to your skill level</Text>
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Cooking Skill</Text>
         <View style={styles.chipColumn}>
           {COOKING_SKILLS.map((c) =>
             renderChip(c.label, c.icon, data.cookingSkill === c.id, () => {
@@ -486,8 +541,10 @@ if (ageNum < 16) {
     </View>
   );
 
-  // Step 5 — Weekly Schedule
-  const renderStep5 = () => {
+  // Step 12 — Weekly Schedule (kept as one interactive step, not a single
+  // yes/no question — splitting it into 7 day-by-day screens would slow
+  // people down for no real benefit)
+  const renderStep12 = () => {
     const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
     return (
       <View style={styles.stepContent}>
@@ -554,18 +611,14 @@ if (ageNum < 16) {
     );
   };
 
-  // Step 6 — Budget & Country
-  const renderStep6 = () => {
+  // Step 13 — Weekly Budget
+  const renderStep13 = () => {
     const dailyBudget = (data.weeklyBudget / 7).toFixed(2);
-    const selectedCountry = EU_COUNTRIES_WITH_FLAGS.find((c) => c.name === data.country);
-
     return (
       <View style={styles.stepContent}>
-        <Text style={styles.stepTitle}>Budget & Country</Text>
+        <Text style={styles.stepTitle}>What's your weekly grocery budget?</Text>
         <Text style={styles.stepSubtitle}>For price comparison and local retailers</Text>
-
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Weekly Grocery Budget</Text>
           <View style={styles.budgetCard}>
             <Text style={styles.budgetAmount}>€{data.weeklyBudget}/week</Text>
             <Text style={styles.budgetDaily}>That's about €{dailyBudget}/day</Text>
@@ -600,9 +653,19 @@ if (ageNum < 16) {
             </View>
           </View>
         </View>
+      </View>
+    );
+  };
+
+  // Step 14 — Country
+  const renderStep14 = () => {
+    const selectedCountry = EU_COUNTRIES_WITH_FLAGS.find((c) => c.name === data.country);
+    return (
+      <View style={styles.stepContent}>
+        <Text style={styles.stepTitle}>Where are you based?</Text>
+        <Text style={styles.stepSubtitle}>So we can show local grocery prices</Text>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Country</Text>
           <Pressable
             onPress={() => setShowCountryPicker(true)}
             style={({ pressed }) => [styles.textInput, styles.dropdownTrigger, pressed && { opacity: 0.7 }]}
@@ -639,7 +702,11 @@ if (ageNum < 16) {
     );
   };
 
-  const steps = [renderStep0, renderStep1, renderStep2, renderStep3, renderStep4, renderStep5, renderStep6];
+  const steps = [
+    renderStep0, renderStep1, renderStep2, renderStep3, renderStep4,
+    renderStep5, renderStep6, renderStep7, renderStep8, renderStep9,
+    renderStep10, renderStep11, renderStep12, renderStep13, renderStep14,
+  ];
   const isLastStep = step === TOTAL_STEPS - 1;
 
   const filteredCountries = EU_COUNTRIES_WITH_FLAGS.filter((c) =>
@@ -839,14 +906,14 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   progressContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 8,
+    paddingHorizontal: 16,
+    marginBottom: 8,
   },
   progressTrack: {
     height: 4,
     backgroundColor: Colors.surfaceElevated,
     borderRadius: 2,
-    overflow: "hidden",
+    overflow: "hidden" as const,
   },
   progressFill: {
     height: "100%",
@@ -855,116 +922,46 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 24,
-    paddingTop: 12,
-    paddingBottom: 20,
+    paddingTop: 16,
+    paddingBottom: 24,
   },
   stepContent: {
-    gap: 16,
+    gap: 4,
   },
   stepTitle: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: "800" as const,
     color: Colors.text,
-    letterSpacing: -0.5,
+    letterSpacing: -0.4,
   },
   stepSubtitle: {
     fontSize: 15,
     color: Colors.textSecondary,
-    marginTop: -8,
-    marginBottom: 4,
+    marginBottom: 20,
+    lineHeight: 21,
   },
   inputGroup: {
-    gap: 8,
+    marginBottom: 16,
   },
   label: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "700" as const,
-    color: Colors.textSecondary,
-    textTransform: "uppercase" as const,
-    letterSpacing: 0.5,
-  },
-  textInput: {
-    backgroundColor: Colors.surfaceElevated,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
     color: Colors.text,
+    marginBottom: 10,
   },
   rowInputs: {
     flexDirection: "row",
     gap: 12,
   },
-  chipRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  chipColumn: {
-    gap: 8,
-  },
-  chip: {
-    flexDirection: "row",
-    alignItems: "center",
+  textInput: {
     backgroundColor: Colors.surface,
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1.5,
     borderColor: Colors.border,
-    paddingHorizontal: 10,
-    paddingVertical: 12,
-    gap: 6,
-  },
-  chipFull: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Colors.surface,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    gap: 8,
-  },
-  chipSelected: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primary,
-  },
-  chipIcon: {
-    fontSize: 18,
-  },
-  chipTextWrap: {
-    flexShrink: 1,
-    flex: 1,
-  },
-  chipTextWrapFull: {
-    flex: 1,
-  },
-  chipLabel: {
-    fontSize: 14,
-    fontWeight: "600" as const,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    fontSize: 17,
     color: Colors.text,
-  },
-  chipLabelSelected: {
-    color: "#0F1115",
-  },
-  chipDesc: {
-    fontSize: 11,
-    color: Colors.textTertiary,
-    marginTop: 1,
-  },
-  chipDescSelected: {
-    color: "#0F1115",
-    opacity: 0.8,
-  },
-  chipCheck: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: "#0F1115",
-    justifyContent: "center",
-    alignItems: "center",
   },
   dropdownTrigger: {
     flexDirection: "row",
@@ -982,55 +979,123 @@ const styles = StyleSheet.create({
   dropdownText: {
     fontSize: 16,
     color: Colors.text,
+    fontWeight: "600" as const,
   },
   dropdownPlaceholder: {
     fontSize: 16,
     color: Colors.textTertiary,
   },
-  budgetCard: {
+  chipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap" as const,
+    gap: 8,
+  },
+  chipColumn: {
+    gap: 10,
+  },
+  chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    backgroundColor: Colors.surface,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    paddingVertical: 14,
+    paddingHorizontal: 10,
+  },
+  chipFull: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
     backgroundColor: Colors.surface,
     borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    width: "100%",
+  },
+  chipSelected: {
+    backgroundColor: Colors.primaryLight,
+    borderColor: Colors.primary,
+  },
+  chipIcon: {
+    fontSize: 20,
+  },
+  chipTextWrap: {
+    flex: 1,
+    alignItems: "center",
+  },
+  chipTextWrapFull: {
+    flex: 1,
+  },
+  chipLabel: {
+    fontSize: 14,
+    fontWeight: "700" as const,
+    color: Colors.text,
+    textAlign: "center" as const,
+  },
+  chipLabelSelected: {
+    color: Colors.primary,
+  },
+  chipDesc: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  chipDescSelected: {
+    color: Colors.primary,
+  },
+  chipCheck: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: Colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  budgetCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: 20,
     padding: 20,
+    alignItems: "center",
+    gap: 10,
     borderWidth: 1,
     borderColor: Colors.border,
-    alignItems: "center",
-    gap: 4,
   },
   budgetAmount: {
     fontSize: 32,
     fontWeight: "800" as const,
-    color: Colors.primary,
+    color: Colors.text,
   },
   budgetDaily: {
     fontSize: 14,
     color: Colors.textSecondary,
-    marginBottom: 12,
   },
   budgetStepperRow: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    gap: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
     width: "100%",
+    marginTop: 8,
   },
   stepperBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: Colors.surfaceElevated,
-    justifyContent: "center" as const,
-    alignItems: "center" as const,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    justifyContent: "center",
+    alignItems: "center",
   },
   stepperBtnText: {
     fontSize: 22,
     fontWeight: "700" as const,
-    color: Colors.primary,
+    color: Colors.text,
   },
   budgetBarWrap: {
     flex: 1,
-    height: 44,
-    justifyContent: "center" as const,
   },
   budgetBarTrack: {
     height: 8,
