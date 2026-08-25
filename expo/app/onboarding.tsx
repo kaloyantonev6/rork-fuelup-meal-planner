@@ -228,14 +228,13 @@ export default function OnboardingScreen() {
       parentalConsent: ageNum < 16 ? "pending" : "not_required",
       cookAvailability: "quick",
     });
-    await completeOnboarding();
+  await completeOnboarding();
 if (ageNum < 16) {
   router.replace("/consent-pending");
 } else {
   router.replace("/(tabs)/home");
-  }
-  }, [data, updateProfile, completeOnboarding, router]);
-
+}
+}, [data, updateProfile, completeOnboarding, router]);
   const canProceed = useCallback((): boolean => {
     switch (step) {
       case 0: return true;
