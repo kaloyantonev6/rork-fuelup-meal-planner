@@ -1325,11 +1325,11 @@ const styles = StyleSheet.create({
   substitutesContainer: {
     marginLeft: 19,
     marginBottom: 8,
-    backgroundColor: "#F0FDF4",
+    backgroundColor: "#122B22",
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: "#BBF7D0",
+    borderColor: "#1F4A3A",
   },
   substitutesHeader: {
     flexDirection: "row" as const,
@@ -1370,7 +1370,7 @@ const styles = StyleSheet.create({
   },
   substituteNote: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: "#8FB8A8",
     marginTop: 1,
   },
   instructionsList: {
