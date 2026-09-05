@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -28,6 +28,7 @@ import {
   Dumbbell,
   Moon,
   Footprints,
+  Check,
 } from "lucide-react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -50,7 +51,7 @@ import {
   GeneratedPlan,
   ShoppingIngredient,
 } from "@/utils/mealGenerator";
-import { calculateWaterTarget } from "@/utils/dailyTargets";
+import { calculateWaterTarget, calculateDayTargets } from "@/utils/dailyTargets";
 import { TIMELINE_TEMPLATES } from "@/utils/timeline";
 import MealResults from "@/components/MealResults";
 import DailyTargetsCard from "@/components/DailyTargetsCard";
@@ -249,7 +250,7 @@ export default function HomeScreen() {
   const [planType, setPlanType] = useState<"daily" | "weekly">("daily");
   const [currentTip, setCurrentTip] = useState(PERFORMANCE_TIPS[0] ?? "");
   const [hydrationMl, setHydrationMl] = useState(0);
-  const [completedCount, setCompletedCount] = useState(0);
+  const [completedIndices, setCompletedIndices] = useState<number[]>([]);
   const [totalMealsToday, setTotalMealsToday] = useState(0);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -290,13 +291,9 @@ export default function HomeScreen() {
           const stored = await AsyncStorage.getItem(getCompletedKey());
           if (stored) {
             const parsed = JSON.parse(stored) as number[];
-            if (Array.isArray(parsed)) {
-              setCompletedCount(parsed.length);
-            } else {
-              setCompletedCount(0);
-            }
+            setCompletedIndices(Array.isArray(parsed) ? parsed.filter((i) => typeof i === "number") : []);
           } else {
-            setCompletedCount(0);
+            setCompletedIndices([]);
           }
         } catch (e) {
           console.log("[HomeScreen] Error loading completed sessions:", e);
@@ -363,10 +360,30 @@ export default function HomeScreen() {
     setTotalMealsToday(TIMELINE_TEMPLATES[todayDayType()].entries.length);
   }, [todayDayType]);
 
+  const completedCount = completedIndices.length;
   const fuelProgress = totalMealsToday > 0 ? completedCount / totalMealsToday : 0;
   const fuelPct = Math.round(fuelProgress * 100);
 
   const dayConfig = DAY_TYPE_CONFIG[todayDayType()];
+  const todayTemplate = TIMELINE_TEMPLATES[todayDayType()];
+  const dayCalorieTarget = useMemo(
+    () => calculateDayTargets(profile, todayDayType()).calories,
+    [profile, todayDayType]
+  );
+
+  // Toggle a fuel session directly from the dashboard. Persists to the same
+  // storage key the Day Fuel Plan screen reads, so both stay in sync — and
+  // because the ring derives from this state, it updates immediately.
+  const toggleSession = useCallback((idx: number) => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setCompletedIndices((prev) => {
+      const next = prev.includes(idx) ? prev.filter((i) => i !== idx) : [...prev, idx];
+      void AsyncStorage.setItem(getCompletedKey(), JSON.stringify(next)).catch((e) =>
+        console.log("[HomeScreen] Error saving completed sessions:", e),
+      );
+      return next;
+    });
+  }, []);
 
   const dietLabel = DIET_TYPES.find((d) => d.id === profile.dietType)?.label ?? "Balanced";
   const dietIcon = DIET_TYPES.find((d) => d.id === profile.dietType)?.icon ?? "🍽️";
@@ -539,45 +556,82 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Daily Fuel Progress ring */}
-        <Pressable
-          onPress={() => {
-            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.push("/match-day" as never);
-          }}
-          style={({ pressed }) => [styles.fuelProgressCard, pressed && { opacity: 0.92, transform: [{ scale: 0.99 }] }]}
-        >
-          <FuelProgressRing
-            progress={fuelProgress}
-            size={92}
-            strokeWidth={9}
-            color={dayConfig.color}
-            trackColor={Colors.surfaceElevated}
-          />
-          <View style={styles.fuelProgressCenter} pointerEvents="none">
-            <Text style={[styles.fuelProgressPct, { color: dayConfig.color }]}>{fuelPct}%</Text>
-            <Text style={styles.fuelProgressSub}>{completedCount}/{totalMealsToday} meals</Text>
-          </View>
-          <View style={styles.fuelProgressRight}>
-            <View style={styles.fuelProgressTitleRow}>
-              <Text style={styles.fuelProgressTitle}>Today's Fuel</Text>
-              <View style={[styles.fuelProgressBadge, { backgroundColor: dayConfig.color + "20", borderColor: dayConfig.color + "60" }]}>
-                <Text style={[styles.fuelProgressBadgeText, { color: dayConfig.color }]}>{dayConfig.icon} {dayConfig.label}</Text>
+        {/* Daily Fuel Progress ring + tappable fuel sessions */}
+        <View style={styles.fuelProgressCard}>
+          <Pressable
+            onPress={() => {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push("/match-day" as never);
+            }}
+            style={({ pressed }) => [styles.fuelProgressTop, pressed && { opacity: 0.92 }]}
+          >
+            <FuelProgressRing
+              progress={fuelProgress}
+              size={92}
+              strokeWidth={9}
+              color={dayConfig.color}
+              trackColor={Colors.surfaceElevated}
+            />
+            <View style={styles.fuelProgressCenter} pointerEvents="none">
+              <Text style={[styles.fuelProgressPct, { color: dayConfig.color }]}>{fuelPct}%</Text>
+              <Text style={styles.fuelProgressSub}>{completedCount}/{totalMealsToday} meals</Text>
+            </View>
+            <View style={styles.fuelProgressRight}>
+              <View style={styles.fuelProgressTitleRow}>
+                <Text style={styles.fuelProgressTitle}>Today's Fuel</Text>
+                <View style={[styles.fuelProgressBadge, { backgroundColor: dayConfig.color + "20", borderColor: dayConfig.color + "60" }]}>
+                  <Text style={[styles.fuelProgressBadgeText, { color: dayConfig.color }]}>{dayConfig.icon} {dayConfig.label}</Text>
+                </View>
+              </View>
+              <Text style={styles.fuelProgressSubtitle}>
+                {completedCount >= totalMealsToday && totalMealsToday > 0
+                  ? "All fuel sessions complete. Recovery on point! 💪"
+                  : completedCount > 0
+                    ? `${totalMealsToday - completedCount} more fuel session${totalMealsToday - completedCount !== 1 ? "s" : ""} to go today.`
+                    : "Mark off meals as you fuel up throughout the day."}
+              </Text>
+              <View style={styles.fuelProgressCtaRow}>
+                <Text style={[styles.fuelProgressCta, { color: dayConfig.color }]}>Open day fuel plan</Text>
+                <ChevronRight size={14} color={dayConfig.color} />
               </View>
             </View>
-            <Text style={styles.fuelProgressSubtitle}>
-              {completedCount >= totalMealsToday && totalMealsToday > 0
-                ? "All fuel sessions complete. Recovery on point! 💪"
-                : completedCount > 0
-                  ? `${totalMealsToday - completedCount} more fuel session${totalMealsToday - completedCount !== 1 ? "s" : ""} to go today.`
-                  : "Mark off meals as you fuel up throughout the day."}
-            </Text>
-            <View style={styles.fuelProgressCtaRow}>
-              <Text style={[styles.fuelProgressCta, { color: dayConfig.color }]}>Open day fuel plan</Text>
-              <ChevronRight size={14} color={dayConfig.color} />
-            </View>
+          </Pressable>
+
+          <View style={styles.fuelSessionsDivider} />
+
+          <View>
+            {todayTemplate.entries.map((entry, idx) => {
+              const isDone = completedIndices.includes(idx);
+              const sessionKcal = Math.round(dayCalorieTarget * entry.caloriePct);
+              return (
+                <Pressable
+                  key={`${entry.mealSlot}-${idx}`}
+                  onPress={() => toggleSession(idx)}
+                  style={({ pressed }) => [styles.fuelSessionRow, pressed && { opacity: 0.65 }]}
+                >
+                  <View
+                    style={[
+                      styles.fuelSessionCheck,
+                      isDone && { backgroundColor: dayConfig.color, borderColor: dayConfig.color },
+                    ]}
+                  >
+                    {isDone && <Check size={11} color={Colors.background} />}
+                  </View>
+                  <Text
+                    style={[styles.fuelSessionName, isDone && styles.fuelSessionNameDone]}
+                    numberOfLines={1}
+                  >
+                    {entry.label}
+                  </Text>
+                  <Text style={styles.fuelSessionMeta}>
+                    {entry.offsetLabel}
+                    {sessionKcal > 0 ? ` · ~${sessionKcal} kcal` : ""}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
-        </Pressable>
+        </View>
 
         {/* Fuel Profile pills */}
         <View style={styles.prefsCard}>
@@ -1049,9 +1103,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   fuelProgressCard: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    gap: 14,
     backgroundColor: Colors.surface,
     borderRadius: 18,
     padding: 16,
@@ -1059,10 +1110,15 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     marginBottom: 16,
   },
+  fuelProgressTop: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 14,
+  },
   fuelProgressCenter: {
     position: "absolute" as const,
-    left: 16,
-    top: 16,
+    left: 0,
+    top: 0,
     width: 92,
     height: 92,
     justifyContent: "center" as const,
@@ -1122,6 +1178,42 @@ const styles = StyleSheet.create({
   fuelProgressCta: {
     fontSize: 12,
     fontWeight: "700" as const,
+  },
+  fuelSessionsDivider: {
+    height: 1,
+    backgroundColor: Colors.border,
+    marginTop: 14,
+    marginBottom: 4,
+  },
+  fuelSessionRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 10,
+    paddingVertical: 9,
+  },
+  fuelSessionCheck: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
+  },
+  fuelSessionName: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "600" as const,
+    color: Colors.text,
+  },
+  fuelSessionNameDone: {
+    color: Colors.textTertiary,
+    textDecorationLine: "line-through" as const,
+  },
+  fuelSessionMeta: {
+    fontSize: 11,
+    fontWeight: "600" as const,
+    color: Colors.textTertiary,
   },
   prefsCard: {
     backgroundColor: Colors.surface,
