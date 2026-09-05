@@ -1,5 +1,20 @@
+const { execSync } = require("child_process");
+const path = require("path");
 const { getDefaultConfig } = require("expo/metro-config");
 const { withRorkMetro } = require("@rork-ai/toolkit-sdk/metro");
+
+// Metro's fallback file watcher needs a large inotify budget; sandboxes often
+// boot with a low default that makes Metro crash (ENOSPC/EINVAL) before it is
+// ready. Re-apply the higher limit every time Metro starts (idempotent,
+// silently no-ops where sudo is unavailable).
+try {
+  execSync(`sh ${path.join(__dirname, "scripts/fix-inotify.sh")}`, {
+    stdio: "ignore",
+    timeout: 5000,
+  });
+} catch {
+  // ignore — best-effort tuning
+}
 
 const config = getDefaultConfig(__dirname);
 
