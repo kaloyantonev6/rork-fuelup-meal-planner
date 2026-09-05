@@ -6,6 +6,7 @@ import {
   ScrollView,
   Pressable,
   TextInput,
+  Alert,
   Animated,
   RefreshControl,
   Dimensions,
@@ -88,16 +89,29 @@ export default function FavoritesScreen() {
 
   const handleRemoveFavorite = useCallback((meal: FavoriteMeal) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const anim = getFadeAnim(meal.id);
-    Animated.timing(anim, {
-      toValue: 0,
-      duration: 250,
-      useNativeDriver: true,
-    }).start(() => {
-      removeFavorite(meal.id);
-      showToast("Removed from favorites");
-      fadeAnims.current.delete(meal.id);
-    });
+    Alert.alert(
+      "Remove from favorites?",
+      `"${meal.name}" will be removed from your saved meals.`,
+      [
+        { text: "Keep It", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: () => {
+            const anim = getFadeAnim(meal.id);
+            Animated.timing(anim, {
+              toValue: 0,
+              duration: 250,
+              useNativeDriver: true,
+            }).start(() => {
+              removeFavorite(meal.id);
+              showToast("Removed from favorites");
+              fadeAnims.current.delete(meal.id);
+            });
+          },
+        },
+      ]
+    );
   }, [removeFavorite, showToast, getFadeAnim]);
 
   const rows: FavoriteMeal[][] = [];
