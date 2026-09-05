@@ -1158,7 +1158,11 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   heroOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    position: "absolute" as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: "rgba(0,0,0,0.15)",
   },
   heroTopBar: {
@@ -1439,7 +1443,11 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   tutorialLockOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    position: "absolute" as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: "rgba(255,255,255,0.65)",
     justifyContent: "center" as const,
     alignItems: "flex-end" as const,
