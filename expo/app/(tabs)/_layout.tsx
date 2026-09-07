@@ -11,6 +11,7 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors.tint,
+        tabBarInactiveTintColor: Colors.textSecondary,
         tabBarStyle: {
           backgroundColor: Colors.bg2,
           borderTopColor: Colors.border,
@@ -18,14 +19,6 @@ export default function TabLayout() {
         headerShown: false,
         lazy: false,
         animation: "shift",
-        transitionSpec: {
-          animation: "spring",
-          config: {
-            stiffness: 320,
-            damping: 32,
-            mass: 0.9,
-          },
-        },
       }}
     >
       <Tabs.Screen
