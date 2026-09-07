@@ -440,14 +440,14 @@ if (isAuthenticated && hasOnboarded) {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#F0F7F2",
+    backgroundColor: Colors.bg1,
   },
   flex: {
     flex: 1,
   },
   loadingScreen: {
     flex: 1,
-    backgroundColor: "#F0F7F2",
+    backgroundColor: Colors.bg1,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -565,10 +565,10 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   generalErrorBox: {
-    backgroundColor: "#FEF2F2",
+    backgroundColor: "#EF444415",
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#FECACA",
+    borderColor: "#EF444440",
     padding: 12,
     marginBottom: 16,
   },
@@ -579,16 +579,16 @@ const styles = StyleSheet.create({
     textAlign: "center" as const,
   },
   noticeBox: {
-    backgroundColor: "#F0FDF4",
+    backgroundColor: "#22C55E15",
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#BBF7D0",
+    borderColor: "#22C55E40",
     padding: 12,
     marginBottom: 16,
   },
   noticeText: {
     fontSize: 13,
-    color: "#15803D",
+    color: "#4ADE80",
     fontWeight: "500" as const,
     textAlign: "center" as const,
   },
@@ -614,7 +614,7 @@ const styles = StyleSheet.create({
   },
   inputError: {
     borderColor: Colors.error,
-    backgroundColor: "#FEF2F2",
+    backgroundColor: "#EF444412",
   },
   inputIconWrap: {
     width: 28,

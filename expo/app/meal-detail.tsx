@@ -790,28 +790,28 @@ export default function MealDetailScreen() {
             <Text style={styles.macroCardTitle}>Macro Breakdown</Text>
             <View style={styles.macroGrid}>
               <View style={styles.macroItem}>
-                <View style={[styles.macroIconWrap, { backgroundColor: "#FFF3EB" }]}>
+                <View style={[styles.macroIconWrap, { backgroundColor: "#FF6B3520" }]}>
                   <Flame size={18} color="#FF6B35" />
                 </View>
                 <Text style={styles.macroValue}>{meal.calories}</Text>
                 <Text style={styles.macroLabel}>Calories</Text>
               </View>
               <View style={styles.macroItem}>
-                <View style={[styles.macroIconWrap, { backgroundColor: "#FEF2F2" }]}>
+                <View style={[styles.macroIconWrap, { backgroundColor: "#E8734A20" }]}>
                   <Dumbbell size={18} color="#E8734A" />
                 </View>
                 <Text style={styles.macroValue}>{meal.protein}g</Text>
                 <Text style={styles.macroLabel}>Protein</Text>
               </View>
               <View style={styles.macroItem}>
-                <View style={[styles.macroIconWrap, { backgroundColor: "#EFF6FF" }]}>
+                <View style={[styles.macroIconWrap, { backgroundColor: "#4A90D920" }]}>
                   <Wheat size={18} color="#4A90D9" />
                 </View>
                 <Text style={styles.macroValue}>{meal.carbs}g</Text>
                 <Text style={styles.macroLabel}>Carbs</Text>
               </View>
               <View style={styles.macroItem}>
-                <View style={[styles.macroIconWrap, { backgroundColor: "#FFFBEB" }]}>
+                <View style={[styles.macroIconWrap, { backgroundColor: "#D4A44C20" }]}>
                   <Droplets size={18} color="#D4A44C" />
                 </View>
                 <Text style={styles.macroValue}>{meal.fat}g</Text>
@@ -1457,12 +1457,12 @@ const styles = StyleSheet.create({
     flexDirection: "row" as const,
     alignItems: "center" as const,
     gap: 5,
-    backgroundColor: "#FEF3C7",
+    backgroundColor: "#D4A44C20",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#FDE68A",
+    borderColor: "#D4A44C55",
   },
   tutorialLockText: {
     fontSize: 12,
@@ -1471,11 +1471,11 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   tipCard: {
-    backgroundColor: "#FFFBEB",
+    backgroundColor: "#D4A44C12",
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#FDE68A",
+    borderColor: "#D4A44C40",
     marginBottom: 20,
     gap: 8,
   },
@@ -1487,26 +1487,26 @@ const styles = StyleSheet.create({
   tipTitle: {
     fontSize: 14,
     fontWeight: "700" as const,
-    color: "#92400E",
+    color: "#D4A44C",
   },
   tipText: {
     fontSize: 14,
     fontWeight: "500" as const,
-    color: "#78350F",
+    color: "#C9B896",
     lineHeight: 21,
   },
   simplifiedWrap: {
-    backgroundColor: "#FEF3C7",
+    backgroundColor: "#D4A44C18",
     borderRadius: 12,
     padding: 12,
     marginTop: 4,
     borderWidth: 1,
-    borderColor: "#FDE68A",
+    borderColor: "#D4A44C45",
   },
   simplifiedText: {
     fontSize: 14,
     fontWeight: "500" as const,
-    color: "#92400E",
+    color: "#C9B896",
     lineHeight: 21,
   },
   simplAIRow: {
@@ -1518,7 +1518,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 20,
-    backgroundColor: "#FDE68A",
+    backgroundColor: "#D4A44C30",
   },
   simplAIBtnActive: {
     backgroundColor: "#F59E0B",
@@ -1526,7 +1526,7 @@ const styles = StyleSheet.create({
   simplAIBtnText: {
     fontSize: 12,
     fontWeight: "700" as const,
-    color: "#92400E",
+    color: "#E3C078",
     letterSpacing: 0.3,
   },
   simplAIBtnTextActive: {
@@ -1651,12 +1651,12 @@ const styles = StyleSheet.create({
   premiumModalDismissBtnText: {
     fontSize: 14,
     fontWeight: "600" as const,
-    color: "#6B7280",
+    color: Colors.textSecondary,
   },
   tutorialModalCard: {
     width: SCREEN_WIDTH - 32,
     maxHeight: "80%",
-    backgroundColor: "#fff",
+    backgroundColor: Colors.bg2,
     borderRadius: 24,
     padding: 20,
   },

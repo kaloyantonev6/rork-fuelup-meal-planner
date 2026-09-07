@@ -1,6 +1,7 @@
 // template
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -17,7 +18,9 @@ const queryClient = new QueryClient();
 
 function RootLayoutNav() {
   return (
-    <Stack
+    <>
+      <StatusBar style="light" />
+      <Stack
       screenOptions={{
         headerBackTitle: "Back",
         animation: "fade_from_bottom",
@@ -35,7 +38,8 @@ function RootLayoutNav() {
       <Stack.Screen name="saved-plan-detail" options={{ headerShown: false }} />
       <Stack.Screen name="consent-pending" options={{ headerShown: false, gestureEnabled: false }} />
       <Stack.Screen name="match-day" options={{ headerShown: false }} />
-    </Stack>
+      </Stack>
+    </>
   );
 }
 

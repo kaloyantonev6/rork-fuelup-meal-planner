@@ -852,7 +852,7 @@ const styles = StyleSheet.create({
   },
   securityText: {
     fontSize: 11,
-    color: "#6B7280",
+    color: "#8B95A5",
     flex: 1,
   },
   fieldGroup: {
@@ -924,7 +924,7 @@ const styles = StyleSheet.create({
   },
   disclaimer: {
     fontSize: 11,
-    color: "#555",
+    color: "#8B95A5",
     textAlign: "center" as const,
     marginBottom: 10,
   },

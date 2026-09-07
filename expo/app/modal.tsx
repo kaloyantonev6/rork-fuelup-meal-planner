@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Colors from "@/constants/colors";
 
 export default function ModalScreen() {
   return (
@@ -50,7 +51,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   modalContent: {
-    backgroundColor: "white",
+    backgroundColor: Colors.bg2,
     borderRadius: 20,
     padding: 24,
     margin: 20,
@@ -60,16 +61,17 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: "bold",
+    color: Colors.text,
     marginBottom: 16,
   },
   description: {
     textAlign: "center",
     marginBottom: 24,
-    color: "#666",
+    color: Colors.textSecondary,
     lineHeight: 20,
   },
   closeButton: {
-    backgroundColor: "#007AFF",
+    backgroundColor: Colors.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 10,
