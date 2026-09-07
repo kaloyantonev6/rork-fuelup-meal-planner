@@ -22,6 +22,7 @@ import {
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { useSavedPlans, FavoriteMeal } from "@/providers/SavedPlansProvider";
+import EmptyState from "@/components/ui/EmptyState";
 
 const DARK = {
   bg: "#0F1115",
@@ -73,6 +74,7 @@ export default function FavoritesScreen() {
   }, [favorites, activeFilter, searchQuery]);
 
   const onRefresh = useCallback(async () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setRefreshing(true);
     await new Promise((r) => setTimeout(r, 500));
     setRefreshing(false);
@@ -181,13 +183,11 @@ export default function FavoritesScreen() {
         }
       >
         {filteredFavorites.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyHeart}>❤️</Text>
-            <Text style={styles.emptyTitle}>No favorites yet</Text>
-            <Text style={styles.emptySubtitle}>
-              Tap the ❤️ on any meal to save it here
-            </Text>
-          </View>
+          <EmptyState
+            icon={<Text style={styles.emptyHeart}>❤️</Text>}
+            title="No favorites yet"
+            subtitle="Tap the ❤️ on any meal to save it here"
+          />
         ) : (
           rows.map((row, rowIdx) => (
             <View key={rowIdx} style={styles.gridRow}>
@@ -478,7 +478,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   emptyHeart: {
-    fontSize: 48,
+    fontSize: 64,
     marginBottom: 8,
   },
   emptyTitle: {

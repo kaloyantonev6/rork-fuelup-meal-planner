@@ -23,7 +23,7 @@ function DailyTargetsCard({ profile, dayType }: DailyTargetsCardProps) {
         : dayType === "rest"
           ? Colors.rest
           : Colors.training;
-  const animatedCalories = useCountUp(targets.calories);
+  const animatedCalories = useCountUp(Math.round(targets.calories / 5) * 5);
   const animatedProtein = useCountUp(targets.protein);
   const animatedCarbs = useCountUp(targets.carbs);
   const animatedFat = useCountUp(targets.fat);

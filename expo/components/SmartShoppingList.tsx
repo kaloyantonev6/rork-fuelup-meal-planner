@@ -144,6 +144,7 @@ export default function SmartShoppingList({
   }, [isPremium]);
 
   const handleRefresh = useCallback(async () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setRefreshing(true);
     await new Promise((r) => setTimeout(r, 800));
     setItems(compileSmartShoppingList(plans, country));

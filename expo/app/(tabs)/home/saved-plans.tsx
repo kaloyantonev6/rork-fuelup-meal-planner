@@ -25,6 +25,7 @@ import {
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { useSavedPlans, SavedPlanData } from "@/providers/SavedPlansProvider";
+import EmptyState from "@/components/ui/EmptyState";
 
 const DARK = {
   bg: "#0F1115",
@@ -77,6 +78,7 @@ export default function SavedPlansScreen() {
   }, [savedPlans, selectedFolder]);
 
   const onRefresh = useCallback(async () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setRefreshing(true);
     await new Promise((r) => setTimeout(r, 500));
     setRefreshing(false);
@@ -217,20 +219,13 @@ export default function SavedPlansScreen() {
         }
       >
         {filteredPlans.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>📋</Text>
-            <Text style={styles.emptyTitle}>No saved plans yet</Text>
-            <Text style={styles.emptySubtitle}>
-              Generate a meal plan and tap Save to keep it here
-            </Text>
-            <Pressable
-              onPress={() => router.back()}
-              style={({ pressed }) => [styles.emptyBtn, pressed && { opacity: 0.8 }]}
-            >
-              <Zap size={18} color="#fff" />
-              <Text style={styles.emptyBtnText}>Generate Plan</Text>
-            </Pressable>
-          </View>
+          <EmptyState
+            icon={<Text style={styles.emptyIcon}>📋</Text>}
+            title="No saved plans yet"
+            subtitle="Generate a meal plan and tap Save to keep it here"
+            actionLabel="Generate Plan"
+            onAction={() => router.back()}
+          />
         ) : (
           filteredPlans.map((plan) => {
             const anim = getSlideAnim(plan.id);

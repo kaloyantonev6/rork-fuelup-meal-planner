@@ -7,7 +7,6 @@ import {
   Pressable,
   Animated,
   Modal,
-  ActivityIndicator,
   Alert,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -57,6 +56,7 @@ import MealResults from "@/components/MealResults";
 import DailyTargetsCard from "@/components/DailyTargetsCard";
 import ProgressRing from "@/components/ui/ProgressRing";
 import Entry from "@/components/ui/Entry";
+import Skeleton from "@/components/ui/Skeleton";
 import { useCountUp } from "@/hooks/useCountUp";
 
 const FREE_DAILY_GEN_KEY = "nutriplan_free_daily_gen";
@@ -480,14 +480,22 @@ export default function HomeScreen() {
       maxFiveIngredients: localMaxFiveIngredients,
     };
 
-    if (type === "daily") {
-      const plan = await generateDailyPlan(adjustedProfile, mealsPerDay, null);
-      setGeneratedPlans([plan]);
-      setShoppingList(compileShoppingList([plan]));
-    } else {
-      const plans = await generateWeeklyPlan(adjustedProfile, mealsPerDay, null);
-      setGeneratedPlans(plans);
-      setShoppingList(compileShoppingList(plans));
+    try {
+      if (type === "daily") {
+        const plan = await generateDailyPlan(adjustedProfile, mealsPerDay, null);
+        setGeneratedPlans([plan]);
+        setShoppingList(compileShoppingList([plan]));
+      } else {
+        const plans = await generateWeeklyPlan(adjustedProfile, mealsPerDay, null);
+        setGeneratedPlans(plans);
+        setShoppingList(compileShoppingList(plans));
+      }
+    } catch (e) {
+      console.log("[HomeScreen] Plan generation failed:", e);
+      setIsGenerating(false);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert("Something went wrong", "We couldn't build your plan. Please try again.");
+      return;
     }
 
     setIsGenerating(false);
@@ -605,7 +613,7 @@ export default function HomeScreen() {
           <View>
             {todayTemplate.entries.map((entry, idx) => {
               const isDone = completedIndices.includes(idx);
-              const sessionKcal = Math.round(dayCalorieTarget * entry.caloriePct);
+              const sessionKcal = Math.round((dayCalorieTarget * entry.caloriePct) / 5) * 5;
               return (
                 <Pressable
                   key={`${entry.mealSlot}-${idx}`}
@@ -990,7 +998,7 @@ export default function HomeScreen() {
             ]}
           >
             <View style={styles.loadingIconCircle}>
-              <ActivityIndicator size="large" color={Colors.primary} />
+              <Skeleton width={64} height={64} radius={32} />
             </View>
             <Text style={styles.loadingTitle}>Building your fuel plan...</Text>
             <Text style={styles.loadingSubtitle}>

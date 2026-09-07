@@ -457,7 +457,7 @@ export default function MatchDayScreen() {
             const isActive = idx === activeIdx;
             const isPast = idx < activeIdx;
             const isFuture = idx > activeIdx;
-            const entryCalories = Math.round(dayTargets.calories * entry.caloriePct);
+            const entryCalories = Math.round((dayTargets.calories * entry.caloriePct) / 5) * 5;
             const icon = SLOT_ICONS[entry.mealSlot];
             const isCompleted = completedIndices.includes(idx);
 
