@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import Colors from "@/constants/colors";
+import { useCountUp } from "@/hooks/useCountUp";
 import { UserProfile } from "@/types";
 import { calculateDailyTargets, DailyTargets } from "@/utils/dailyTargets";
 
@@ -14,6 +15,10 @@ function DailyTargetsCard({ profile, dayType }: DailyTargetsCardProps) {
     () => calculateDailyTargets(profile, dayType ?? "training"),
     [profile, dayType],
   );
+  const animatedCalories = useCountUp(targets.calories);
+  const animatedProtein = useCountUp(targets.protein);
+  const animatedCarbs = useCountUp(targets.carbs);
+  const animatedFat = useCountUp(targets.fat);
 
   return (
     <View style={styles.card}>
@@ -40,25 +45,25 @@ function DailyTargetsCard({ profile, dayType }: DailyTargetsCardProps) {
       <View style={styles.statsRow}>
         <View style={[styles.statBox, styles.statBoxCalories]}>
           <Text style={[styles.statValue, { color: Colors.primary }]}>
-            {targets.calories}
+            {animatedCalories}
           </Text>
           <Text style={styles.statLabel}>kcal/day</Text>
         </View>
         <View style={[styles.statBox, styles.statBoxProtein]}>
           <Text style={[styles.statValue, { color: Colors.match }]}>
-            {targets.protein}g
+            {animatedProtein}g
           </Text>
           <Text style={styles.statLabel}>Protein</Text>
         </View>
         <View style={[styles.statBox, styles.statBoxCarbs]}>
           <Text style={[styles.statValue, { color: Colors.recovery }]}>
-            {targets.carbs}g
+            {animatedCarbs}g
           </Text>
           <Text style={styles.statLabel}>Carbs</Text>
         </View>
         <View style={[styles.statBox, styles.statBoxFat]}>
           <Text style={[styles.statValue, { color: "#A78BFA" }]}>
-            {targets.fat}g
+            {animatedFat}g
           </Text>
           <Text style={styles.statLabel}>Fat</Text>
         </View>

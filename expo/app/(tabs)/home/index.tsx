@@ -1046,10 +1046,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   greetingText: {
-    fontSize: 26,
+    fontSize: 28,
     fontWeight: "800" as const,
-    color: "#fff",
-    letterSpacing: -0.3,
+    color: Colors.text,
+    letterSpacing: -0.5,
   },
   dayTypeBadgeRow: {
     flexDirection: "row",

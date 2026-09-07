@@ -4,6 +4,7 @@ import { Text } from "react-native";
 import React from "react";
 
 import Colors from "@/constants/colors";
+import AnimatedTabIcon from "@/components/ui/AnimatedTabIcon";
 
 export default function TabLayout() {
   return (
@@ -27,21 +28,33 @@ export default function TabLayout() {
         name="home"
         options={{
           title: "Fuel",
-          tabBarIcon: ({ color }) => <Home size={22} color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <AnimatedTabIcon focused={!!focused}>
+              <Home size={22} color={color} />
+            </AnimatedTabIcon>
+          ),
         }}
       />
       <Tabs.Screen
         name="budget"
         options={{
           title: "Budget",
-          tabBarIcon: ({ color }) => <Wallet size={22} color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <AnimatedTabIcon focused={!!focused}>
+              <Wallet size={22} color={color} />
+            </AnimatedTabIcon>
+          ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: "Profile",
-          tabBarIcon: ({ color }) => <User size={22} color={color} />,
+          tabBarIcon: ({ color, focused }) => (
+            <AnimatedTabIcon focused={!!focused}>
+              <User size={22} color={color} />
+            </AnimatedTabIcon>
+          ),
         }}
       />
     </Tabs>
