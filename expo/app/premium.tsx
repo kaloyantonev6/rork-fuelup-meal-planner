@@ -291,7 +291,9 @@ const styles = StyleSheet.create({
   },
   toggleContainer: {
     flexDirection: "row" as const,
-    backgroundColor: "#E8EAED",
+    backgroundColor: Colors.bg2,
+    borderWidth: 1,
+    borderColor: Colors.border,
     borderRadius: 30,
     padding: 4,
     alignSelf: "center" as const,
@@ -306,7 +308,7 @@ const styles = StyleSheet.create({
     borderRadius: 26,
   },
   toggleOptionActive: {
-    backgroundColor: "#fff",
+    backgroundColor: Colors.bg4,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
@@ -330,7 +332,7 @@ const styles = StyleSheet.create({
   savePillText: {
     fontSize: 10,
     fontWeight: "700" as const,
-    color: "#fff",
+    color: Colors.bg0,
   },
   cardsRow: {
     flexDirection: "row" as const,
@@ -339,7 +341,7 @@ const styles = StyleSheet.create({
   },
   freeCard: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: Colors.bg2,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: Colors.cardBorder,
@@ -374,7 +376,9 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   currentPlanBtn: {
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.bg3,
+    borderWidth: 1,
+    borderColor: Colors.border,
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: "center" as const,
@@ -383,7 +387,7 @@ const styles = StyleSheet.create({
   currentPlanText: {
     fontSize: 14,
     fontWeight: "600" as const,
-    color: Colors.textTertiary,
+    color: Colors.textSecondary,
   },
   proCardWrapper: {
     flex: 1,
@@ -396,7 +400,7 @@ const styles = StyleSheet.create({
     overflow: "hidden" as const,
   },
   proCard: {
-    backgroundColor: "#fff",
+    backgroundColor: Colors.bg2,
     borderRadius: 14,
     padding: 14,
     overflow: "hidden" as const,
@@ -420,7 +424,7 @@ const styles = StyleSheet.create({
     flexDirection: "row" as const,
     alignItems: "center" as const,
     gap: 4,
-    backgroundColor: "#F5EDFF",
+    backgroundColor: "#7C3AED25",
     alignSelf: "flex-start" as const,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -430,7 +434,7 @@ const styles = StyleSheet.create({
   trialBadgeText: {
     fontSize: 11,
     fontWeight: "700" as const,
-    color: "#7C3AED",
+    color: "#C4B5FD",
   },
   proBilledLabel: {
     fontSize: 11,
@@ -489,12 +493,12 @@ const styles = StyleSheet.create({
     justifyContent: "center" as const,
     flexWrap: "wrap" as const,
     gap: 4,
-    backgroundColor: "#F5EDFF",
+    backgroundColor: "#7C3AED25",
     paddingVertical: 7,
     paddingHorizontal: 8,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#E8D9FE",
+    borderColor: "#7C3AED55",
     marginBottom: 12,
   },
   highlightFeatureText: {
@@ -508,7 +512,7 @@ const styles = StyleSheet.create({
     flexDirection: "row" as const,
     alignItems: "center" as const,
     gap: 2,
-    backgroundColor: "#FEF3C7",
+    backgroundColor: "#D4A44C25",
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 8,
