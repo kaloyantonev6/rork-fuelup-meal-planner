@@ -405,6 +405,16 @@ function IngredientRow({
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const [expanded, setExpanded] = useState(false);
   const expandAnim = useRef(new Animated.Value(0)).current;
+  const checkPop = useRef(new Animated.Value(1)).current;
+  const wasChecked = useRef(item.checked);
+
+  useEffect(() => {
+    if (item.checked && !wasChecked.current) {
+      checkPop.setValue(0.5);
+      Animated.spring(checkPop, { toValue: 1, friction: 4, tension: 320, useNativeDriver: true }).start();
+    }
+    wasChecked.current = item.checked;
+  }, [item.checked, checkPop]);
 
   const handlePress = useCallback(() => {
     Animated.sequence([
@@ -458,9 +468,11 @@ function IngredientRow({
         ]}
       >
         {isPremium ? (
-          <View style={[styles.checkbox, item.checked && { backgroundColor: Colors.primary, borderColor: Colors.primary }]}>
-            {item.checked && <Check size={12} color="#fff" />}
-          </View>
+          <Animated.View style={{ transform: [{ scale: checkPop }] }}>
+            <View style={[styles.checkbox, item.checked && { backgroundColor: Colors.primary, borderColor: Colors.primary }]}>
+              {item.checked && <Check size={12} color="#fff" />}
+            </View>
+          </Animated.View>
         ) : (
           <View style={[styles.dot, { backgroundColor: accentColor }]} />
         )}

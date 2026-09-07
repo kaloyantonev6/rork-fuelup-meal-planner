@@ -3,16 +3,22 @@ import { Animated, Easing } from "react-native";
 import { motion } from "@/constants/design";
 
 /**
- * Returns a number that counts up from 0 to `target` over 600ms with
- * Easing.out(cubic), in sync with progress bar/ring fills.
+ * Returns a number that counts up to `target` over 600ms with
+ * Easing.out(cubic). When `target` changes, the value rolls smoothly
+ * from its current value to the new one (never jumps).
  */
 export function useCountUp(target: number, duration = motion.progressDuration, delay = motion.progressDelay): number {
   const anim = useRef(new Animated.Value(0)).current;
+  const currentRef = useRef(0);
   const [value, setValue] = useState(0);
 
   useEffect(() => {
+    const from = currentRef.current;
+    anim.setValue(0);
     const id = anim.addListener(({ value: v }) => {
-      setValue(Math.round(target * v));
+      const next = Math.round(from + (target - from) * v);
+      currentRef.current = next;
+      setValue(next);
     });
     const animation = Animated.timing(anim, {
       toValue: 1,

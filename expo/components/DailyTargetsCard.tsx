@@ -15,13 +15,21 @@ function DailyTargetsCard({ profile, dayType }: DailyTargetsCardProps) {
     () => calculateDailyTargets(profile, dayType ?? "training"),
     [profile, dayType],
   );
+  const accent =
+    dayType === "match"
+      ? Colors.match
+      : dayType === "recovery"
+        ? Colors.recovery
+        : dayType === "rest"
+          ? Colors.rest
+          : Colors.training;
   const animatedCalories = useCountUp(targets.calories);
   const animatedProtein = useCountUp(targets.protein);
   const animatedCarbs = useCountUp(targets.carbs);
   const animatedFat = useCountUp(targets.fat);
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { borderLeftWidth: 3, borderLeftColor: accent }]}>
       <View style={styles.headerRow}>
         <Text style={styles.headerTitle}>📊 Today's Fuel Targets</Text>
         <View style={styles.dayBadge}>

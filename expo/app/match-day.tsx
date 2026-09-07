@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useMemo } from "react";
+import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import {
   View,
   Text,
@@ -48,6 +48,33 @@ import type { TimelineEntry, TimelineTemplate } from "@/utils/timeline";
 const KICKOFF_KEY = "fuelup_default_kickoff";
 const TRAINING_TIME_KEY = "fuelup_default_training_time";
 const COMPLETED_SESSIONS_PREFIX = "fuelup_completed_sessions_";
+
+/** Pulsing glow ring shown behind the current timeline node. */
+function TimelinePulseGlow() {
+  const pulse = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 1000, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0, duration: 1000, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [pulse]);
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        styles.timelinePulseRing,
+        {
+          opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.7, 0] }),
+          transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.9] }) }],
+        },
+      ]}
+    />
+  );
+}
 
 function getTodayKey(): string {
   const d = new Date();
@@ -464,7 +491,12 @@ export default function MatchDayScreen() {
                     ]}
                   >
                     {isCompleted && <Check size={14} color={Colors.background} />}
-                    {isActive && !isCompleted && <View style={styles.timelineNodeActiveDot} />}
+                    {isActive && !isCompleted && (
+                      <>
+                        <TimelinePulseGlow />
+                        <View style={styles.timelineNodeActiveDot} />
+                      </>
+                    )}
                   </View>
                 </View>
 
@@ -903,6 +935,14 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: Colors.background,
+  },
+  timelinePulseRing: {
+    position: "absolute" as const,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: Colors.primary,
   },
   timelineNodePast: {
     backgroundColor: Colors.primary + "40",

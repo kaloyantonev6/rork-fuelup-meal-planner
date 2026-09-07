@@ -906,19 +906,19 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   progressContainer: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 0,
     marginBottom: 8,
   },
   progressTrack: {
-    height: 4,
+    height: 3,
     backgroundColor: Colors.surfaceElevated,
-    borderRadius: 2,
+    borderRadius: 1.5,
     overflow: "hidden" as const,
   },
   progressFill: {
     height: "100%",
     backgroundColor: Colors.primary,
-    borderRadius: 2,
+    borderRadius: 1.5,
   },
   scrollContent: {
     paddingHorizontal: 24,

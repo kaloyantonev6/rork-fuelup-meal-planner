@@ -55,6 +55,9 @@ import { calculateWaterTarget, calculateDayTargets } from "@/utils/dailyTargets"
 import { TIMELINE_TEMPLATES } from "@/utils/timeline";
 import MealResults from "@/components/MealResults";
 import DailyTargetsCard from "@/components/DailyTargetsCard";
+import ProgressRing from "@/components/ui/ProgressRing";
+import Entry from "@/components/ui/Entry";
+import { useCountUp } from "@/hooks/useCountUp";
 
 const FREE_DAILY_GEN_KEY = "nutriplan_free_daily_gen";
 const FREE_DAILY_LIMIT = 1;
@@ -394,6 +397,7 @@ export default function HomeScreen() {
   const waterTargetMl = Math.round(waterTargetL * 1000);
   const waterProgress = waterTargetMl > 0 ? Math.min(hydrationMl / waterTargetMl, 1) : 0;
   const waterGlasses = Math.floor(hydrationMl / 250);
+  const waterLiters = useCountUp(hydrationMl) / 1000;
 
   const addHydration = useCallback(async () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -510,11 +514,6 @@ export default function HomeScreen() {
     );
   }
 
-  // Circle progress for hydration ring
-  const ringRadius = 42;
-  const circumference = 2 * Math.PI * ringRadius;
-  const ringFill = circumference * waterProgress;
-
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -527,6 +526,9 @@ export default function HomeScreen() {
             <View style={styles.greetingTextWrap}>
               <Text style={styles.greetingText}>
                 Fuel Your Game, {firstName} ⚽
+              </Text>
+              <Text style={styles.dateText}>
+                {new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}
               </Text>
               <View style={styles.dayTypeBadgeRow}>
                 <View style={[styles.dayTypeBadge, { backgroundColor: dayConfig.color + "20", borderColor: dayConfig.color + "60" }]}>
@@ -557,6 +559,7 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Daily Fuel Progress ring + tappable fuel sessions */}
+        <Entry>
         <View style={styles.fuelProgressCard}>
           <Pressable
             onPress={() => {
@@ -632,8 +635,10 @@ export default function HomeScreen() {
             })}
           </View>
         </View>
+        </Entry>
 
         {/* Fuel Profile pills */}
+        <Entry delay={60}>
         <View style={styles.prefsCard}>
           <View style={styles.prefsHeader}>
             <Text style={styles.prefsTitle}>Your Fuel Profile</Text>
@@ -669,16 +674,22 @@ export default function HomeScreen() {
             </View>
           </ScrollView>
         </View>
+        </Entry>
 
+        <Entry delay={120}>
         <DailyTargetsCard profile={profile} dayType={todayDayType()} />
+        </Entry>
 
         {/* Day Fuel Plan button — adapts to today's day type */}
+        <Entry delay={180}>
         <DayFuelPlanCard dayType={todayDayType()} onPress={() => {
           void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           router.push("/match-day" as never);
         }} />
+        </Entry>
 
         {/* Hydration Card */}
+        <Entry delay={240}>
         <View style={styles.hydrationCard}>
           <View style={styles.hydrationHeader}>
             <View style={styles.hydrationTitleRow}>
@@ -696,28 +707,12 @@ export default function HomeScreen() {
           <View style={styles.hydrationBody}>
             {/* Circular progress ring */}
             <View style={styles.ringContainer}>
-              <View style={styles.ringOuter}>
-                {/* SVG-free circular progress using borderRadius */}
-                <View style={styles.ringBg} />
-                <View
-                  style={[
-                    styles.ringFillView,
-                    {
-                      borderTopLeftRadius: ringRadius,
-                      borderTopRightRadius: ringRadius,
-                      borderBottomLeftRadius: ringRadius,
-                      borderBottomRightRadius: ringRadius,
-                      width: ringRadius * 2 * waterProgress,
-                    },
-                  ]}
-                />
-              </View>
-              <View style={styles.ringCenter}>
-                <Text style={styles.ringValue}>
-                  {(hydrationMl / 1000).toFixed(1)}
-                </Text>
-                <Text style={styles.ringUnit}>/ {waterTargetL.toFixed(1)} L</Text>
-              </View>
+              <ProgressRing progress={waterProgress} size={104} strokeWidth={6} color={Colors.primary} trackColor={Colors.bg4}>
+                <View style={styles.ringCenter}>
+                  <Text style={styles.ringValue}>{waterLiters.toFixed(2)}</Text>
+                  <Text style={styles.ringUnit}>/ {waterTargetL.toFixed(1)} L</Text>
+                </View>
+              </ProgressRing>
             </View>
 
             <View style={styles.hydrationRight}>
@@ -743,15 +738,18 @@ export default function HomeScreen() {
             </View>
           </View>
         </View>
+        </Entry>
 
         {/* Performance Tip of the Day */}
+        <Entry delay={300}>
         <View style={styles.tipCard}>
           <View style={styles.tipHeader}>
             <Sparkles size={16} color={Colors.premiumGold} />
             <Text style={styles.tipLabel}>Performance Tip</Text>
           </View>
-          <Text style={styles.tipText}>{currentTip}</Text>
+          <Text style={styles.tipText}>💡 {currentTip}</Text>
         </View>
+        </Entry>
 
         {/* Quick Access */}
         <View style={styles.quickAccessRow}>
@@ -1311,6 +1309,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.textSecondary,
   },
+  dateText: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
   hydrationCard: {
     backgroundColor: Colors.surface,
     borderRadius: 16,
@@ -1352,8 +1355,8 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   ringContainer: {
-    width: 96,
-    height: 96,
+    width: 104,
+    height: 104,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -1381,7 +1384,10 @@ const styles = StyleSheet.create({
   },
   ringCenter: {
     position: "absolute" as const,
+    width: "100%" as const,
+    height: "100%" as const,
     alignItems: "center",
+    justifyContent: "center",
   },
   ringValue: {
     fontSize: 18,
@@ -1423,6 +1429,8 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.accent,
     borderColor: Colors.border,
     marginBottom: 16,
   },
@@ -1444,6 +1452,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
     lineHeight: 20,
     fontWeight: "500" as const,
+    fontStyle: "italic" as const,
   },
   quickAccessRow: {
     flexDirection: "row",
