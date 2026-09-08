@@ -78,6 +78,14 @@ import {
   DayType,
 } from "@/types";
 import DailyTargetsCard from "@/components/DailyTargetsCard";
+import WeeklyProgramEditor from "@/components/WeeklyProgramEditor";
+import Toast from "@/components/ui/Toast";
+import { useToday } from "@/providers/TodayProvider";
+import {
+  DAY_TYPE_META,
+  DEFAULT_WEEKLY_SCHEDULE,
+  getMondayIndex,
+} from "@/constants/dayTypes";
 
 type EditField =
   | "name"
@@ -115,6 +123,35 @@ export default function ProfileScreen() {
   const [textValue, setTextValue] = useState("");
   const [prefsExpanded, setPrefsExpanded] = useState(false);
   const chevronAnim = useRef(new Animated.Value(0)).current;
+  const { todayData, refreshToday, resetHydration } = useToday();
+  const [programToastVisible, setProgramToastVisible] = useState(false);
+
+  const weeklySchedule: DayType[] =
+    profile.weeklySchedule && profile.weeklySchedule.length === 7
+      ? profile.weeklySchedule
+      : DEFAULT_WEEKLY_SCHEDULE;
+
+  /** Auto-saves the program; if today's day type changed, offers to reset today's progress. */
+  const handleProgramChange = useCallback(
+    (next: DayType[]) => {
+      const prevType = weeklySchedule[getMondayIndex()];
+      const nextType = next[getMondayIndex()];
+      updateProfile({ weeklySchedule: next });
+      refreshToday();
+      setProgramToastVisible(true);
+      if (prevType !== nextType) {
+        Alert.alert(
+          "Daily targets updated",
+          "Your daily targets have changed. Reset today's progress?",
+          [
+            { text: "Keep", style: "cancel" },
+            { text: "Reset", style: "destructive", onPress: resetHydration },
+          ],
+        );
+      }
+    },
+    [weeklySchedule, updateProfile, refreshToday, resetHydration],
+  );
 
   const togglePrefs = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -450,6 +487,7 @@ export default function ProfileScreen() {
   };
 
   return (
+    <>
     <ScrollView
       style={[styles.container, { paddingTop: insets.top }]}
       contentContainerStyle={styles.content}
@@ -499,6 +537,46 @@ export default function ProfileScreen() {
           </LinearGradient>
         </Pressable>
       )}
+
+
+
+      {/* My Program — weekly program editor (first settings section) */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>My Program</Text>
+        <View style={styles.programCard}>
+          <Text style={styles.programHeader}>⚽ My Weekly Program</Text>
+          <WeeklyProgramEditor
+            schedule={weeklySchedule}
+            onChange={handleProgramChange}
+            title={null}
+            subtitle="Tap each day to set your schedule"
+          />
+          <Text style={styles.programNote}>
+            Your meal plans and daily targets automatically adjust based on this schedule.
+          </Text>
+          {todayData ? (
+            <View style={styles.nextDayCard}>
+              <Text style={styles.nextDayIcon}>
+                {DAY_TYPE_META[todayData.tomorrow.dayType].icon}
+              </Text>
+              <View style={styles.nextDayTextWrap}>
+                <Text style={styles.nextDayLabel}>
+                  Tomorrow — {todayData.tomorrow.dayName}
+                </Text>
+                <Text
+                  style={[
+                    styles.nextDayValue,
+                    { color: DAY_TYPE_META[todayData.tomorrow.dayType].color },
+                  ]}
+                >
+                  {DAY_TYPE_META[todayData.tomorrow.dayType].label} ·{" "}
+                  {todayData.tomorrow.calorieTarget} kcal
+                </Text>
+              </View>
+            </View>
+          ) : null}
+        </View>
+      </View>
 
 
 
@@ -770,6 +848,13 @@ export default function ProfileScreen() {
         </View>
       </Modal>
     </ScrollView>
+    <Toast
+      visible={programToastVisible}
+      message="Program updated · Today's targets adjusted"
+      icon="⚽"
+      onHide={() => setProgramToastVisible(false)}
+    />
+    </>
   );
 }
 
@@ -1193,5 +1278,51 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600" as const,
     color: Colors.error,
+  },
+  programCard: {
+    backgroundColor: Colors.bg3,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+    padding: 16,
+  },
+  programHeader: {
+    fontSize: 16,
+    fontWeight: "700" as const,
+    color: Colors.text,
+    marginBottom: 12,
+  },
+  programNote: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    lineHeight: 18,
+    marginTop: 10,
+  },
+  nextDayCard: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 10,
+    backgroundColor: Colors.bg2,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: 12,
+    marginTop: 12,
+  },
+  nextDayIcon: {
+    fontSize: 16,
+  },
+  nextDayTextWrap: {
+    flex: 1,
+  },
+  nextDayLabel: {
+    fontSize: 13,
+    fontWeight: "500" as const,
+    color: Colors.textSecondary,
+  },
+  nextDayValue: {
+    fontSize: 15,
+    fontWeight: "600" as const,
+    marginTop: 2,
   },
 });

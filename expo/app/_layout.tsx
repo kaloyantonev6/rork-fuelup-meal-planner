@@ -6,6 +6,7 @@ import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { MealPlanProvider } from "@/providers/MealPlanProvider";
+import { TodayProvider } from "@/providers/TodayProvider";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { SavedPlansProvider } from "@/providers/SavedPlansProvider";
 import { BudgetProvider } from "@/providers/BudgetProvider";
@@ -53,6 +54,7 @@ export default function RootLayout() {
       <GestureHandlerRootView>
         <AuthProvider>
           <MealPlanProvider>
+          <TodayProvider>
           <SavedPlansProvider>
             <BudgetProvider>
               <NotificationProvider>
@@ -60,6 +62,7 @@ export default function RootLayout() {
               </NotificationProvider>
             </BudgetProvider>
           </SavedPlansProvider>
+          </TodayProvider>
           </MealPlanProvider>
         </AuthProvider>
       </GestureHandlerRootView>

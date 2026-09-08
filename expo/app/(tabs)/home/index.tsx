@@ -6,6 +6,7 @@ import {
   ScrollView,
   Pressable,
   Animated,
+  Easing,
   Modal,
   Alert,
 } from "react-native";
@@ -50,7 +51,15 @@ import {
   GeneratedPlan,
   ShoppingIngredient,
 } from "@/utils/mealGenerator";
-import { calculateWaterTarget, calculateDayTargets } from "@/utils/dailyTargets";
+import { calculateWaterTarget, calculateDayTargets, MACRO_SPLITS } from "@/utils/dailyTargets";
+import Toast from "@/components/ui/Toast";
+import { useToday } from "@/providers/TodayProvider";
+import {
+  DAY_LETTERS,
+  DAY_TYPE_META,
+  DEFAULT_WEEKLY_SCHEDULE,
+  getMondayIndex,
+} from "@/constants/dayTypes";
 import { TIMELINE_TEMPLATES } from "@/utils/timeline";
 import MealResults from "@/components/MealResults";
 import DailyTargetsCard from "@/components/DailyTargetsCard";
@@ -232,11 +241,215 @@ function DayFuelPlanCard({ dayType, onPress }: DayFuelPlanCardProps) {
   );
 }
 
+interface DayTypeBannerProps {
+  dayType: DayType;
+  dayName: string;
+  calorieTarget: number;
+}
+
+/**
+ * Full-width day type banner below the greeting. Animates in on open, and when
+ * the day type changes (midnight or a program edit) it cross-fades colors over
+ * 500ms, pulses once, and the calorie number rolls to the new target.
+ */
+function DayTypeBanner({ dayType, dayName, calorieTarget }: DayTypeBannerProps) {
+  const meta = DAY_TYPE_META[dayType];
+  const entrance = useRef(new Animated.Value(0)).current;
+  const pulse = useRef(new Animated.Value(1)).current;
+  const colorAnim = useRef(new Animated.Value(1)).current;
+  const prevTypeRef = useRef<DayType>(dayType);
+  const [fadeFrom, setFadeFrom] = useState<DayType>(dayType);
+  const kcal = useCountUp(calorieTarget);
+
+  useEffect(() => {
+    Animated.timing(entrance, {
+      toValue: 1,
+      duration: 300,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [entrance]);
+
+  useEffect(() => {
+    if (prevTypeRef.current === dayType) return;
+    const from = prevTypeRef.current;
+    prevTypeRef.current = dayType;
+    setFadeFrom(from);
+    colorAnim.setValue(0);
+    Animated.parallel([
+      Animated.timing(colorAnim, {
+        toValue: 1,
+        duration: 500,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }),
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1.02, duration: 250, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1, duration: 250, useNativeDriver: true }),
+      ]),
+    ]).start();
+  }, [dayType, colorAnim, pulse]);
+
+  const fromMeta = DAY_TYPE_META[fadeFrom];
+  const mix = (a: string, b: string) =>
+    fadeFrom !== dayType
+      ? colorAnim.interpolate({ inputRange: [0, 1], outputRange: [a, b] })
+      : b;
+
+  return (
+    <Animated.View
+      style={{
+        opacity: entrance,
+        transform: [
+          { translateY: entrance.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) },
+          { scale: pulse },
+        ],
+      }}
+    >
+      <View
+        style={[
+          styles.dayBanner,
+          {
+            backgroundColor: mix(fromMeta.bgColor, meta.bgColor),
+            borderColor: mix(fromMeta.borderColor, meta.borderColor),
+          },
+        ]}
+      >
+        <View style={styles.dayBannerLeft}>
+          <Text style={styles.dayBannerIcon}>{meta.icon}</Text>
+          <View>
+            <Text style={styles.dayBannerName}>{dayName}</Text>
+            <Text style={[styles.dayBannerLabel, { color: meta.color }]}>{meta.label}</Text>
+          </View>
+        </View>
+        <View style={styles.dayBannerRight}>
+          <Text style={styles.dayBannerKcal}>{Math.round(kcal)}</Text>
+          <Text style={styles.dayBannerKcalLabel}>KCAL TARGET</Text>
+        </View>
+      </View>
+    </Animated.View>
+  );
+}
+
+interface MacroRingCardProps {
+  value: string;
+  label: string;
+  pct: number;
+  color: string;
+  delay: number;
+}
+
+/** Small macro target ring — enters with a stagger, shows the gram target in the center. */
+function MacroRingCard({ value, label, pct, color, delay }: MacroRingCardProps) {
+  const entrance = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(entrance, {
+      toValue: 1,
+      duration: 350,
+      delay,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [delay, entrance]);
+
+  return (
+    <Animated.View
+      style={[
+        styles.macroRingCard,
+        {
+          opacity: entrance,
+          transform: [
+            { translateY: entrance.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) },
+          ],
+        },
+      ]}
+    >
+      <ProgressRing progress={0} size={64} strokeWidth={5} color={color} trackColor={Colors.bg4}>
+        <View style={styles.macroRingCenter}>
+          <Text style={styles.macroRingValue}>{value}</Text>
+        </View>
+      </ProgressRing>
+      <Text style={styles.macroRingLabel}>{label}</Text>
+      <Text style={styles.macroRingPct}>{pct}%</Text>
+    </Animated.View>
+  );
+}
+
+interface WeeklyMiniStripProps {
+  schedule: DayType[];
+  todayIndex: number;
+  onPress: () => void;
+}
+
+/** Compact weekly program strip — today's dot pulses; tapping opens My Program. */
+function WeeklyMiniStrip({ schedule, todayIndex, onPress }: WeeklyMiniStripProps) {
+  const pulse = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, {
+          toValue: 1.15,
+          duration: 1000,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulse, {
+          toValue: 1,
+          duration: 1000,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [pulse]);
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.miniStrip, pressed && { opacity: 0.8 }]}
+    >
+      {schedule.map((dayType, i) => {
+        const isToday = i === todayIndex;
+        const meta = DAY_TYPE_META[dayType] ?? DAY_TYPE_META.rest;
+        return (
+          <View key={`strip-${i}`} style={styles.miniStripDay}>
+            <Animated.View
+              style={{
+                width: isToday ? 16 : 12,
+                height: isToday ? 16 : 12,
+                borderRadius: isToday ? 8 : 6,
+                backgroundColor: meta.color,
+                borderWidth: isToday ? 2 : 0,
+                borderColor: isToday ? Colors.text : "transparent",
+                transform: [{ scale: isToday ? pulse : 1 }],
+              }}
+            />
+            <Text
+              style={{
+                fontSize: 10,
+                fontWeight: isToday ? ("700" as const) : ("500" as const),
+                color: isToday ? Colors.text : Colors.textTertiary,
+              }}
+            >
+              {DAY_LETTERS[i]}
+            </Text>
+          </View>
+        );
+      })}
+    </Pressable>
+  );
+}
+
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { profile } = useMealPlan();
   const { savedPlans, favorites } = useSavedPlans();
+  const { todayData, refreshCount, bootedWithReset } = useToday();
 
   const [mealsPerDay, setMealsPerDay] = useState<number>(4);
   const [showCookingPrefs, setShowCookingPrefs] = useState(false);
@@ -303,13 +516,13 @@ export default function HomeScreen() {
         }
       };
       void loadCompleted();
-    }, []),
+    }, [refreshCount]),
   );
 
   useEffect(() => {
     const loadHydration = async () => {
       try {
-        const today = new Date().toISOString().split("T")[0];
+        const today = getTodayKey();
         const stored = await AsyncStorage.getItem(HYDRATION_KEY);
         if (stored) {
           const data = JSON.parse(stored) as { date: string; intakeMl: number };
@@ -330,7 +543,7 @@ export default function HomeScreen() {
     const loadTip = async () => {
       try {
         const tipIdxStr = await AsyncStorage.getItem(TIP_INDEX_KEY);
-        const today = new Date().toISOString().split("T")[0];
+        const today = getTodayKey();
         if (tipIdxStr) {
           const { date, index } = JSON.parse(tipIdxStr) as { date: string; index: number };
           if (date === today) {
@@ -350,13 +563,13 @@ export default function HomeScreen() {
       }
     };
     void loadTip();
-  }, []);
+  }, [refreshCount]);
 
   const firstName = profile.name?.split(" ")[0] || "there";
 
   const todayDayType = useCallback((): DayType => {
-    return getDayTypeFromSchedule(new Date(), profile);
-  }, [profile]);
+    return todayData?.dayType ?? getDayTypeFromSchedule(new Date(), profile);
+  }, [todayData, profile]);
 
   // Total fuel sessions for today based on the active day-type timeline template.
   useEffect(() => {
@@ -373,6 +586,39 @@ export default function HomeScreen() {
     () => calculateDayTargets(profile, todayDayType()).calories,
     [profile, todayDayType]
   );
+
+  // Weekly program mini-view + day-type targets from the Today provider
+  const weeklySchedule: DayType[] =
+    profile.weeklySchedule && profile.weeklySchedule.length === 7
+      ? profile.weeklySchedule
+      : DEFAULT_WEEKLY_SCHEDULE;
+  const todayIndex = getMondayIndex();
+  const macroSplit = todayData?.macroSplit ?? MACRO_SPLITS[todayDayType()];
+  const proteinG = todayData?.proteinGrams ?? Math.round((dayCalorieTarget * macroSplit.protein) / 100 / 4);
+  const carbsG = todayData?.carbsGrams ?? Math.round((dayCalorieTarget * macroSplit.carbs) / 100 / 4);
+  const fatsG = todayData?.fatsGrams ?? Math.round((dayCalorieTarget * macroSplit.fats) / 100 / 9);
+
+  // Day-change toast: fires on midnight crossover, on a program change, or when
+  // the app is opened on a brand-new day (bootedWithReset from the daily reset).
+  const [dayToast, setDayToast] = useState<{ message: string; color: string; icon: string } | null>(null);
+  const prevDayTypeRef = useRef<DayType | null>(null);
+
+  useEffect(() => {
+    const dayType = todayDayType();
+    const meta = DAY_TYPE_META[dayType];
+    const prev = prevDayTypeRef.current;
+    prevDayTypeRef.current = dayType;
+    const message = `Good morning! Today is a ${meta.label} day. Target: ${todayData?.calorieTarget ?? dayCalorieTarget} kcal`;
+    if (prev === null) {
+      if (bootedWithReset) {
+        setDayToast({ message, color: meta.color, icon: meta.icon });
+      }
+      return;
+    }
+    if (prev !== dayType) {
+      setDayToast({ message, color: meta.color, icon: meta.icon });
+    }
+  }, [todayData, todayDayType, bootedWithReset, dayCalorieTarget]);
 
   // Toggle a fuel session directly from the dashboard. Persists to the same
   // storage key the Day Fuel Plan screen reads, so both stay in sync — and
@@ -404,7 +650,7 @@ export default function HomeScreen() {
     const newMl = hydrationMl + 250;
     setHydrationMl(newMl);
     try {
-      const today = new Date().toISOString().split("T")[0];
+      const today = getTodayKey();
       await AsyncStorage.setItem(HYDRATION_KEY, JSON.stringify({ date: today, intakeMl: newMl }));
     } catch (e) {
       console.log("[HomeScreen] Error saving hydration:", e);
@@ -566,6 +812,33 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* Day type banner — cross-fades and pulses when the day changes */}
+        <DayTypeBanner
+          dayType={todayDayType()}
+          dayName={
+            todayData?.dayName ??
+            new Date().toLocaleDateString(undefined, { weekday: "long" })
+          }
+          calorieTarget={todayData?.calorieTarget ?? dayCalorieTarget}
+        />
+
+        {/* Macro target rings — staggered entrance */}
+        <View style={styles.macroRingsRow}>
+          <MacroRingCard value={`${proteinG}g`} label="Protein" pct={macroSplit.protein} color="#60A5FA" delay={200} />
+          <MacroRingCard value={`${carbsG}g`} label="Carbs" pct={macroSplit.carbs} color="#FBBF24" delay={300} />
+          <MacroRingCard value={`${fatsG}g`} label="Fats" pct={macroSplit.fats} color="#F87171" delay={400} />
+        </View>
+
+        {/* Weekly program mini strip — tap to edit in My Program */}
+        <WeeklyMiniStrip
+          schedule={weeklySchedule}
+          todayIndex={todayIndex}
+          onPress={() => {
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push("/(tabs)/profile" as never);
+          }}
+        />
+
         {/* Daily Fuel Progress ring + tappable fuel sessions */}
         <Entry>
         <View style={styles.fuelProgressCard}>
@@ -1012,6 +1285,14 @@ export default function HomeScreen() {
           </Animated.View>
         </View>
       </Modal>
+
+      <Toast
+        visible={dayToast !== null}
+        message={dayToast?.message ?? ""}
+        icon={dayToast?.icon}
+        accentColor={dayToast?.color}
+        onHide={() => setDayToast(null)}
+      />
     </View>
   );
 }
@@ -1792,5 +2073,94 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: Colors.primary,
+  },
+  dayBanner: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "space-between" as const,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    marginBottom: 16,
+  },
+  dayBannerLeft: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 12,
+  },
+  dayBannerIcon: {
+    fontSize: 28,
+  },
+  dayBannerName: {
+    fontSize: 18,
+    fontWeight: "700" as const,
+    color: Colors.text,
+  },
+  dayBannerLabel: {
+    fontSize: 13,
+    fontWeight: "600" as const,
+    marginTop: 2,
+  },
+  dayBannerRight: {
+    alignItems: "flex-end" as const,
+  },
+  dayBannerKcal: {
+    fontSize: 24,
+    fontWeight: "700" as const,
+    color: Colors.text,
+  },
+  dayBannerKcalLabel: {
+    fontSize: 11,
+    fontWeight: "600" as const,
+    color: Colors.textSecondary,
+    letterSpacing: 0.5,
+    marginTop: 2,
+  },
+  macroRingsRow: {
+    flexDirection: "row" as const,
+    justifyContent: "space-around" as const,
+    alignItems: "flex-start" as const,
+    marginBottom: 16,
+  },
+  macroRingCard: {
+    alignItems: "center" as const,
+    width: 90,
+  },
+  macroRingCenter: {
+    flex: 1,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  },
+  macroRingValue: {
+    fontSize: 13,
+    fontWeight: "700" as const,
+    color: Colors.text,
+  },
+  macroRingLabel: {
+    fontSize: 11,
+    fontWeight: "600" as const,
+    color: Colors.text,
+    marginTop: 6,
+  },
+  macroRingPct: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    marginTop: 1,
+  },
+  miniStrip: {
+    flexDirection: "row" as const,
+    justifyContent: "space-between" as const,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    marginVertical: 4,
+    marginBottom: 8,
+    borderRadius: 12,
+    backgroundColor: Colors.bg2,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  miniStripDay: {
+    alignItems: "center" as const,
+    gap: 4,
   },
 });

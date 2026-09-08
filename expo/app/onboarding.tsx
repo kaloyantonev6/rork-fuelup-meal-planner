@@ -39,9 +39,9 @@ import {
   ALLERGY_OPTIONS,
   GENDER_OPTIONS,
   COOKING_SKILLS,
-  DAY_TYPE_OPTIONS,
   DEFAULT_WEEKLY_SCHEDULE,
 } from "@/constants/onboarding";
+import WeeklyProgramEditor from "@/components/WeeklyProgramEditor";
 import { countryNameToCode, getTopRetailers } from "@/lib/priceEngine";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -164,19 +164,6 @@ export default function OnboardingScreen() {
         ? prev.allergies.filter((v) => v !== value)
         : [...prev.allergies, value];
       return { ...prev, allergies: updated };
-    });
-  }, []);
-
-  const cycleDayType = useCallback((dayIndex: number) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setData((prev) => {
-      const types: DayType[] = ["training", "match", "rest", "recovery"];
-      const current = prev.weeklySchedule[dayIndex] ?? "rest";
-      const currentIdx = types.indexOf(current);
-      const nextIdx = (currentIdx + 1) % types.length;
-      const newSchedule = [...prev.weeklySchedule];
-      newSchedule[dayIndex] = types[nextIdx] ?? "rest";
-      return { ...prev, weeklySchedule: newSchedule };
     });
   }, []);
 
@@ -541,75 +528,22 @@ export default function OnboardingScreen() {
     </View>
   );
 
-  // Step 12 — Weekly Schedule (kept as one interactive step, not a single
+  // Step 12 — Weekly Program (kept as one interactive step, not a single
   // yes/no question — splitting it into 7 day-by-day screens would slow
   // people down for no real benefit)
-  const renderStep12 = () => {
-    const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-    return (
-      <View style={styles.stepContent}>
-        <Text style={styles.stepTitle}>Your Typical Week</Text>
-        <Text style={styles.stepSubtitle}>Tap each day to set its type — this shapes your fuel plan</Text>
+  const renderStep12 = () => (
+    <View style={styles.stepContent}>
+      <Text style={styles.stepTitle}>Your Weekly Program</Text>
+      <Text style={styles.stepSubtitle}>Tell us your typical training week so we can fuel each day perfectly</Text>
 
-        <View style={styles.scheduleContainer}>
-          {dayLabels.map((label, idx) => {
-            const dayType = data.weeklySchedule[idx] ?? "rest";
-            const dayTypeInfo = DAY_TYPE_OPTIONS.find((d) => d.id === dayType);
-            const dayColor = dayTypeInfo?.color ?? Colors.rest;
-            return (
-              <Pressable
-                key={label}
-                onPress={() => cycleDayType(idx)}
-                style={({ pressed }) => [
-                  styles.dayCard,
-                  { borderColor: dayColor + "60", backgroundColor: dayColor + "15" },
-                  pressed && { opacity: 0.8 },
-                ]}
-              >
-                <View style={styles.dayCardLeft}>
-                  <Text style={styles.dayLabel}>{label}</Text>
-                  <View style={[styles.dayDot, { backgroundColor: dayColor }]} />
-                  <Text style={[styles.dayTypeText, { color: dayColor }]}>
-                    {dayType === "training" ? "Training" :
-                     dayType === "match" ? "Match Day" :
-                     dayType === "recovery" ? "Recovery" : "Rest"}
-                  </Text>
-                </View>
-                <Text style={styles.dayIcon}>
-                  {dayType === "training" ? "🟢" :
-                   dayType === "match" ? "🔴" :
-                   dayType === "recovery" ? "🟡" : "⚪"}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        <View style={styles.scheduleLegend}>
-          <Text style={styles.legendTitle}>Day Types:</Text>
-          <View style={styles.legendRow}>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: Colors.training }]} />
-              <Text style={styles.legendText}>Training</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: Colors.match }]} />
-              <Text style={styles.legendText}>Match</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: Colors.rest }]} />
-              <Text style={styles.legendText}>Rest</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: Colors.recovery }]} />
-              <Text style={styles.legendText}>Recovery</Text>
-            </View>
-          </View>
-          <Text style={styles.legendHint}>Tap a day above to cycle through types</Text>
-        </View>
-      </View>
-    );
-  };
+      <WeeklyProgramEditor
+        schedule={data.weeklySchedule}
+        onChange={(next) => setData((p) => ({ ...p, weeklySchedule: next }))}
+        title={null}
+        subtitle={null}
+      />
+    </View>
+  );
 
   // Step 13 — Weekly Budget
   const renderStep13 = () => {
