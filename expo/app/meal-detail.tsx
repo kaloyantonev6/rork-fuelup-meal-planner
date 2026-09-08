@@ -818,6 +818,10 @@ export default function MealDetailScreen() {
                 <Text style={styles.macroLabel}>Fats</Text>
               </View>
             </View>
+            <Text style={styles.fiberText}>Fiber: {meal.fiber ?? 0}g</Text>
+            {meal.dayType === "match" && (meal.fiber ?? 0) > 8 ? (
+              <Text style={styles.fiberWarning}>⚠️ Higher fiber — eat 4+ hours before kickoff</Text>
+            ) : null}
           </View>
 
           <View style={styles.section}>
@@ -920,10 +924,11 @@ export default function MealDetailScreen() {
 
           <View style={styles.tipCard}>
             <View style={styles.tipHeader}>
-              <Lightbulb size={18} color="#F59E0B" />
-              <Text style={styles.tipTitle}>Nutrition Tips</Text>
+              <Text style={styles.tipIcon}>🔬</Text>
+              <Text style={styles.tipTitle}>Why This Meal</Text>
             </View>
             <Text style={styles.tipText}>{meal.nutritionTip}</Text>
+            <Text style={styles.tipSource}>Source: UEFA Expert Group, 2021</Text>
 
             {showSimplified && (
               <Animated.View
@@ -1471,13 +1476,34 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   tipCard: {
-    backgroundColor: "#D4A44C12",
+    backgroundColor: "#1C2128",
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#D4A44C40",
+    borderLeftWidth: 3,
+    borderLeftColor: "#2DD4A8",
+    borderColor: "#1E2430",
     marginBottom: 20,
     gap: 8,
+  },
+  tipIcon: {
+    fontSize: 15,
+  },
+  tipSource: {
+    fontSize: 11,
+    color: "#505A6A",
+    marginTop: 2,
+  },
+  fiberText: {
+    fontSize: 12,
+    color: "#505A6A",
+    marginTop: 8,
+  },
+  fiberWarning: {
+    fontSize: 12,
+    fontWeight: "600" as const,
+    color: "#F59E0B",
+    marginTop: 4,
   },
   tipHeader: {
     flexDirection: "row" as const,
@@ -1487,12 +1513,13 @@ const styles = StyleSheet.create({
   tipTitle: {
     fontSize: 14,
     fontWeight: "700" as const,
-    color: "#D4A44C",
+    color: "#8B95A5",
   },
   tipText: {
     fontSize: 14,
     fontWeight: "500" as const,
-    color: "#C9B896",
+    fontStyle: "italic" as const,
+    color: "#F1F5F9",
     lineHeight: 21,
   },
   simplifiedWrap: {

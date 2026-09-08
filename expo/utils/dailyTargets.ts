@@ -16,6 +16,7 @@ export interface DailyTargets {
 
 export interface DayTargets {
   dayType: DayType;
+  bmr: number;
   calories: number;
   protein: number;
   carbs: number;
@@ -24,6 +25,8 @@ export interface DayTargets {
   proteinPct: number;
   carbsPct: number;
   fatPct: number;
+  /** Set when a youth safeguard forced the calorie target upward */
+  safeguardNote?: string;
 }
 
 // Position-based calorie boost (on training/match days only)
@@ -53,6 +56,64 @@ export const MACRO_SPLITS: Record<DayType, { protein: number; carbs: number; fat
   match: { protein: 20, carbs: 60, fats: 20 },
   recovery: { protein: 30, carbs: 45, fats: 25 },
 };
+
+// ── UEFA/IOC per-kg nutrition targets by day type ─────────────────
+// Based on the UEFA Expert Group Statement (Collins et al., 2021)
+// and the IOC Consensus on Sports Nutrition.
+export interface DayNutritionTargets {
+  carbsPerKg: { min: number; max: number }; // g per kg body weight
+  proteinPerKg: { min: number; max: number }; // g per kg body weight
+  fatPercent: { min: number; max: number }; // % of total calories
+  hydrationPerKg: number; // ml per kg body weight (baseline)
+}
+
+export const DAY_NUTRITION_TARGETS: Record<DayType, DayNutritionTargets> = {
+  match: {
+    carbsPerKg: { min: 6, max: 8 }, // UEFA: 6-8g/kg match day
+    proteinPerKg: { min: 1.6, max: 2.0 },
+    fatPercent: { min: 18, max: 22 },
+    hydrationPerKg: 45, // higher on match days
+  },
+  training: {
+    carbsPerKg: { min: 5, max: 7 }, // UEFA: moderate-high training load
+    proteinPerKg: { min: 1.6, max: 2.2 },
+    fatPercent: { min: 22, max: 28 },
+    hydrationPerKg: 40,
+  },
+  recovery: {
+    carbsPerKg: { min: 4, max: 6 }, // replenish glycogen
+    proteinPerKg: { min: 1.8, max: 2.2 }, // elevated for tissue repair
+    fatPercent: { min: 25, max: 30 },
+    hydrationPerKg: 38,
+  },
+  rest: {
+    carbsPerKg: { min: 3, max: 5 }, // UEFA: low training load
+    proteinPerKg: { min: 1.4, max: 1.8 },
+    fatPercent: { min: 25, max: 32 },
+    hydrationPerKg: 33,
+  },
+};
+
+// ── Youth safeguards (IOC + Youth Soccer Review 2022) ──────────────
+// "Dieting in young athletes should be discouraged" — calorie targets are
+// never allowed below the age-based BMR floor below.
+export function minCalorieFloor(age: number, bmr: number): number {
+  if (age < 18) return bmr * 1.2; // absolute minimum: 120% of BMR for under-18
+  if (age < 21) return bmr * 1.1; // absolute minimum: 110% of BMR for 18-20
+  return bmr; // adults can go to BMR if goal is fat loss
+}
+
+/** Under-18s never see "deficit" or "weight loss" language. */
+export function hideWeightLossLabels(age: number): boolean {
+  return age < 18;
+}
+
+export function youthSafeguardWarning(age: number, calories: number, floor: number): string | null {
+  if (calories < floor) {
+    return "Your calorie target has been adjusted upward to support healthy development and performance. Growing athletes need adequate fuel.";
+  }
+  return null;
+}
 
 // Season phase adjustment
 export const SEASON_CALORIE_ADJUSTMENT: Record<SeasonPhase, number> = {
@@ -109,17 +170,11 @@ function getDayTypeLabel(dayType: DayType): string {
 
 /**
  * Calculate water intake target based on body weight and day type.
- * base = weightKg * 0.033 liters, plus day-type bonus
+ * UEFA/IOC per-kg baseline (ml/kg) that rises with training load.
  */
 export function calculateWaterTarget(weight: number, dayType: DayType): number {
-  const baseWater = weight * 0.033;
-  const dayBonus: Record<DayType, number> = {
-    rest: 0,
-    training: 0.75,
-    match: 1.0,
-    recovery: 0.5,
-  };
-  return Math.round((baseWater + dayBonus[dayType]) * 10) / 10;
+  const perKg = DAY_NUTRITION_TARGETS[dayType].hydrationPerKg;
+  return Math.round(((weight * perKg) / 1000) * 10) / 10;
 }
 
 /**
@@ -151,21 +206,47 @@ export function calculateDayTargets(
     ? POSITION_CALORIE_BOOST[position] ?? 0
     : 0;
 
-  const calories = Math.round(tdee * dayMult * seasonMult + positionBoost);
+  let calories = Math.round(tdee * dayMult * seasonMult + positionBoost);
 
-  const macros = MACRO_SPLITS[dayType];
-  const proteinPct = macros.protein / 100;
-  const carbsPct = macros.carbs / 100;
-  const fatPct = macros.fats / 100;
+  // Youth safeguard: calories never drop below the age-based BMR floor
+  const calorieFloor = minCalorieFloor(age, bmr);
+  let safeguardNote: string | undefined;
+  if (calories < calorieFloor) {
+    calories = Math.round(calorieFloor);
+    safeguardNote = youthSafeguardWarning(age, calories, calorieFloor) ?? undefined;
+  }
 
-  const protein = Math.round((calories * proteinPct) / 4);
-  const carbs = Math.round((calories * carbsPct) / 4);
-  const fat = Math.round((calories * fatPct) / 9);
+  // Per-kg macro targets (midpoint of the evidence-based range)
+  const perKg = DAY_NUTRITION_TARGETS[dayType];
+  const protein = Math.round(weight * ((perKg.proteinPerKg.min + perKg.proteinPerKg.max) / 2));
+  let carbs = Math.round(weight * ((perKg.carbsPerKg.min + perKg.carbsPerKg.max) / 2));
+
+  // Fat fills the remaining calories, clamped into the evidence-based fat % range
+  const fatMinGrams = (calories * perKg.fatPercent.min) / 100 / 9;
+  const fatMaxGrams = (calories * perKg.fatPercent.max) / 100 / 9;
+  let fat = (calories - protein * 4 - carbs * 4) / 9;
+  if (fat < fatMinGrams) {
+    fat = fatMinGrams;
+    carbs = Math.max(
+      Math.round((calories - protein * 4 - fat * 9) / 4),
+      Math.round(weight * perKg.carbsPerKg.min),
+    );
+  } else if (fat > fatMaxGrams) {
+    fat = fatMaxGrams;
+    carbs = Math.max(Math.round((calories - protein * 4 - fat * 9) / 4), 0);
+  }
+  fat = Math.round(fat);
+
+  const macroCalories = protein * 4 + carbs * 4 + fat * 9;
+  const proteinPct = macroCalories > 0 ? (protein * 4) / macroCalories : 0.25;
+  const carbsPct = macroCalories > 0 ? (carbs * 4) / macroCalories : 0.5;
+  const fatPct = macroCalories > 0 ? (fat * 9) / macroCalories : 0.25;
 
   const waterLiters = calculateWaterTarget(weight, dayType);
 
   return {
     dayType,
+    bmr,
     calories,
     protein,
     carbs,
@@ -174,6 +255,7 @@ export function calculateDayTargets(
     proteinPct,
     carbsPct,
     fatPct,
+    safeguardNote,
   };
 }
 

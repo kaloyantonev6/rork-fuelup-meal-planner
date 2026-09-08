@@ -59,6 +59,7 @@ import {
   TRAINING_FREQUENCIES,
   SEASON_PHASES,
   PERFORMANCE_GOALS,
+  goalLabelForAge,
   DIET_TYPES,
   ALLERGY_OPTIONS,
   COOKING_SKILLS,
@@ -298,7 +299,12 @@ export default function ProfileScreen() {
       case "seasonPhase":
         return SEASON_PHASES.map((s) => ({ id: s.id, label: s.label, icon: s.icon, desc: s.desc }));
       case "performanceGoal":
-        return PERFORMANCE_GOALS.map((p) => ({ id: p.id, label: p.label, icon: p.icon, desc: p.desc }));
+        return PERFORMANCE_GOALS.map((p) => ({
+          id: p.id,
+          label: goalLabelForAge(p.id, p.label, profile.age),
+          icon: p.icon,
+          desc: p.desc,
+        }));
       default:
         return [];
     }
@@ -347,7 +353,10 @@ export default function ProfileScreen() {
   const positionLabel = FOOTBALL_POSITIONS.find((p) => p.id === profile.position)?.label;
   const trainingFreqLabel = TRAINING_FREQUENCIES.find((t) => t.id === profile.trainingFrequency)?.label;
   const seasonPhaseLabel = SEASON_PHASES.find((s) => s.id === profile.seasonPhase)?.label;
-  const perfGoalLabel = PERFORMANCE_GOALS.find((p) => p.id === profile.performanceGoal)?.label;
+  const perfGoalLabelMatch = PERFORMANCE_GOALS.find((p) => p.id === profile.performanceGoal);
+  const perfGoalLabel = perfGoalLabelMatch
+    ? goalLabelForAge(perfGoalLabelMatch.id, perfGoalLabelMatch.label, profile.age)
+    : undefined;
 
   const renderEditorContent = () => {
     if (isTextEditor) {

@@ -35,6 +35,7 @@ import {
   TRAINING_FREQUENCIES,
   SEASON_PHASES,
   PERFORMANCE_GOALS,
+  goalLabelForAge,
   DIET_TYPES,
   ALLERGY_OPTIONS,
   GENDER_OPTIONS,
@@ -465,7 +466,7 @@ export default function OnboardingScreen() {
       <View style={styles.inputGroup}>
         <View style={styles.chipColumn}>
           {PERFORMANCE_GOALS.map((g) =>
-            renderChip(g.label, g.icon, data.performanceGoal === g.id, () => {
+            renderChip(goalLabelForAge(g.id, g.label, parseInt(data.age, 10) || 0), g.icon, data.performanceGoal === g.id, () => {
               void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               setData((p) => ({ ...p, performanceGoal: g.id as PerformanceGoal }));
             }, g.desc, "full")

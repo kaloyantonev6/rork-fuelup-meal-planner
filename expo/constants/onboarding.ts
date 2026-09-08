@@ -207,3 +207,14 @@ export const MATCH_TIME_OPTIONS = [
   { id: "afternoon", label: "Afternoon", icon: "☀️", desc: "Kick-off 12pm - 5pm" },
   { id: "evening", label: "Evening", icon: "🌆", desc: "Kick-off after 5pm" },
 ] as const;
+
+/**
+ * Youth safeguard (IOC + Youth Soccer Review 2022): under-18s never see
+ * weight-loss framing — goals are reframed as performance optimization.
+ */
+export function goalLabelForAge(id: string, label: string, age: number): string {
+  if (age < 18 && (id === "lean_fast" || id === "lose_fat")) {
+    return "Optimize body composition for performance";
+  }
+  return label;
+}

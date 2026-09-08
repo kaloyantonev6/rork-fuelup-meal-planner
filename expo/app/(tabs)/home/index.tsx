@@ -496,6 +496,29 @@ export default function HomeScreen() {
     await deferPermissions();
   }, [deferPermissions]);
 
+  // Youth safeguard (under-18): one-time info card — FuelUp fuels growth, never restricts
+  const [showYouthNotice, setShowYouthNotice] = useState(false);
+  useEffect(() => {
+    if (!profile.age || profile.age >= 18) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const shown = await AsyncStorage.getItem("youthSafeguardNoticeShown");
+        if (!cancelled && !shown) setShowYouthNotice(true);
+      } catch {
+        // storage read failed — skip the notice this session
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [profile.age]);
+
+  const dismissYouthNotice = useCallback(() => {
+    setShowYouthNotice(false);
+    void AsyncStorage.setItem("youthSafeguardNoticeShown", "true").catch(() => undefined);
+  }, []);
+
   const [mealsPerDay, setMealsPerDay] = useState<number>(4);
   const [showCookingPrefs, setShowCookingPrefs] = useState(false);
   const [localMaxCookTime, setLocalMaxCookTime] = useState<CookTimeFilter>(
@@ -1005,6 +1028,24 @@ export default function HomeScreen() {
         <Entry delay={120}>
         <DailyTargetsCard profile={profile} dayType={todayDayType()} />
         </Entry>
+
+        {/* Youth safeguard notice — one-time, under-18 only */}
+        {showYouthNotice ? (
+          <View style={styles.youthNoticeCard}>
+            <Text style={styles.youthNoticeTitle}>Fueling Your Growth 🌱</Text>
+            <Text style={styles.youthNoticeText}>
+              FuelUp is designed to fuel your growth and performance — not restrict your eating.
+              Young athletes need adequate energy to develop. If you have concerns about your
+              weight, speak to a doctor or qualified sports dietitian.
+            </Text>
+            <Pressable
+              onPress={dismissYouthNotice}
+              style={({ pressed }) => [styles.youthNoticeBtn, pressed && { opacity: 0.8 }]}
+            >
+              <Text style={styles.youthNoticeBtnText}>Got it</Text>
+            </Pressable>
+          </View>
+        ) : null}
 
         {/* Today's Meals — progress, timeline and check-off cards */}
         <Entry delay={150}>
@@ -2218,5 +2259,38 @@ const styles = StyleSheet.create({
   miniStripDay: {
     alignItems: "center" as const,
     gap: 4,
+  },
+  youthNoticeCard: {
+    backgroundColor: "#22C55E15",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#22C55E40",
+    padding: 16,
+    marginBottom: 12,
+  },
+  youthNoticeTitle: {
+    fontSize: 15,
+    fontWeight: "700" as const,
+    color: "#4ADE80",
+    marginBottom: 6,
+  },
+  youthNoticeText: {
+    fontSize: 13,
+    color: Colors.text,
+    lineHeight: 19,
+  },
+  youthNoticeBtn: {
+    minHeight: 44,
+    alignSelf: "flex-start" as const,
+    justifyContent: "center" as const,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    backgroundColor: "#22C55E30",
+    marginTop: 10,
+  },
+  youthNoticeBtnText: {
+    fontSize: 13,
+    fontWeight: "700" as const,
+    color: "#4ADE80",
   },
 });

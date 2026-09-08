@@ -1,7 +1,12 @@
 import { UserProfile, DayType } from "@/types";
 import { MEAL_CATALOG, CatalogMeal } from "@/mocks/mealCatalog";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { calculateDayTargets, DayTargets } from "@/utils/dailyTargets";
+import {
+  calculateDayTargets,
+  DayTargets,
+  minCalorieFloor,
+  youthSafeguardWarning,
+} from "@/utils/dailyTargets";
 
 export type { DayType };
 
@@ -18,6 +23,8 @@ export interface GeneratedMeal {
   nutritionTip: string;
   fuelReason: string;
   prepTime: number;
+  fiber: number;
+  dayType: DayType;
   difficulty: "beginner" | "intermediate" | "advanced";
   mealType: "breakfast" | "lunch" | "dinner" | "snack";
   image: string;
@@ -38,6 +45,8 @@ export interface GeneratedPlan {
   targetProtein: number;
   targetCarbs: number;
   targetFat: number;
+  /** Youth safeguard notice shown when the target was raised above the requested value */
+  safeguardNote?: string;
   snackLabel?: string;
 }
 
@@ -235,7 +244,11 @@ export function detectPerformanceTags(meal: CatalogMeal): string[] {
  * Score a meal for a specific day type based on performance tag matching.
  */
 function scoreByDayType(meal: CatalogMeal, dayType: DayType): number {
-  const perfTags = detectPerformanceTags(meal);
+  // Authored UEFA/IOC performance tags always win over macro detection
+  const perfTags =
+    meal.performanceTags && meal.performanceTags.length > 0
+      ? meal.performanceTags
+      : detectPerformanceTags(meal);
   let score = 1.0;
 
   switch (dayType) {
@@ -379,6 +392,23 @@ function filterMeals(
   });
 }
 
+/**
+ * Match-day meals (low-fat, low-fiber pre-match profiles) are never served on
+ * rest days — their macro targets don't suit low-load days. Crossover meals
+ * tagged for multiple contexts still appear on any of their tagged days.
+ */
+function excludeMatchDayMealsOnRest(candidates: CatalogMeal[], dayType: DayType): CatalogMeal[] {
+  if (dayType !== "rest") return candidates;
+  const filtered = candidates.filter((m) => {
+    const tags =
+      m.performanceTags && m.performanceTags.length > 0
+        ? m.performanceTags
+        : detectPerformanceTags(m);
+    return !tags.includes("match_day") && !tags.includes("pre_match");
+  });
+  return filtered.length > 0 ? filtered : candidates;
+}
+
 function pickMealWithDiversity(
   candidates: CatalogMeal[],
   targetCal: number,
@@ -462,6 +492,8 @@ function catalogMealToGenerated(
     nutritionTip: meal.nutritionTip,
     fuelReason: getFuelReason(slotType, dayType, meal, profile),
     prepTime: meal.prepTime,
+    fiber: meal.fiber ?? 0,
+    dayType,
     difficulty: meal.difficulty,
     mealType: slotType,
     image: meal.image,
@@ -469,27 +501,45 @@ function catalogMealToGenerated(
   };
 }
 
-function getSlotCalorieTargets(totalCalories: number, mealSlots: string[]): number[] {
-  const count = mealSlots.length;
-  if (count === 3) {
-    return [
-      Math.round(totalCalories * 0.30),
-      Math.round(totalCalories * 0.35),
-      Math.round(totalCalories * 0.35),
-    ];
+/**
+ * UEFA-aligned meal timing distribution: how to split daily calories across
+ * slots per day type (breakfast, lunch, snack, dinner).
+ */
+const MEAL_DISTRIBUTION: Record<DayType, number[]> = {
+  match: [0.22, 0.26, 0.07, 0.20], // carb-heavy breakfast, pre-match meal, pre-match snack, dinner
+  training: [0.25, 0.30, 0.12, 0.33], // post-training snack inside the day
+  recovery: [0.25, 0.30, 0.12, 0.33],
+  rest: [0.28, 0.35, 0.37], // no snack on rest days (3 meals only)
+};
+
+function getSlotCalorieTargets(dayType: DayType, totalCalories: number, mealSlots: string[]): number[] {
+  let dist = MEAL_DISTRIBUTION[dayType];
+  if (dist.length !== mealSlots.length) {
+    // Fallback to even-ish splits when the slot count differs
+    if (mealSlots.length === 3) {
+      return [
+        Math.round(totalCalories * 0.30),
+        Math.round(totalCalories * 0.35),
+        Math.round(totalCalories * 0.35),
+      ];
+    }
+    if (mealSlots.length === 4) {
+      return [
+        Math.round(totalCalories * 0.25),
+        Math.round(totalCalories * 0.30),
+        Math.round(totalCalories * 0.15),
+        Math.round(totalCalories * 0.30),
+      ];
+    }
+    if (mealSlots.length === 2) {
+      return [Math.round(totalCalories * 0.45), Math.round(totalCalories * 0.55)];
+    }
+    const even = Math.round(totalCalories / Math.max(mealSlots.length, 1));
+    return mealSlots.map(() => even);
   }
-  if (count === 4) {
-    return [
-      Math.round(totalCalories * 0.25),
-      Math.round(totalCalories * 0.30),
-      Math.round(totalCalories * 0.15),
-      Math.round(totalCalories * 0.30),
-    ];
-  }
-  if (count === 2) {
-    return [Math.round(totalCalories * 0.45), Math.round(totalCalories * 0.55)];
-  }
-  return [Math.round(totalCalories * 0.30), Math.round(totalCalories * 0.35), Math.round(totalCalories * 0.35)];
+  const sum = dist.reduce((acc, d) => acc + d, 0);
+  dist = dist.map((d) => d / sum);
+  return mealSlots.map((_, i) => Math.round(totalCalories * (dist[i] ?? 1 / mealSlots.length)));
 }
 
 async function loadRecentHistory(): Promise<MealHistory[]> {
@@ -541,7 +591,17 @@ function generateDailyPlanInternal(
   console.log("[MealGenerator] Generating daily plan. Day type:", dayType);
 
   const dayTargets: DayTargets = calculateDayTargets(profile, dayType);
-  const targetCal = calorieOverride ?? dayTargets.calories;
+  let targetCal = calorieOverride ?? dayTargets.calories;
+  let safeguardNote: string | undefined = dayTargets.safeguardNote;
+
+  // Youth safeguard: even a manual calorie override can't drop below the floor
+  const userAge = profile.age || 20;
+  const calorieFloor = minCalorieFloor(userAge, dayTargets.bmr);
+  if (targetCal < calorieFloor) {
+    targetCal = Math.round(calorieFloor);
+    safeguardNote = youthSafeguardWarning(userAge, targetCal, calorieFloor) ?? safeguardNote;
+  }
+
   const targetProtein = dayTargets.protein;
   const targetCarbs = dayTargets.carbs;
   const targetFat = dayTargets.fat;
@@ -555,7 +615,7 @@ function generateDailyPlanInternal(
   const usedIds = new Set<string>(usedIdsAcrossDays);
   const selectedMeals: GeneratedMeal[] = [];
 
-  const slotCalTargets = getSlotCalorieTargets(targetCal, effectiveSlots);
+  const slotCalTargets = getSlotCalorieTargets(dayType, targetCal, effectiveSlots);
   let runningCalories = 0;
 
   console.log("[MealGenerator] Meal slots:", effectiveSlots, "Cal targets:", slotCalTargets);
@@ -591,8 +651,10 @@ function generateDailyPlanInternal(
 
     const previousMealId = i === 0 ? previousDayBreakfastId : undefined;
 
+    const eligible = excludeMatchDayMealsOnRest(candidates, dayType);
+
     const picked = pickMealWithDiversity(
-      candidates,
+      eligible,
       slotTarget,
       usedIds,
       proteinCounts,
@@ -641,6 +703,7 @@ function generateDailyPlanInternal(
       targetProtein,
       targetCarbs,
       targetFat,
+      safeguardNote: safeguardNote ?? undefined,
       snackLabel: snackLabel || undefined,
     },
     proteinCounts,
