@@ -7,6 +7,7 @@ import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { MealPlanProvider } from "@/providers/MealPlanProvider";
 import { TodayProvider } from "@/providers/TodayProvider";
+import { MealTrackingProvider } from "@/providers/MealTrackingProvider";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { SavedPlansProvider } from "@/providers/SavedPlansProvider";
 import { BudgetProvider } from "@/providers/BudgetProvider";
@@ -55,6 +56,7 @@ export default function RootLayout() {
         <AuthProvider>
           <MealPlanProvider>
           <TodayProvider>
+          <MealTrackingProvider>
           <SavedPlansProvider>
             <BudgetProvider>
               <NotificationProvider>
@@ -62,6 +64,7 @@ export default function RootLayout() {
               </NotificationProvider>
             </BudgetProvider>
           </SavedPlansProvider>
+          </MealTrackingProvider>
           </TodayProvider>
           </MealPlanProvider>
         </AuthProvider>

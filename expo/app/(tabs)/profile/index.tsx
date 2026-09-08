@@ -79,6 +79,7 @@ import {
 } from "@/types";
 import DailyTargetsCard from "@/components/DailyTargetsCard";
 import WeeklyProgramEditor from "@/components/WeeklyProgramEditor";
+import MealTimesSettings from "@/components/MealTimesSettings";
 import Toast from "@/components/ui/Toast";
 import { useToday } from "@/providers/TodayProvider";
 import {
@@ -578,7 +579,8 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-
+      {/* Meal Times — eating windows, reminders toggle and delay */}
+      <MealTimesSettings />
 
       <View style={styles.section}>
         <Pressable onPress={togglePrefs} style={styles.folderCard}>

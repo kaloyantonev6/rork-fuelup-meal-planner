@@ -67,6 +67,13 @@ import ProgressRing from "@/components/ui/ProgressRing";
 import Entry from "@/components/ui/Entry";
 import Skeleton from "@/components/ui/Skeleton";
 import { useCountUp } from "@/hooks/useCountUp";
+import TodayMealsSection from "@/components/TodayMealsSection";
+import NotificationPermissionModal from "@/components/NotificationPermissionModal";
+import { useNotifications } from "@/providers/NotificationProvider";
+import {
+  NOTIFICATION_PERMISSION_KEY,
+  NOTIFICATION_PERMISSION_DEFERRED_AT_KEY,
+} from "@/constants/mealTimes";
 
 const FREE_DAILY_GEN_KEY = "nutriplan_free_daily_gen";
 const FREE_DAILY_LIMIT = 1;
@@ -447,9 +454,47 @@ function WeeklyMiniStrip({ schedule, todayIndex, onPress }: WeeklyMiniStripProps
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { profile } = useMealPlan();
+  const { profile, hasOnboarded } = useMealPlan();
   const { savedPlans, favorites } = useSavedPlans();
   const { todayData, refreshCount, bootedWithReset } = useToday();
+  const { requestPermissions, deferPermissions } = useNotifications();
+  const [showPermPrompt, setShowPermPrompt] = useState(false);
+
+  // First-run reminder permission flow: ask once, or re-ask 3 days after "Maybe Later"
+  useEffect(() => {
+    if (!hasOnboarded) return;
+    let cancelled = false;
+    const check = async () => {
+      try {
+        const status = await AsyncStorage.getItem(NOTIFICATION_PERMISSION_KEY);
+        if (cancelled) return;
+        if (!status) {
+          setShowPermPrompt(true);
+        } else if (status === "deferred") {
+          const at = await AsyncStorage.getItem(NOTIFICATION_PERMISSION_DEFERRED_AT_KEY);
+          if (at && Date.now() - new Date(at).getTime() > 3 * 24 * 60 * 60 * 1000) {
+            setShowPermPrompt(true);
+          }
+        }
+      } catch {
+        // storage read failed — skip the prompt this session
+      }
+    };
+    void check();
+    return () => {
+      cancelled = true;
+    };
+  }, [hasOnboarded]);
+
+  const handleEnableReminders = useCallback(async () => {
+    setShowPermPrompt(false);
+    await requestPermissions();
+  }, [requestPermissions]);
+
+  const handleLaterReminders = useCallback(async () => {
+    setShowPermPrompt(false);
+    await deferPermissions();
+  }, [deferPermissions]);
 
   const [mealsPerDay, setMealsPerDay] = useState<number>(4);
   const [showCookingPrefs, setShowCookingPrefs] = useState(false);
@@ -961,6 +1006,11 @@ export default function HomeScreen() {
         <DailyTargetsCard profile={profile} dayType={todayDayType()} />
         </Entry>
 
+        {/* Today's Meals — progress, timeline and check-off cards */}
+        <Entry delay={150}>
+        <TodayMealsSection />
+        </Entry>
+
         {/* Day Fuel Plan button — adapts to today's day type */}
         <Entry delay={180}>
         <DayFuelPlanCard dayType={todayDayType()} onPress={() => {
@@ -1285,6 +1335,12 @@ export default function HomeScreen() {
           </Animated.View>
         </View>
       </Modal>
+
+      <NotificationPermissionModal
+        visible={showPermPrompt}
+        onEnable={() => void handleEnableReminders()}
+        onLater={() => void handleLaterReminders()}
+      />
 
       <Toast
         visible={dayToast !== null}
