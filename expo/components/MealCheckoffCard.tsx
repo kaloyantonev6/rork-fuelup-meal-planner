@@ -100,9 +100,11 @@ export default function MealCheckoffCard({
           Animated.spring(check, { toValue: 1, friction: 5, tension: 120, useNativeDriver: true }),
         ]),
         // Teal glow on the card border that fades back out over 500ms
+        // (native driver — the card's style also hosts native-driven props, so a
+        // JS-driven value here would crash with a driver-conflict error)
         Animated.sequence([
-          Animated.timing(borderGlow, { toValue: 2, duration: 80, useNativeDriver: false }),
-          Animated.timing(borderGlow, { toValue: 0, duration: 500, useNativeDriver: false }),
+          Animated.timing(borderGlow, { toValue: 2, duration: 80, useNativeDriver: true }),
+          Animated.timing(borderGlow, { toValue: 0, duration: 500, useNativeDriver: true }),
         ]),
       ]).start();
       startUndoWindow(Colors.primary);
@@ -111,8 +113,8 @@ export default function MealCheckoffCard({
         Animated.timing(dash, { toValue: 1, duration: 200, useNativeDriver: true }),
         Animated.timing(cardOpacity, { toValue: 0.5, duration: 300, useNativeDriver: true }),
         Animated.sequence([
-          Animated.timing(borderGlow, { toValue: 1, duration: 80, useNativeDriver: false }),
-          Animated.timing(borderGlow, { toValue: 0, duration: 400, useNativeDriver: false }),
+          Animated.timing(borderGlow, { toValue: 1, duration: 80, useNativeDriver: true }),
+          Animated.timing(borderGlow, { toValue: 0, duration: 400, useNativeDriver: true }),
         ]),
       ]).start();
       startUndoWindow(Colors.textTertiary);
@@ -148,10 +150,10 @@ export default function MealCheckoffCard({
   useEffect(() => {
     if (!highlighted) return;
     Animated.sequence([
-      Animated.timing(borderGlow, { toValue: 2, duration: 150, useNativeDriver: false }),
-      Animated.timing(borderGlow, { toValue: 0, duration: 350, useNativeDriver: false }),
-      Animated.timing(borderGlow, { toValue: 2, duration: 150, useNativeDriver: false }),
-      Animated.timing(borderGlow, { toValue: 0, duration: 350, useNativeDriver: false }),
+      Animated.timing(borderGlow, { toValue: 2, duration: 150, useNativeDriver: true }),
+      Animated.timing(borderGlow, { toValue: 0, duration: 350, useNativeDriver: true }),
+      Animated.timing(borderGlow, { toValue: 2, duration: 150, useNativeDriver: true }),
+      Animated.timing(borderGlow, { toValue: 0, duration: 350, useNativeDriver: true }),
     ]).start();
   }, [highlighted, borderGlow]);
 
