@@ -52,6 +52,7 @@ import {
   ShoppingIngredient,
 } from "@/utils/mealGenerator";
 import { calculateWaterTarget, calculateDayTargets, MACRO_SPLITS } from "@/utils/dailyTargets";
+import { prefetchMealPlanImages } from "@/lib/pexelsApi";
 import Toast from "@/components/ui/Toast";
 import { useToday } from "@/providers/TodayProvider";
 import {
@@ -799,10 +800,17 @@ export default function HomeScreen() {
         const plan = await generateDailyPlan(adjustedProfile, mealsPerDay, null);
         setGeneratedPlans([plan]);
         setShoppingList(compileShoppingList([plan]));
+        // Warm the Pexels image cache in the background — never blocks the UI
+        void prefetchMealPlanImages(
+          plan.meals.map((m) => ({ title: m.name, category: m.mealType })),
+        ).catch(() => undefined);
       } else {
         const plans = await generateWeeklyPlan(adjustedProfile, mealsPerDay, null);
         setGeneratedPlans(plans);
         setShoppingList(compileShoppingList(plans));
+        void prefetchMealPlanImages(
+          plans.flatMap((p) => p.meals.map((m) => ({ title: m.name, category: m.mealType }))),
+        ).catch(() => undefined);
       }
     } catch (e) {
       console.log("[HomeScreen] Plan generation failed:", e);

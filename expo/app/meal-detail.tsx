@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Image } from "expo-image";
+import MealImage from "@/components/MealImage";
 import {
   ArrowLeft,
   Heart,
@@ -737,7 +737,13 @@ export default function MealDetailScreen() {
         bounces
       >
         <View style={styles.heroWrap}>
-          <Image source={{ uri: meal.image }} style={styles.heroImage} contentFit="cover" />
+          <MealImage
+            title={meal.name}
+            category={meal.mealType}
+            fallbackUri={meal.image}
+            height={300}
+            style={styles.heroImage}
+          />
           <View style={styles.heroOverlay} />
 
           <View style={[styles.heroTopBar, { top: insets.top + 8 }]}>

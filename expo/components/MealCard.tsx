@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { Animated, Easing, StyleSheet, Text, View } from "react-native";
-import { Image } from "expo-image";
+import MealImage from "@/components/MealImage";
 import { Clock, Flame } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import Colors from "@/constants/colors";
@@ -54,7 +54,13 @@ export default function MealCard({ meal, mealLabel, compact = false, index }: Me
       <Animated.View style={{ opacity, transform: [{ translateY }] }}>
         <PressableScale onPress={handlePress}>
           <View style={styles.compactCard}>
-            <Image source={{ uri: meal.image }} style={styles.compactImage} contentFit="cover" />
+            <MealImage
+              title={meal.title}
+              category={meal.mealType}
+              fallbackUri={meal.image}
+              height={80}
+              style={styles.compactImage}
+            />
             <View style={styles.compactContent}>
               <Text style={styles.compactLabel}>{mealLabel}</Text>
               <Text style={styles.compactTitle} numberOfLines={1}>{meal.title}</Text>
@@ -75,7 +81,12 @@ export default function MealCard({ meal, mealLabel, compact = false, index }: Me
     <Animated.View style={{ opacity, transform: [{ translateY }] }}>
       <PressableScale onPress={handlePress}>
         <View style={styles.card}>
-          <Image source={{ uri: meal.image }} style={styles.image} contentFit="cover" />
+          <MealImage
+            title={meal.title}
+            category={meal.mealType}
+            fallbackUri={meal.image}
+            height={140}
+          />
           <View style={styles.overlay}>
             <View style={styles.labelBadge}>
               <Text style={styles.labelText}>{mealLabel}</Text>

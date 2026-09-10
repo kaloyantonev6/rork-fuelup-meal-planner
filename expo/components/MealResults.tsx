@@ -13,7 +13,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Lock } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Image } from "expo-image";
+import MealImage from "@/components/MealImage";
 import { useRouter } from "expo-router";
 import {
   ArrowLeft,
@@ -336,7 +336,12 @@ export default function MealResults({
                   onPress={() => handleOpenMealDetail(meal)}
                   style={({ pressed }) => [styles.mealCard, pressed && { opacity: 0.92, transform: [{ scale: 0.98 }] }]}
                 >
-                  <Image source={{ uri: meal.image }} style={styles.mealImage} contentFit="cover" />
+                  <MealImage
+                    title={meal.name}
+                    category={meal.mealType}
+                    fallbackUri={meal.image}
+                    height={160}
+                  />
                   <View style={styles.mealBadge}>
                     <View style={[styles.mealTypeBadge, { backgroundColor: typeColor }]}>
                       <Text style={styles.mealTypeText}>{getMealTypeLabel(meal.mealType)}</Text>
