@@ -64,6 +64,12 @@ import {
 import { TIMELINE_TEMPLATES } from "@/utils/timeline";
 import MealResults from "@/components/MealResults";
 import DailyTargetsCard from "@/components/DailyTargetsCard";
+import EducationCard from "@/components/EducationCard";
+import HealthCheckCard from "@/components/HealthCheckCard";
+import NutrientEducationCard from "@/components/NutrientEducationCard";
+import SleepCard from "@/components/SleepCard";
+import SweatTestCard from "@/components/SweatTestCard";
+import { getHydrationWarnings } from "@/lib/hydrationEngine";
 import ProgressRing from "@/components/ui/ProgressRing";
 import Entry from "@/components/ui/Entry";
 import Skeleton from "@/components/ui/Skeleton";
@@ -1037,6 +1043,11 @@ export default function HomeScreen() {
         <DailyTargetsCard profile={profile} dayType={todayDayType()} />
         </Entry>
 
+        {/* Source Library education layer — rotating evidence cards, RED-S check, teen nutrients */}
+        <EducationCard dayType={todayDayType()} />
+        <HealthCheckCard age={profile.age || 20} />
+        <NutrientEducationCard age={profile.age || 20} />
+
         {/* Youth safeguard notice — one-time, under-18 only */}
         {showYouthNotice ? (
           <View style={styles.youthNoticeCard}>
@@ -1112,13 +1123,29 @@ export default function HomeScreen() {
               </View>
               {todayDayType() === "match" && (
                 <Text style={styles.hydrationNote}>
-                  Start hydrating 24h before kickoff. Aim for clear/light yellow urine.
+                  Start hydrating 24h before. Check urine colour — pale straw yellow = hydrated.
                 </Text>
               )}
             </View>
           </View>
         </View>
         </Entry>
+
+        {/* Hydration warnings (NATA 2017) — overdrinking, heat, match day */}
+        {getHydrationWarnings(hydrationMl / 1000, todayDayType()).map((w, i) => (
+          <View
+            key={i}
+            style={[styles.hydrationWarningCard, w.level === "amber" && styles.hydrationWarningAmber]}
+          >
+            <Text style={styles.hydrationWarningText}>{w.text}</Text>
+          </View>
+        ))}
+
+        {/* Sweat Test — personal sweat rate (ACSM 2007 / GSSI methodology) */}
+        <SweatTestCard />
+
+        {/* Sleep log (Walsh et al. 2021) */}
+        <SleepCard age={profile.age || 20} />
 
         {/* Performance Tip of the Day */}
         <Entry delay={300}>
@@ -1817,6 +1844,24 @@ const styles = StyleSheet.create({
     color: Colors.warning,
     fontStyle: "italic" as const,
     lineHeight: 16,
+  },
+  hydrationWarningCard: {
+    backgroundColor: Colors.surface,
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.primary,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    padding: 12,
+    marginBottom: 12,
+  },
+  hydrationWarningAmber: {
+    borderLeftColor: "#F59E0B",
+  },
+  hydrationWarningText: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: Colors.text,
   },
   tipCard: {
     backgroundColor: Colors.surface,

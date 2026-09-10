@@ -7,6 +7,12 @@ export interface TimelineEntry {
   description: string;
   caloriePct: number;
   example: string;
+  /** Evidence-based macro target shown on the card, e.g. "~2.5g/kg carbs" */
+  macroTarget?: string;
+  /** Tier 1/2 source citation (📚 styled) */
+  source?: string;
+  /** Short science note explaining the "why" */
+  scienceNote?: string;
   mealSlot:
     | "breakfast"
     | "pre_match_meal"
@@ -39,13 +45,13 @@ export const TIMELINE_TEMPLATES: Record<DayType, TimelineTemplate> = {
     timeLabel: "Kickoff",
     offsets: [-7, -4, -1.5, -0.5, 0, 2, 5],
     entries: [
-      { offsetLabel: "-7h", label: "Breakfast", description: "High-carb, moderate protein, low fat", caloriePct: 0.22, example: "Oatmeal with banana, honey & berries", mealSlot: "breakfast" },
-      { offsetLabel: "-4h", label: "Pre-Match Meal", description: "Carb-rich, easily digestible, low fiber", caloriePct: 0.28, example: "Pasta with chicken & light tomato sauce", mealSlot: "pre_match_meal" },
-      { offsetLabel: "-1.5h", label: "Pre-Match Snack", description: "Quick energy, easy on stomach", caloriePct: 0.08, example: "Banana + energy bar", mealSlot: "pre_match_snack" },
-      { offsetLabel: "-30min", label: "Hydration", description: "400-500ml water with electrolytes", caloriePct: 0, example: "Water + electrolyte tablet", mealSlot: "hydration" },
-      { offsetLabel: "Half-Time", label: "Half-Time Fuel", description: "Quick carbs, small amount", caloriePct: 0.04, example: "Orange slices + sip of sports drink", mealSlot: "half_time" },
-      { offsetLabel: "+2h", label: "Post-Match Recovery", description: "3:1 carb-to-protein ratio, within 60 min", caloriePct: 0.20, example: "Chocolate milk + rice with chicken", mealSlot: "post_match" },
-      { offsetLabel: "+5h", label: "Evening Meal", description: "Balanced recovery dinner", caloriePct: 0.18, example: "Salmon, sweet potato, steamed vegetables", mealSlot: "evening" },
+      { offsetLabel: "-7h", label: "Breakfast", description: "High-carb, moderate protein, low fat", caloriePct: 0.22, example: "Oatmeal with banana, honey & berries", mealSlot: "breakfast", source: "UEFA 2021" },
+      { offsetLabel: "-4h", label: "Pre-Match Meal", description: "Carb-based, lower fibre & fat, easily digestible", caloriePct: 0.28, example: "Pasta with chicken & light tomato sauce", mealSlot: "pre_match_meal", macroTarget: "~2.5g/kg carbs", source: "GSSI SSE #127 / SDA Soccer", scienceNote: "GSSI research shows ~2.5g carbs/kg 3h before kickoff optimises muscle glycogen without GI discomfort." },
+      { offsetLabel: "-1.5h", label: "Pre-Match Snack", description: "Quick carbs, low fat, low fibre", caloriePct: 0.08, example: "Banana + energy bar", mealSlot: "pre_match_snack", source: "SDA Soccer / UEFA 2021", scienceNote: "SDA recommends a “light carb snack 1–2 hours out.” Keep it simple — nothing new on match day." },
+      { offsetLabel: "-30min", label: "Hydration", description: "400–600ml water or sports drink", caloriePct: 0, example: "Water + electrolyte tablet", mealSlot: "hydration", source: "ACSM 2007", scienceNote: "ACSM: “Start euhydrated.” Urine colour is the simplest self-check — pale straw = good, dark = drink more." },
+      { offsetLabel: "Half-Time", label: "Half-Time Fuel", description: "Quick carbs + fluid. Not a full meal.", caloriePct: 0.04, example: "Orange slices + sip of sports drink", mealSlot: "half_time", macroTarget: "Up to ~30g carbs in 15 min", source: "GSSI SSE #127", scienceNote: "GSSI: ~60g carbs/hour during match play, including half-time. Most of this comes from a sports drink." },
+      { offsetLabel: "+2h", label: "Post-Match Recovery", description: "Start glycogen reload + muscle repair immediately", caloriePct: 0.20, example: "Chocolate milk + rice with chicken", mealSlot: "post_match", macroTarget: "1.0–1.2g/kg carbs + 0.4g/kg protein", source: "UEFA 2021", scienceNote: "UEFA: “1–1.2g carbs/kg/hour for 4 hours post-match” + “0.3–0.5g protein/kg” in the first recovery meal. Start within 30–60 minutes." },
+      { offsetLabel: "+5h", label: "Recovery Dinner", description: "Balanced meal — continue carb & protein intake", caloriePct: 0.18, example: "Salmon, sweet potato, steamed vegetables", mealSlot: "evening", source: "UEFA 2021", scienceNote: "UEFA: “Complete glycogen resynthesis requires 24–48 hours of adequate carbohydrate intake.” This dinner continues the process." },
     ],
     hydrationNote: "Start hydrating 24h before kickoff. Aim for 500ml 2 hours before, then 250ml 30 min before. Sip at half-time.",
   },

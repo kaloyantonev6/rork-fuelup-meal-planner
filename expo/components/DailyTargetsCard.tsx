@@ -4,6 +4,7 @@ import Colors from "@/constants/colors";
 import { useCountUp } from "@/hooks/useCountUp";
 import { UserProfile } from "@/types";
 import { calculateDailyTargets, DailyTargets } from "@/utils/dailyTargets";
+import SourceTag from "@/components/SourceTag";
 
 interface DailyTargetsCardProps {
   profile: UserProfile;
@@ -27,6 +28,16 @@ function DailyTargetsCard({ profile, dayType }: DailyTargetsCardProps) {
   const animatedProtein = useCountUp(targets.protein);
   const animatedCarbs = useCountUp(targets.carbs);
   const animatedFat = useCountUp(targets.fat);
+
+  // Per-kg display (UEFA/ISSN style) alongside gram values
+  const proteinPerKg = useMemo(
+    () => (profile.weight > 0 ? targets.protein / profile.weight : 0),
+    [targets.protein, profile.weight],
+  );
+  const carbsPerKg = useMemo(
+    () => (profile.weight > 0 ? targets.carbs / profile.weight : 0),
+    [targets.carbs, profile.weight],
+  );
 
   return (
     <View style={[styles.card, { borderLeftWidth: 3, borderLeftColor: accent }]}>
@@ -62,12 +73,18 @@ function DailyTargetsCard({ profile, dayType }: DailyTargetsCardProps) {
             {animatedProtein}g
           </Text>
           <Text style={styles.statLabel}>Protein</Text>
+          {proteinPerKg > 0 ? (
+            <Text style={styles.statPerKg}>{proteinPerKg.toFixed(1)}g/kg</Text>
+          ) : null}
         </View>
         <View style={[styles.statBox, styles.statBoxCarbs]}>
           <Text style={[styles.statValue, { color: Colors.recovery }]}>
             {animatedCarbs}g
           </Text>
           <Text style={styles.statLabel}>Carbs</Text>
+          {carbsPerKg > 0 ? (
+            <Text style={styles.statPerKg}>{carbsPerKg.toFixed(1)}g/kg</Text>
+          ) : null}
         </View>
         <View style={[styles.statBox, styles.statBoxFat]}>
           <Text style={[styles.statValue, { color: "#A78BFA" }]}>
@@ -102,6 +119,8 @@ function DailyTargetsCard({ profile, dayType }: DailyTargetsCardProps) {
           ))}
         </View>
       )}
+
+      <SourceTag text="Source: UEFA 2021 / ISSN 2017" style={styles.sourceLine} />
     </View>
   );
 }
@@ -203,6 +222,11 @@ const styles = StyleSheet.create({
     textTransform: "uppercase" as const,
     letterSpacing: 0.3,
   },
+  statPerKg: {
+    fontSize: 10,
+    color: Colors.textTertiary,
+    marginTop: 2,
+  },
   extrasRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -264,5 +288,8 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     lineHeight: 18,
     flex: 1,
+  },
+  sourceLine: {
+    marginTop: 12,
   },
 });

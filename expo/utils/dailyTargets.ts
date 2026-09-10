@@ -1,4 +1,8 @@
 import { UserProfile, DayType, FootballPosition, SeasonPhase, PerformanceGoal } from "@/types";
+import {
+  clampCaloriesToResearchBounds,
+  calculateMacroGrams,
+} from "@/lib/nutritionEngine";
 
 export interface DailyTargets {
   bmr: number;
@@ -220,14 +224,24 @@ export function calculateDayTargets(
 
   let calories = Math.round(tdee * dayMult * seasonMult + positionBoost);
 
-  // Realism cap — a hard ceiling so stacked multipliers can't produce
-  // unrealistic targets (e.g. 4000+ kcal for an amateur player).
   let safeguardNote: string | undefined;
-  const calorieCap = weight * CALORIE_CAP_PER_KG;
-  if (calories > calorieCap) {
-    calories = Math.round(calorieCap);
-    safeguardNote =
-      "Your calorie target has been capped at a realistic level — even elite professionals rarely exceed 45 kcal per kg of body weight.";
+
+  // Realism cap for adults (youth are clamped to measured research bounds below)
+  if (age > 18) {
+    const calorieCap = weight * CALORIE_CAP_PER_KG;
+    if (calories > calorieCap) {
+      calories = Math.round(calorieCap);
+      safeguardNote =
+        "Your calorie target has been capped at a realistic level — even elite professionals rarely exceed 45 kcal per kg of body weight.";
+    }
+  }
+
+  // Research-based youth clamp (Hannon 2021 doubly labelled water, EPL academies;
+  // non-academy multiplier from Stables 2023)
+  const research = clampCaloriesToResearchBounds(calories, age, profile.level ?? "amateur");
+  if (research.wasClamped) {
+    calories = research.calories;
+    safeguardNote = research.clampReason ?? undefined;
   }
 
   // Youth safeguard: calories never drop below the age-based BMR floor
@@ -237,26 +251,12 @@ export function calculateDayTargets(
     safeguardNote = youthSafeguardWarning(age, calories, calorieFloor) ?? undefined;
   }
 
-  // Per-kg macro targets (midpoint of the evidence-based range)
-  const perKg = DAY_NUTRITION_TARGETS[dayType];
-  const protein = Math.round(weight * ((perKg.proteinPerKg.min + perKg.proteinPerKg.max) / 2));
-  let carbs = Math.round(weight * ((perKg.carbsPerKg.min + perKg.carbsPerKg.max) / 2));
-
-  // Fat fills the remaining calories, clamped into the evidence-based fat % range
-  const fatMinGrams = (calories * perKg.fatPercent.min) / 100 / 9;
-  const fatMaxGrams = (calories * perKg.fatPercent.max) / 100 / 9;
-  let fat = (calories - protein * 4 - carbs * 4) / 9;
-  if (fat < fatMinGrams) {
-    fat = fatMinGrams;
-    carbs = Math.max(
-      Math.round((calories - protein * 4 - fat * 9) / 4),
-      Math.round(weight * perKg.carbsPerKg.min),
-    );
-  } else if (fat > fatMaxGrams) {
-    fat = fatMaxGrams;
-    carbs = Math.max(Math.round((calories - protein * 4 - fat * 9) / 4), 0);
-  }
-  fat = Math.round(fat);
+  // Per-kg macro targets (UEFA 2021 carbs, ISSN 2017 protein) with youth
+  // adjustments — carb floor 5g/kg and protein ceiling 2.0g/kg for under-18s
+  const macros = calculateMacroGrams(weight, calories, dayType, age);
+  const protein = macros.proteinG;
+  const carbs = macros.carbsG;
+  const fat = macros.fatsG;
 
   const macroCalories = protein * 4 + carbs * 4 + fat * 9;
   const proteinPct = macroCalories > 0 ? (protein * 4) / macroCalories : 0.25;

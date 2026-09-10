@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -46,7 +46,9 @@ import {
   LogOut,
   Sparkles,
   Camera,
+  Pill,
 } from "lucide-react-native";
+import { loadCycleSettings, saveCycleSettings, CYCLE_SOURCE_TAG, type CycleSettings } from "@/lib/cycleTracker";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
@@ -126,6 +128,10 @@ export default function ProfileScreen() {
   const [prefsExpanded, setPrefsExpanded] = useState(false);
   const chevronAnim = useRef(new Animated.Value(0)).current;
   const { todayData, refreshToday, resetHydration } = useToday();
+  const [cycle, setCycle] = useState<CycleSettings | null>(null);
+  useEffect(() => {
+    void loadCycleSettings().then(setCycle);
+  }, []);
   const [programToastVisible, setProgramToastVisible] = useState(false);
 
   const weeklySchedule: DayType[] =
@@ -299,7 +305,8 @@ export default function ProfileScreen() {
       case "seasonPhase":
         return SEASON_PHASES.map((s) => ({ id: s.id, label: s.label, icon: s.icon, desc: s.desc }));
       case "performanceGoal":
-        return PERFORMANCE_GOALS.map((p) => ({
+        // Randell 2021: no weight-loss / body-comp goals for female users
+        return PERFORMANCE_GOALS.filter((p) => !(profile.gender === "female" && p.id === "lean_fast")).map((p) => ({
           id: p.id,
           label: goalLabelForAge(p.id, p.label, profile.age),
           icon: p.icon,
@@ -816,15 +823,110 @@ export default function ProfileScreen() {
             <ChevronRight size={18} color={Colors.textTertiary} />
           </Pressable>
           <View style={styles.divider} />
-          <Pressable style={styles.settingRow} onPress={() => router.push('/profile/help')}>
+          <Pressable style={styles.settingRow} onPress={() => router.push("/supplements" as never)}>
             <View style={styles.settingLeft}>
-              <HelpCircle size={18} color={Colors.textSecondary} />
-              <Text style={styles.settingLabel}>Help & Support</Text>
+              <Pill size={18} color={Colors.textSecondary} />
+              <Text style={styles.settingLabel}>Supplements</Text>
             </View>
             <ChevronRight size={18} color={Colors.textTertiary} />
           </Pressable>
         </View>
       </View>
+
+      {/* Cycle nutrition — opt-in, female users only (Randell 2021: education, not prescription) */}
+      {profile.gender === "female" ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Cycle Nutrition (Optional)</Text>
+          <View style={styles.sectionCard}>
+            <View style={styles.settingRow}>
+              <View style={styles.settingLeft}>
+                <Text style={styles.settingLabel}>Track menstrual cycle for nutrition adjustments</Text>
+                <Text style={styles.settingSublabel}>Education only — never prescriptive</Text>
+              </View>
+              <Switch
+                value={cycle?.enabled ?? false}
+                onValueChange={(v) => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  const next: CycleSettings = {
+                    enabled: v,
+                    cycleLengthDays: cycle?.cycleLengthDays ?? 28,
+                    lastPeriodDate: cycle?.lastPeriodDate ?? "",
+                  };
+                  setCycle(next);
+                  void saveCycleSettings(next);
+                }}
+                trackColor={{ false: Colors.border, true: Colors.primaryLight }}
+                thumbColor="#fff"
+              />
+            </View>
+            {cycle?.enabled ? (
+              <>
+                <View style={styles.divider} />
+                <View style={styles.settingRow}>
+                  <View style={styles.settingLeft}>
+                    <Text style={styles.settingLabel}>Average cycle length (days)</Text>
+                  </View>
+                  <TextInput
+                    style={{
+                      backgroundColor: Colors.surfaceElevated,
+                      borderWidth: 1,
+                      borderColor: Colors.borderLight,
+                      borderRadius: 8,
+                      color: Colors.text,
+                      fontSize: 13,
+                      paddingHorizontal: 10,
+                      paddingVertical: 6,
+                      width: 64,
+                      textAlign: "center" as const,
+                    }}
+                    value={String(cycle.cycleLengthDays)}
+                    keyboardType="number-pad"
+                    maxLength={2}
+                    onChangeText={(t) => {
+                      const next: CycleSettings = { ...cycle, cycleLengthDays: parseInt(t, 10) || 28 };
+                      setCycle(next);
+                      void saveCycleSettings(next);
+                    }}
+                  />
+                </View>
+                <View style={styles.divider} />
+                <View style={styles.settingRow}>
+                  <View style={styles.settingLeft}>
+                    <Text style={styles.settingLabel}>First day of last period</Text>
+                    <Text style={styles.settingSublabel}>YYYY-MM-DD</Text>
+                  </View>
+                  <TextInput
+                    style={{
+                      backgroundColor: Colors.surfaceElevated,
+                      borderWidth: 1,
+                      borderColor: Colors.borderLight,
+                      borderRadius: 8,
+                      color: Colors.text,
+                      fontSize: 13,
+                      paddingHorizontal: 10,
+                      paddingVertical: 6,
+                      width: 120,
+                      textAlign: "center" as const,
+                    }}
+                    value={cycle.lastPeriodDate}
+                    placeholder="2026-01-01"
+                    placeholderTextColor={Colors.textTertiary}
+                    maxLength={10}
+                    onChangeText={(t) => {
+                      const next: CycleSettings = { ...cycle, lastPeriodDate: t };
+                      setCycle(next);
+                      void saveCycleSettings(next);
+                    }}
+                  />
+                </View>
+                <Text style={{ fontSize: 10, fontStyle: "italic", color: Colors.textTertiary, marginTop: 8 }}>
+                  📚 {CYCLE_SOURCE_TAG}
+                </Text>
+              </>
+            ) : null}
+          </View>
+        </View>
+      ) : null}
 
       <View style={styles.section}>
         <Pressable

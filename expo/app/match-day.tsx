@@ -543,6 +543,15 @@ export default function MatchDayScreen() {
                     {entry.label}
                   </Text>
                   <Text style={styles.entryDescription}>{entry.description}</Text>
+                  {entry.macroTarget ? (
+                    <Text style={styles.entryMacroTarget}>🎯 {entry.macroTarget}</Text>
+                  ) : null}
+                  {entry.scienceNote ? (
+                    <Text style={styles.entryScience}>{entry.scienceNote}</Text>
+                  ) : null}
+                  {entry.source ? (
+                    <Text style={styles.entrySource}>📚 {entry.source}</Text>
+                  ) : null}
 
                   <View style={styles.entryFooter}>
                     {entryCalories > 0 ? (
@@ -1058,6 +1067,25 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.textSecondary,
     lineHeight: 18,
+    marginBottom: 8,
+  },
+  entryMacroTarget: {
+    fontSize: 12,
+    fontWeight: "600" as const,
+    color: Colors.text,
+    marginBottom: 6,
+  },
+  entryScience: {
+    fontSize: 11,
+    lineHeight: 16,
+    color: Colors.textSecondary,
+    fontStyle: "italic" as const,
+    marginBottom: 4,
+  },
+  entrySource: {
+    fontSize: 10,
+    color: Colors.textTertiary,
+    fontStyle: "italic" as const,
     marginBottom: 8,
   },
   entryFooter: {

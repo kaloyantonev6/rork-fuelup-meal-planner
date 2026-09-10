@@ -465,7 +465,8 @@ export default function OnboardingScreen() {
       <Text style={styles.stepSubtitle}>Tell us what you're building toward</Text>
       <View style={styles.inputGroup}>
         <View style={styles.chipColumn}>
-          {PERFORMANCE_GOALS.map((g) =>
+          {/* Randell 2021: no weight-loss goals for female users */}
+          {PERFORMANCE_GOALS.filter((g) => !(data.gender === "female" && g.id === "lean_fast")).map((g) =>
             renderChip(goalLabelForAge(g.id, g.label, parseInt(data.age, 10) || 0), g.icon, data.performanceGoal === g.id, () => {
               void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               setData((p) => ({ ...p, performanceGoal: g.id as PerformanceGoal }));
