@@ -58,7 +58,6 @@ export default function WeeklyProgramEditor({
   const savedAnim = useRef(new Animated.Value(0)).current;
 
   const scaleAnims = useRef<Animated.Value[]>([]);
-  const colorAnims = useRef<{ anim: Animated.Value; from: DayType }[]>([]);
   const scheduleRef = useRef(schedule);
   scheduleRef.current = schedule;
   const firstScheduleRef = useRef(true);
@@ -75,23 +74,6 @@ export default function WeeklyProgramEditor({
       Animated.spring(scale, { toValue: 1.15, friction: 3, tension: 180, useNativeDriver: true }),
       Animated.spring(scale, { toValue: 1, friction: 4, tension: 180, useNativeDriver: true }),
     ]).start();
-  }, []);
-
-  /** Cross-fades day i's colors from `from` to its (new) current type over 200ms. */
-  const fadeDayColor = useCallback((i: number, from: DayType) => {
-    const entry = colorAnims.current[i];
-    if (!entry) {
-      colorAnims.current[i] = { anim: new Animated.Value(0), from };
-    } else {
-      entry.from = from;
-      entry.anim.setValue(0);
-    }
-    Animated.timing(colorAnims.current[i]!.anim, {
-      toValue: 1,
-      duration: 200,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: false,
-    }).start();
   }, []);
 
   // "✓ Saved" confirmation on every schedule change (skip the initial render)
@@ -165,7 +147,6 @@ export default function WeeklyProgramEditor({
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       const prev = scheduleRef.current[index] ?? "rest";
       if (prev !== type) {
-        fadeDayColor(index, prev);
         popDay(index);
         const next = [...scheduleRef.current];
         next[index] = type;
@@ -173,7 +154,7 @@ export default function WeeklyProgramEditor({
       }
       closeSheet();
     },
-    [onChange, closeSheet, fadeDayColor, popDay],
+    [onChange, closeSheet, popDay],
   );
 
   /** Applies a preset with a staggered 40ms-per-day animation cascade. */
@@ -184,14 +165,13 @@ export default function WeeklyProgramEditor({
       presetSchedule.forEach((type, i) => {
         setTimeout(() => {
           if (prev[i] !== type) {
-            fadeDayColor(i, prev[i] ?? "rest");
             popDay(i);
           }
         }, i * 40);
       });
       onChange([...presetSchedule]);
     },
-    [onChange, fadeDayColor, popDay],
+    [onChange, popDay],
   );
 
   const panResponder = useRef(
@@ -249,13 +229,9 @@ export default function WeeklyProgramEditor({
         <View style={styles.daysRow}>
           {schedule.map((dayType, i) => {
             const meta = DAY_TYPE_META[dayType] ?? DAY_TYPE_META.rest;
-            const entry = colorAnims.current[i];
-            const animating = entry !== undefined && entry.from !== dayType;
-            const mix = (a: string, b: string) =>
-              animating
-                ? entry!.anim.interpolate({ inputRange: [0, 1], outputRange: [a, b] })
-                : b;
             const scale = scaleAnims.current[i];
+            // Colors swap instantly via state (no Animated) — the only animated
+            // style here is the native-driven scale, avoiding native/JS mixing.
             return (
               <Pressable
                 key={`${DAY_ABBREVIATIONS[i]}-${i}`}
@@ -267,8 +243,8 @@ export default function WeeklyProgramEditor({
                   style={[
                     styles.dayCircle,
                     {
-                      backgroundColor: mix(DAY_TYPE_META[entry?.from ?? "rest"].bgColor, meta.bgColor),
-                      borderColor: mix(DAY_TYPE_META[entry?.from ?? "rest"].borderColor, meta.borderColor),
+                      backgroundColor: meta.bgColor,
+                      borderColor: meta.borderColor,
                       transform: [{ scale: scale ?? 1 }],
                     },
                   ]}
