@@ -154,11 +154,10 @@ class QueryBuilder {
       let serialized: string;
       if (op === "in") {
         const list = value as Array<string | number>;
-        serialized = `(${list.map((v) => encodeValue(v)).join(",")})`;
+        // Inner list only — applyFilters wraps it in parens below
+        serialized = list.map((v) => encodeValue(v)).join(",");
       } else if (op === "is") {
         serialized = value === null ? "null" : String(value);
-      } else if (op === "like" || op === "ilike") {
-        serialized = encodeValue(value);
       } else {
         serialized = encodeValue(value);
       }
@@ -217,13 +216,17 @@ class QueryBuilder {
   }
 }
 
+/**
+ * Serializes a filter value the way PostgREST expects: bare literals, never
+ * quoted. Quoting breaks typed columns (e.g. `id=eq."<uuid>"` fails to parse
+ * against a uuid column), which is how supabase-js sends values too.
+ */
 function encodeValue(value: unknown): string {
-  if (typeof value === "string") return `"${value.replace(/"/g, '\\"')}"`;
   if (value === null) return "null";
-  if (value instanceof Date) return `"${value.toISOString()}"`;
+  if (value instanceof Date) return value.toISOString();
   if (typeof value === "boolean") return String(value);
   if (Array.isArray(value) || typeof value === "object") {
-    return `"${JSON.stringify(value).replace(/"/g, '\\"')}"`;
+    return JSON.stringify(value);
   }
   return String(value);
 }

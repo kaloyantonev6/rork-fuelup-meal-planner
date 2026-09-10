@@ -75,6 +75,23 @@ function profileToSupabaseRow(p: UserProfile): Record<string, unknown> {
   };
 }
 
+/** Auth-user fields profile syncing needs (subset of SupabaseUser). */
+interface SyncUser {
+  id: string;
+  email?: string | null;
+}
+
+/** Writes the profile row for `user`: updates the existing row, and when the
+ * user has no row yet (fresh signup) inserts one instead. `email` is NOT NULL
+ * in the profiles table, so it is included on insert. */
+async function upsertProfileRow(user: SyncUser, p: UserProfile): Promise<void> {
+  const row = profileToSupabaseRow(p);
+  const updated = await supabase.from("profiles").eq("id", user.id).update(row);
+  if (!Array.isArray(updated) || updated.length === 0) {
+    await supabase.from("profiles").insert({ id: user.id, email: user.email ?? "", ...row });
+  }
+}
+
 /** Merges a fetched `profiles` row into the local UserProfile. Only touches
  * fields Supabase owns -- everything else stays as-is. */
 function applySupabaseRow(local: UserProfile, row: Record<string, any>): UserProfile {
@@ -172,6 +189,10 @@ export const [MealPlanProvider, useMealPlan] = createContextHook(() => {
             void AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(merged));
             return merged;
           });
+        } else {
+          // No server profile yet (fresh signup) — fall back to onboarding so
+          // one gets created instead of showing empty default data.
+          setHasOnboarded(false);
         }
       } catch (e) {
         console.log("[MealPlanProvider] Could not fetch profile from Supabase:", e);
@@ -184,7 +205,7 @@ export const [MealPlanProvider, useMealPlan] = createContextHook(() => {
       await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(newProfile));
       if (isAuthenticated && user) {
         try {
-          await supabase.from("profiles").eq("id", user.id).update(profileToSupabaseRow(newProfile));
+          await upsertProfileRow(user, newProfile);
         } catch (e) {
           console.log("[MealPlanProvider] Supabase profile sync failed:", e);
         }
@@ -208,7 +229,7 @@ export const [MealPlanProvider, useMealPlan] = createContextHook(() => {
     await AsyncStorage.setItem(ONBOARDED_KEY, "true");
     if (isAuthenticated && user) {
       try {
-        await supabase.from("profiles").eq("id", user.id).update(profileToSupabaseRow(profile));
+        await upsertProfileRow(user, profile);
       } catch (e) {
         console.log("[MealPlanProvider] Supabase profile sync failed on onboarding complete:", e);
       }
