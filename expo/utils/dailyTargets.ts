@@ -29,25 +29,35 @@ export interface DayTargets {
   safeguardNote?: string;
 }
 
-// Position-based calorie boost (on training/match days only)
+// Position-based calorie boost (on training/match days only).
+// Scaled to amateur/semi-pro expenditure on top of the day multiplier —
+// full 90-minute outfield positions burn ~300-500 kcal extra, so boosts
+// are a modest top-up, not a second full meal.
 export const POSITION_CALORIE_BOOST: Record<FootballPosition, number> = {
-  goalkeeper: 150,
-  centre_back: 175,
-  full_back: 350,
-  defensive_mid: 275,
-  central_mid: 300,
-  attacking_mid: 300,
-  winger: 375,
-  striker: 275,
+  goalkeeper: 75,
+  centre_back: 90,
+  full_back: 175,
+  defensive_mid: 140,
+  central_mid: 150,
+  attacking_mid: 150,
+  winger: 190,
+  striker: 140,
 };
 
-// Day-type multipliers applied to TDEE
+// Day-type multipliers applied to TDEE. The base activity multiplier below
+// already assumes regular training, so these top up only the day's extra load
+// (a match costs ~600-900 kcal, a training session ~400-600) rather than
+// double-counting the week's training volume.
 export const DAY_TYPE_MULTIPLIER: Record<DayType, number> = {
   rest: 0.9,
-  training: 1.15,
-  match: 1.3,
-  recovery: 1.1,
+  training: 1.1,
+  match: 1.2,
+  recovery: 1.0,
 };
+
+// Realism ceiling: even elite professionals rarely exceed ~45 kcal/kg/day.
+// Prevents stacked multipliers from producing fantasy targets.
+export const CALORIE_CAP_PER_KG = 45;
 
 // Macro splits by day type
 export const MACRO_SPLITS: Record<DayType, { protein: number; carbs: number; fats: number }> = {
@@ -69,25 +79,25 @@ export interface DayNutritionTargets {
 
 export const DAY_NUTRITION_TARGETS: Record<DayType, DayNutritionTargets> = {
   match: {
-    carbsPerKg: { min: 6, max: 8 }, // UEFA: 6-8g/kg match day
+    carbsPerKg: { min: 5.5, max: 7 }, // UEFA 6-8g/kg is elite-pro range; 5.5-7 suits amateur loads
     proteinPerKg: { min: 1.6, max: 2.0 },
     fatPercent: { min: 18, max: 22 },
     hydrationPerKg: 45, // higher on match days
   },
   training: {
-    carbsPerKg: { min: 5, max: 7 }, // UEFA: moderate-high training load
+    carbsPerKg: { min: 4.5, max: 6 }, // moderate-high training load
     proteinPerKg: { min: 1.6, max: 2.2 },
     fatPercent: { min: 22, max: 28 },
     hydrationPerKg: 40,
   },
   recovery: {
-    carbsPerKg: { min: 4, max: 6 }, // replenish glycogen
+    carbsPerKg: { min: 3.5, max: 5 }, // replenish glycogen
     proteinPerKg: { min: 1.8, max: 2.2 }, // elevated for tissue repair
     fatPercent: { min: 25, max: 30 },
     hydrationPerKg: 38,
   },
   rest: {
-    carbsPerKg: { min: 3, max: 5 }, // UEFA: low training load
+    carbsPerKg: { min: 2.5, max: 4 }, // low training load
     proteinPerKg: { min: 1.4, max: 1.8 },
     fatPercent: { min: 25, max: 32 },
     hydrationPerKg: 33,
@@ -123,12 +133,14 @@ export const SEASON_CALORIE_ADJUSTMENT: Record<SeasonPhase, number> = {
   injury_recovery: 0.95,
 };
 
-// Activity multiplier based on training frequency
+// Activity multiplier for daily living + training frequency context.
+// Deliberately moderate: the day-type multiplier adds the session load on top,
+// so this must not already assume heavy daily training (that double-counted).
 const TRAINING_FREQ_MULTIPLIER: Record<string, number> = {
-  "1-2": 1.375,
-  "3-4": 1.55,
-  "5-6": 1.725,
-  daily: 1.9,
+  "1-2": 1.35,
+  "3-4": 1.45,
+  "5-6": 1.55,
+  daily: 1.65,
 };
 
 function calculateBMR(gender: string, weight: number, height: number, age: number): number {
@@ -208,9 +220,18 @@ export function calculateDayTargets(
 
   let calories = Math.round(tdee * dayMult * seasonMult + positionBoost);
 
+  // Realism cap — a hard ceiling so stacked multipliers can't produce
+  // unrealistic targets (e.g. 4000+ kcal for an amateur player).
+  let safeguardNote: string | undefined;
+  const calorieCap = weight * CALORIE_CAP_PER_KG;
+  if (calories > calorieCap) {
+    calories = Math.round(calorieCap);
+    safeguardNote =
+      "Your calorie target has been capped at a realistic level — even elite professionals rarely exceed 45 kcal per kg of body weight.";
+  }
+
   // Youth safeguard: calories never drop below the age-based BMR floor
   const calorieFloor = minCalorieFloor(age, bmr);
-  let safeguardNote: string | undefined;
   if (calories < calorieFloor) {
     calories = Math.round(calorieFloor);
     safeguardNote = youthSafeguardWarning(age, calories, calorieFloor) ?? undefined;

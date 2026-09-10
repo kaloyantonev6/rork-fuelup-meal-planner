@@ -69,9 +69,13 @@ nonisolated enum NutritionEngine {
             ? Double(profile.position.calorieBoost)
             : 0
 
-        let calories = Int(
+        var calories = Int(
             (tdee * dayType.calorieMultiplier * profile.seasonPhase.calorieAdjustment + positionBoost).rounded()
         )
+
+        // Realism ceiling: even elite professionals rarely exceed ~45 kcal/kg/day.
+        // Prevents stacked multipliers from producing fantasy targets.
+        calories = min(calories, 45 * weight)
 
         let split = dayType.macroSplit
         let protein = Int((Double(calories) * split.protein / 100 / 4).rounded())

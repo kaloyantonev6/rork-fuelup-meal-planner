@@ -97,14 +97,14 @@ nonisolated enum FootballPosition: String, Codable, CaseIterable, Identifiable, 
     /// Extra calories burned on training/match days for this position.
     var calorieBoost: Int {
         switch self {
-        case .goalkeeper: 150
-        case .centreBack: 175
-        case .fullBack: 350
-        case .defensiveMid: 275
-        case .centralMid: 300
-        case .attackingMid: 300
-        case .winger: 375
-        case .striker: 275
+        case .goalkeeper: 75
+        case .centreBack: 90
+        case .fullBack: 175
+        case .defensiveMid: 140
+        case .centralMid: 150
+        case .attackingMid: 150
+        case .winger: 190
+        case .striker: 140
         }
     }
 }
@@ -142,10 +142,10 @@ nonisolated enum TrainingFrequency: String, Codable, CaseIterable, Identifiable,
     /// Activity multiplier applied to BMR to reach TDEE.
     var activityMultiplier: Double {
         switch self {
-        case .oneToTwo: 1.375
-        case .threeToFour: 1.55
-        case .fiveToSix: 1.725
-        case .daily: 1.9
+        case .oneToTwo: 1.35
+        case .threeToFour: 1.45
+        case .fiveToSix: 1.55
+        case .daily: 1.65
         }
     }
 }
@@ -343,9 +343,9 @@ nonisolated enum DayType: String, Codable, CaseIterable, Identifiable, Sendable 
     var calorieMultiplier: Double {
         switch self {
         case .rest: 0.9
-        case .training: 1.15
-        case .match: 1.3
-        case .recovery: 1.1
+        case .training: 1.1
+        case .match: 1.2
+        case .recovery: 1.0
         }
     }
 
