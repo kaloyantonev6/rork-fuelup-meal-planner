@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { Home, ShoppingCart, Trophy, User, UtensilsCrossed } from "lucide-react-native";
+import { Home, ShoppingCart, Trophy, User } from "lucide-react-native";
 import { StyleSheet, Text } from "react-native";
 import React from "react";
 
@@ -33,18 +33,8 @@ export default function TabLayout() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="plan"
-        options={{
-          title: "Plan",
-          tabBarLabel: ({ color }) => <Text style={[tabStyles.label, { color }]}>Plan</Text>,
-          tabBarIcon: ({ color, focused }) => (
-            <AnimatedTabIcon focused={!!focused}>
-              <UtensilsCrossed size={22} color={color} />
-            </AnimatedTabIcon>
-          ),
-        }}
-      />
+      {/* Plan stays reachable via "Open Plan" on Today's Fuel — just not shown as a tab */}
+      <Tabs.Screen name="plan" options={{ href: null }} />
       <Tabs.Screen
         name="match"
         options={{
