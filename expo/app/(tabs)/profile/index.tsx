@@ -9,10 +9,6 @@ import {
   Modal,
   TextInput,
   FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  Animated,
-  LayoutAnimation,
   Image,
   Alert,
 } from "react-native";
@@ -28,18 +24,12 @@ import {
   ChevronRight,
   Leaf,
   User,
-  ChefHat,
   Clock,
   MapPin,
-  AlertTriangle,
-  Wrench,
   X,
   Check,
   Pencil,
-  ChevronDown,
-  Settings,
   LogOut,
-  Sparkles,
   Camera,
   Pill,
 } from "lucide-react-native";
@@ -53,30 +43,15 @@ import { useNotifications } from "@/providers/NotificationProvider";
 
 import {
   FOOTBALL_POSITIONS,
-  TRAINING_FREQUENCIES,
-  SEASON_PHASES,
-  PERFORMANCE_GOALS,
-  goalLabelForAge,
   DIET_TYPES,
-  ALLERGY_OPTIONS,
   COOKING_SKILLS,
-  GENDER_OPTIONS,
   EU_COUNTRIES_WITH_FLAGS,
-  COOK_TIME_OPTIONS,
   DAY_TYPE_OPTIONS,
-  KITCHEN_EQUIPMENT,
 } from "@/constants/onboarding";
 import {
-  Gender,
-  FootballPosition,
-  TrainingFrequency,
-  SeasonPhase,
-  PerformanceGoal,
-  CookingSkill,
   DayType,
 } from "@/types";
 import WeeklyProgramEditor from "@/components/WeeklyProgramEditor";
-import MealTimesSettings from "@/components/MealTimesSettings";
 import Toast from "@/components/ui/Toast";
 import { useToday } from "@/providers/TodayProvider";
 import {
@@ -85,31 +60,6 @@ import {
   getMondayIndex,
 } from "@/constants/dayTypes";
 
-type EditField =
-  | "name"
-  | "gender"
-  | "age"
-  | "weight"
-  | "height"
-  | "dietType"
-  | "cookingSkill"
-  | "maxCookTime"
-  | "kitchenEquipment"
-  | "allergies"
-  | "country"
-  | "footballPosition"
-  | "trainingFrequency"
-  | "seasonPhase"
-  | "performanceGoal"
-  | null;
-
-interface OptionItem {
-  id: string;
-  label: string;
-  icon?: string;
-  desc?: string;
-}
-
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -117,8 +67,7 @@ export default function ProfileScreen() {
   const { signOut: signOutSupabase } = useAuth();
   const { mealRemindersEnabled, setMealRemindersEnabled } = useNotifications();
 
-  const [editField, setEditField] = useState<EditField>(null);
-  const [textValue, setTextValue] = useState("");
+  const [showCountryPicker, setShowCountryPicker] = useState(false);
   const { todayData, refreshToday, resetHydration } = useToday();
   const [cycle, setCycle] = useState<CycleSettings | null>(null);
   useEffect(() => {
@@ -153,15 +102,6 @@ export default function ProfileScreen() {
     [weeklySchedule, updateProfile, refreshToday, resetHydration],
   );
 
-  const openEditor = useCallback((field: EditField) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (field === "name") setTextValue(profile.name);
-    else if (field === "age") setTextValue(String(profile.age || ""));
-    else if (field === "weight") setTextValue(String(profile.weight || ""));
-    else if (field === "height") setTextValue(String(profile.height || ""));
-    setEditField(field);
-  }, [profile]);
-
   const pickProfileImage = useCallback(async () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
@@ -192,150 +132,6 @@ export default function ProfileScreen() {
     }
   }, [updateProfile]);
 
-  const closeEditor = useCallback(() => {
-    setEditField(null);
-    setTextValue("");
-  }, []);
-
-  const saveTextValue = useCallback(() => {
-    if (editField === "name") {
-      updateProfile({ name: textValue.trim() });
-    } else if (editField === "age") {
-      const val = parseInt(textValue, 10);
-      if (val > 0) updateProfile({ age: val });
-    } else if (editField === "weight") {
-      const val = parseInt(textValue, 10);
-      if (val > 0) updateProfile({ weight: val });
-    } else if (editField === "height") {
-      const val = parseInt(textValue, 10);
-      if (val > 0) updateProfile({ height: val });
-    }
-    closeEditor();
-  }, [editField, textValue, updateProfile, closeEditor]);
-
-  const selectOption = useCallback((field: EditField, value: string) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    switch (field) {
-      case "gender":
-        updateProfile({ gender: value as Gender });
-        break;
-      case "dietType":
-        updateProfile({ dietType: value });
-        break;
-      case "cookingSkill":
-        updateProfile({ cookingSkill: value as CookingSkill });
-        break;
-      case "maxCookTime":
-        updateProfile({ maxCookTime: value as "any" | "under_15" | "under_30" | "under_45" });
-        break;
-      case "country":
-        updateProfile({ country: value });
-        break;
-      case "footballPosition":
-        updateProfile({ position: value as FootballPosition });
-        break;
-      case "trainingFrequency":
-        updateProfile({ trainingFrequency: value as TrainingFrequency });
-        break;
-      case "seasonPhase":
-        updateProfile({ seasonPhase: value as SeasonPhase });
-        break;
-      case "performanceGoal":
-        updateProfile({ performanceGoal: value as PerformanceGoal });
-        break;
-    }
-    closeEditor();
-  }, [updateProfile, closeEditor]);
-
-  const toggleMultiSelect = useCallback((field: "kitchenEquipment" | "allergies", value: string) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (field === "allergies" && value === "none") {
-      const current = profile.allergies;
-      updateProfile({ allergies: current.includes("none") ? [] : ["none"] });
-      return;
-    }
-    if (field === "allergies" && profile.allergies.includes("none")) {
-      updateProfile({ allergies: [value] });
-      return;
-    }
-    const current = profile[field];
-    const updated = current.includes(value)
-      ? current.filter((v) => v !== value)
-      : [...current, value];
-    updateProfile({ [field]: updated });
-  }, [profile, updateProfile]);
-
-  const isTextEditor = editField === "name" || editField === "age" || editField === "weight" || editField === "height";
-
-  const getOptionsForField = (): OptionItem[] => {
-    switch (editField) {
-      case "gender":
-        return GENDER_OPTIONS.map((g) => ({ id: g.id, label: g.label, icon: g.icon }));
-      case "dietType":
-        return DIET_TYPES.map((d) => ({ id: d.id, label: d.label, icon: d.icon }));
-      case "cookingSkill":
-        return COOKING_SKILLS.map((c) => ({ id: c.id, label: c.label, icon: c.icon, desc: c.desc }));
-      case "maxCookTime":
-        return COOK_TIME_OPTIONS.map((c) => ({ id: c.id, label: c.label, icon: c.icon }));
-      case "footballPosition":
-        return FOOTBALL_POSITIONS.map((p) => ({ id: p.id, label: p.label, icon: p.icon, desc: p.desc }));
-      case "trainingFrequency":
-        return TRAINING_FREQUENCIES.map((t) => ({ id: t.id, label: t.label, icon: t.icon, desc: t.desc }));
-      case "seasonPhase":
-        return SEASON_PHASES.map((s) => ({ id: s.id, label: s.label, icon: s.icon, desc: s.desc }));
-      case "performanceGoal":
-        // Randell 2021: no weight-loss / body-comp goals for female users
-        return PERFORMANCE_GOALS.filter((p) => !(profile.gender === "female" && p.id === "lean_fast")).map((p) => ({
-          id: p.id,
-          label: goalLabelForAge(p.id, p.label, profile.age),
-          icon: p.icon,
-          desc: p.desc,
-        }));
-      default:
-        return [];
-    }
-  };
-
-  const getSelectedValue = (): string => {
-    switch (editField) {
-      case "gender": return profile.gender;
-      case "dietType": return profile.dietType;
-      case "cookingSkill": return profile.cookingSkill;
-      case "maxCookTime": return profile.maxCookTime ?? "any";
-      case "country": return profile.country;
-      case "footballPosition": return profile.position ?? "";
-      case "trainingFrequency": return profile.trainingFrequency ?? "";
-      case "seasonPhase": return profile.seasonPhase ?? "";
-      case "performanceGoal": return profile.performanceGoal ?? "";
-      default: return "";
-    }
-  };
-
-  const getEditorTitle = (): string => {
-    switch (editField) {
-      case "name": return "Edit Name";
-      case "gender": return "Gender";
-      case "age": return "Edit Age";
-      case "weight": return "Edit Weight";
-      case "height": return "Edit Height";
-      case "dietType": return "Diet Type";
-      case "cookingSkill": return "Cooking Skill";
-      case "maxCookTime": return "Max Cook Time";
-      case "kitchenEquipment": return "Kitchen Equipment";
-      case "allergies": return "Allergies";
-      case "country": return "Country";
-      case "footballPosition": return "Football Position";
-      case "trainingFrequency": return "Training Frequency";
-      case "seasonPhase": return "Season Phase";
-      case "performanceGoal": return "Performance Goal";
-      default: return "";
-    }
-  };
-
-  const isMultiSelect = editField === "kitchenEquipment" || editField === "allergies";
-  const isCountryPicker = editField === "country";
-  const isSingleSelect = !isTextEditor && !isMultiSelect && !isCountryPicker && editField !== null;
-
   const positionLabel = FOOTBALL_POSITIONS.find((p) => p.id === profile.position)?.label;
 
   /** One-line summary shown on the compact Player Profile card. */
@@ -349,143 +145,11 @@ export default function ProfileScreen() {
       .filter(Boolean)
       .join(" · ") || "Tap to view and edit";
 
-  const renderEditorContent = () => {
-    if (isTextEditor) {
-      const keyboardType = editField === "name" ? "default" as const : "number-pad" as const;
-      const placeholder = editField === "name" ? "Your name"
-        : editField === "age" ? "e.g. 25"
-        : editField === "weight" ? "e.g. 70"
-        : "e.g. 175";
-      const suffix = editField === "age" ? " years"
-        : editField === "weight" ? " kg"
-        : editField === "height" ? " cm"
-        : "";
-
-      return (
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
-          <View style={styles.editorBody}>
-            <View style={styles.textInputRow}>
-              <TextInput
-                style={styles.editorInput}
-                value={textValue}
-                onChangeText={(v) => {
-                  if (editField === "name") setTextValue(v);
-                  else setTextValue(v.replace(/[^0-9]/g, ""));
-                }}
-                keyboardType={keyboardType}
-                placeholder={placeholder}
-                placeholderTextColor={Colors.textTertiary}
-                autoFocus
-                maxLength={editField === "name" ? 40 : 3}
-              />
-              {suffix ? <Text style={styles.inputSuffix}>{suffix}</Text> : null}
-            </View>
-            <Pressable
-              onPress={saveTextValue}
-              style={({ pressed }) => [styles.saveBtn, pressed && { opacity: 0.9 }]}
-            >
-              <Text style={styles.saveBtnText}>Save</Text>
-            </Pressable>
-          </View>
-        </KeyboardAvoidingView>
-      );
-    }
-
-    if (isCountryPicker) {
-      return (
-        <FlatList
-          data={EU_COUNTRIES_WITH_FLAGS}
-          keyExtractor={(item) => item.code}
-          style={styles.optionsList}
-          renderItem={({ item }) => {
-            const selected = profile.country === item.name;
-            return (
-              <Pressable
-                onPress={() => selectOption("country", item.name)}
-                style={[styles.optionRow, selected && styles.optionRowSelected]}
-              >
-                <View style={styles.optionContent}>
-                  <Text style={styles.optionIcon}>{item.flag}</Text>
-                  <Text style={[styles.optionLabel, selected && styles.optionLabelSelected]}>{item.name}</Text>
-                </View>
-                {selected && <Check size={18} color={Colors.primary} />}
-              </Pressable>
-            );
-          }}
-        />
-      );
-    }
-
-    if (isMultiSelect) {
-      const field = editField as "kitchenEquipment" | "allergies";
-      const options = field === "kitchenEquipment" ? KITCHEN_EQUIPMENT : ALLERGY_OPTIONS;
-      const selected = profile[field];
-
-      return (
-        <View style={styles.editorBody}>
-          <View style={styles.multiGrid}>
-            {options.map((opt) => {
-              const isSelected = selected.includes(opt.id);
-              return (
-                <Pressable
-                  key={opt.id}
-                  onPress={() => toggleMultiSelect(field, opt.id)}
-                  style={[styles.multiChip, isSelected && styles.multiChipSelected]}
-                >
-                  <Text style={styles.multiChipIcon}>{opt.icon}</Text>
-                  <Text style={[styles.multiChipLabel, isSelected && styles.multiChipLabelSelected]}>
-                    {opt.label}
-                  </Text>
-                  {isSelected && (
-                    <View style={styles.multiChipCheck}>
-                      <Check size={12} color="#fff" />
-                    </View>
-                  )}
-                </Pressable>
-              );
-            })}
-          </View>
-          <Pressable
-            onPress={closeEditor}
-            style={({ pressed }) => [styles.saveBtn, pressed && { opacity: 0.9 }]}
-          >
-            <Text style={styles.saveBtnText}>Done</Text>
-          </Pressable>
-        </View>
-      );
-    }
-
-    if (isSingleSelect) {
-      const options = getOptionsForField();
-      const selectedId = getSelectedValue();
-
-      return (
-        <View style={styles.editorBody}>
-          {options.map((opt) => {
-            const isSelected = selectedId === opt.id;
-            return (
-              <Pressable
-                key={opt.id}
-                onPress={() => selectOption(editField, opt.id)}
-                style={[styles.optionRow, isSelected && styles.optionRowSelected]}
-              >
-                <View style={styles.optionContent}>
-                  {opt.icon ? <Text style={styles.optionIcon}>{opt.icon}</Text> : null}
-                  <View style={styles.optionTextWrap}>
-                    <Text style={[styles.optionLabel, isSelected && styles.optionLabelSelected]}>{opt.label}</Text>
-                    {opt.desc ? <Text style={[styles.optionDesc, isSelected && styles.optionDescSelected]}>{opt.desc}</Text> : null}
-                  </View>
-                </View>
-                {isSelected && <Check size={18} color={Colors.primary} />}
-              </Pressable>
-            );
-          })}
-        </View>
-      );
-    }
-
-    return null;
-  };
+  /** One-line summaries shown on the compact Nutrition and Meal Times cards. */
+  const nutritionSummary = `${
+    DIET_TYPES.find((d) => d.id === profile.dietType)?.label ?? "Not set"
+  } · ${COOKING_SKILLS.find((c) => c.id === profile.cookingSkill)?.label ?? "Not set"}`;
+  const mealTimesSummary = mealRemindersEnabled ? "Reminders on" : "Reminders off";
 
   return (
     <>
@@ -579,8 +243,31 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      {/* Meal Times — eating windows, reminders toggle and delay */}
-      <MealTimesSettings />
+      {/* Meal Times — compact card; full eating windows live on the detail page */}
+      <View style={styles.section}>
+        <Pressable
+          onPress={() => {
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push("/meal-times");
+          }}
+          style={({ pressed }) => [
+            styles.sectionCard,
+            styles.playerCard,
+            pressed && { backgroundColor: Colors.surfaceElevated },
+          ]}
+        >
+          <View style={styles.playerIconWrap}>
+            <Clock size={20} color={Colors.primary} />
+          </View>
+          <View style={styles.playerTextWrap}>
+            <Text style={styles.playerTitle}>Meal Times</Text>
+            <Text style={styles.playerSubtitle} numberOfLines={1}>
+              {`Eating windows · ${mealTimesSummary}`}
+            </Text>
+          </View>
+          <ChevronRight size={18} color={Colors.textTertiary} />
+        </Pressable>
+      </View>
 
       {/* Player Profile — compact summary; full editing lives on the detail page */}
       <View style={styles.section}>
@@ -608,98 +295,30 @@ export default function ProfileScreen() {
         </Pressable>
       </View>
 
+      {/* Nutrition & Cooking — compact card; full settings live on the detail page */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Nutrition & Cooking</Text>
-        <View style={styles.sectionCard}>
-            <PrefRow
-              icon={<Utensils size={18} color={Colors.accent} />}
-              label="Diet Type"
-              value={DIET_TYPES.find((d) => d.id === profile.dietType)?.label ?? "Not set"}
-              onEdit={() => openEditor("dietType")}
-            />
-            <View style={styles.divider} />
-            <PrefRow
-              icon={<ChefHat size={18} color="#F59E0B" />}
-              label="Cooking Skill"
-              value={COOKING_SKILLS.find((c) => c.id === profile.cookingSkill)?.label ?? "Not set"}
-              onEdit={() => openEditor("cookingSkill")}
-            />
-            <View style={styles.divider} />
-            <PrefRow
-              icon={<Clock size={18} color="#3B82F6" />}
-              label="Max Cook Time"
-              value={COOK_TIME_OPTIONS.find((c) => c.id === (profile.maxCookTime ?? "any"))?.label ?? "Any time"}
-              onEdit={() => openEditor("maxCookTime")}
-            />
-            <View style={styles.divider} />
-            <View style={styles.settingRow}>
-              <View style={styles.settingLeft}>
-                <View style={styles.prefIconWrap}>
-                  <ChefHat size={18} color="#10B981" />
-                </View>
-                <View style={styles.prefTextWrap}>
-                  <Text style={styles.prefLabel}>No-Cook Only</Text>
-                  <Text style={styles.prefValue}>Assembly-only meals</Text>
-                </View>
-              </View>
-              <Switch
-                value={profile.noCookOnly ?? false}
-                onValueChange={(v) => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  updateProfile({ noCookOnly: v });
-                }}
-                trackColor={{ false: Colors.border, true: Colors.primaryLight }}
-                thumbColor="#fff"
-              />
-            </View>
-            <View style={styles.divider} />
-            <View style={styles.settingRow}>
-              <View style={styles.settingLeft}>
-                <View style={styles.prefIconWrap}>
-                  <Sparkles size={18} color={Colors.premiumGold} />
-                </View>
-                <View style={styles.prefTextWrap}>
-                  <Text style={styles.prefLabel}>Simple Meals Only</Text>
-                  <Text style={styles.prefValue}>Max 5 ingredients</Text>
-                </View>
-              </View>
-              <Switch
-                value={profile.maxFiveIngredients ?? false}
-                onValueChange={(v) => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  updateProfile({ maxFiveIngredients: v });
-                }}
-                trackColor={{ false: Colors.border, true: Colors.primaryLight }}
-                thumbColor="#fff"
-              />
-            </View>
-            <View style={styles.divider} />
-            <PrefRow
-              icon={<Wrench size={18} color="#64748B" />}
-              label="Kitchen Equipment"
-              value={
-                profile.kitchenEquipment.length > 0
-                  ? profile.kitchenEquipment
-                      .map((id) => KITCHEN_EQUIPMENT.find((k) => k.id === id)?.label ?? id)
-                      .join(", ")
-                  : "Not set"
-              }
-              onEdit={() => openEditor("kitchenEquipment")}
-            />
-            <View style={styles.divider} />
-            <PrefRow
-              icon={<AlertTriangle size={18} color="#EF4444" />}
-              label="Allergies"
-              value={
-                profile.allergies.length > 0
-                  ? profile.allergies
-                      .map((id) => ALLERGY_OPTIONS.find((a) => a.id === id)?.label ?? id)
-                      .join(", ")
-                  : "None"
-              }
-              onEdit={() => openEditor("allergies")}
-            />
+        <Pressable
+          onPress={() => {
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push("/nutrition-details");
+          }}
+          style={({ pressed }) => [
+            styles.sectionCard,
+            styles.playerCard,
+            pressed && { backgroundColor: Colors.surfaceElevated },
+          ]}
+        >
+          <View style={styles.playerIconWrap}>
+            <Utensils size={20} color={Colors.accent} />
           </View>
+          <View style={styles.playerTextWrap}>
+            <Text style={styles.playerTitle}>Nutrition & Cooking</Text>
+            <Text style={styles.playerSubtitle} numberOfLines={1}>
+              {nutritionSummary}
+            </Text>
+          </View>
+          <ChevronRight size={18} color={Colors.textTertiary} />
+        </Pressable>
       </View>
 
       <View style={styles.section}>
@@ -728,7 +347,10 @@ export default function ProfileScreen() {
             icon={<MapPin size={18} color="#10B981" />}
             label="Country"
             value={profile.country || "Not set"}
-            onEdit={() => openEditor("country")}
+            onEdit={() => {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setShowCountryPicker(true);
+            }}
           />
           <View style={styles.divider} />
           <Pressable style={styles.settingRow} onPress={() => router.push("/premium")}>
@@ -877,18 +499,41 @@ export default function ProfileScreen() {
       <Text style={styles.version}>FuelUp AI v1.0.0</Text>
       <View style={{ height: 40 }} />
 
-      <Modal visible={editField !== null} animationType="slide" transparent>
+      <Modal visible={showCountryPicker} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
-          <Pressable style={styles.modalBackdrop} onPress={closeEditor} />
+          <Pressable style={styles.modalBackdrop} onPress={() => setShowCountryPicker(false)} />
           <View style={[styles.modalSheet, { paddingBottom: insets.bottom + 16 }]}>
             <View style={styles.modalHandle} />
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{getEditorTitle()}</Text>
-              <Pressable onPress={closeEditor} hitSlop={12}>
+              <Text style={styles.modalTitle}>Country</Text>
+              <Pressable onPress={() => setShowCountryPicker(false)} hitSlop={12}>
                 <X size={22} color={Colors.textSecondary} />
               </Pressable>
             </View>
-            {renderEditorContent()}
+            <FlatList
+              data={EU_COUNTRIES_WITH_FLAGS}
+              keyExtractor={(item) => item.code}
+              style={styles.optionsList}
+              renderItem={({ item }) => {
+                const selected = profile.country === item.name;
+                return (
+                  <Pressable
+                    onPress={() => {
+                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      updateProfile({ country: item.name });
+                      setShowCountryPicker(false);
+                    }}
+                    style={[styles.optionRow, selected && styles.optionRowSelected]}
+                  >
+                    <View style={styles.optionContent}>
+                      <Text style={styles.optionIcon}>{item.flag}</Text>
+                      <Text style={[styles.optionLabel, selected && styles.optionLabelSelected]}>{item.name}</Text>
+                    </View>
+                    {selected && <Check size={18} color={Colors.primary} />}
+                  </Pressable>
+                );
+              }}
+            />
           </View>
         </View>
       </Modal>
