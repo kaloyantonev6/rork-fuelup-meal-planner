@@ -634,8 +634,8 @@ export default function MealDetailScreen() {
   }, [showSimplified, simplifiedAnim]);
 
   const simplifiedTip = useMemo(() => {
-    if (!meal?.nutritionTip) return "";
-    const tip = meal.nutritionTip.toLowerCase();
+    if (!meal) return "";
+    const tip = meal.nutritionTip?.toLowerCase() ?? "";
     const parts: string[] = [];
 
     if (tip.includes("protein")) parts.push("This meal has a good amount of protein, which helps your muscles grow and recover after exercise.");
@@ -647,10 +647,20 @@ export default function MealDetailScreen() {
     if (tip.includes("weight") || tip.includes("deficit") || tip.includes("loss") || tip.includes("lean")) parts.push("This helps you manage your weight by keeping calories in check without starving yourself.");
     if (tip.includes("complex") || tip.includes("sustained") || tip.includes("slow")) parts.push("The energy from this meal is released slowly, keeping you fueled for hours.");
 
+    // Meals opened from the Plan tab arrive without a tip — derive the
+    // explanation from the meal's macros so SimplAI always has something to show.
+    if (parts.length === 0) {
+      if (meal.protein >= 20) parts.push(`It packs ${meal.protein}g of protein, which helps your muscles recover and grow after training and matches.`);
+      if (meal.carbs >= 40) parts.push(`Its ${meal.carbs}g of carbs refill your energy stores, keeping you fueled for hours.`);
+      if (meal.fiber >= 5) parts.push(`With ${meal.fiber}g of fiber, it keeps your digestion working well and hunger steady.`);
+      else if (meal.fat >= 15) parts.push("The healthy fats in this meal keep you full longer and support recovery.");
+      if (parts.length === 0 && meal.calories >= 400) parts.push(`At ${meal.calories} kcal, it covers a solid share of your daily fuel needs in one meal.`);
+    }
+
     if (parts.length === 0) parts.push("In simple terms: this is a well-balanced meal that gives your body what it needs to stay healthy and energized.");
 
     return "\u{1F9E0} In plain English: " + parts.slice(0, 2).join(" ");
-  }, [meal?.nutritionTip]);
+  }, [meal]);
 
   const handleRegenerate = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
