@@ -21,7 +21,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
 import {
   Crown,
-  Target,
   Utensils,
   Bell,
   Shield,
@@ -29,10 +28,6 @@ import {
   ChevronRight,
   Leaf,
   User,
-  Flame,
-  Ruler,
-  Weight,
-  Activity,
   ChefHat,
   Clock,
   MapPin,
@@ -80,7 +75,6 @@ import {
   CookingSkill,
   DayType,
 } from "@/types";
-import DailyTargetsCard from "@/components/DailyTargetsCard";
 import WeeklyProgramEditor from "@/components/WeeklyProgramEditor";
 import MealTimesSettings from "@/components/MealTimesSettings";
 import Toast from "@/components/ui/Toast";
@@ -343,12 +337,17 @@ export default function ProfileScreen() {
   const isSingleSelect = !isTextEditor && !isMultiSelect && !isCountryPicker && editField !== null;
 
   const positionLabel = FOOTBALL_POSITIONS.find((p) => p.id === profile.position)?.label;
-  const trainingFreqLabel = TRAINING_FREQUENCIES.find((t) => t.id === profile.trainingFrequency)?.label;
-  const seasonPhaseLabel = SEASON_PHASES.find((s) => s.id === profile.seasonPhase)?.label;
-  const perfGoalLabelMatch = PERFORMANCE_GOALS.find((p) => p.id === profile.performanceGoal);
-  const perfGoalLabel = perfGoalLabelMatch
-    ? goalLabelForAge(perfGoalLabelMatch.id, perfGoalLabelMatch.label, profile.age)
-    : undefined;
+
+  /** One-line summary shown on the compact Player Profile card. */
+  const playerSummary =
+    [
+      profile.age ? `${profile.age} yrs` : null,
+      profile.weight ? `${profile.weight} kg` : null,
+      profile.height ? `${profile.height} cm` : null,
+      positionLabel,
+    ]
+      .filter(Boolean)
+      .join(" · ") || "Tap to view and edit";
 
   const renderEditorContent = () => {
     if (isTextEditor) {
@@ -583,70 +582,30 @@ export default function ProfileScreen() {
       {/* Meal Times — eating windows, reminders toggle and delay */}
       <MealTimesSettings />
 
+      {/* Player Profile — compact summary; full editing lives on the detail page */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Body Profile</Text>
-        <View style={styles.sectionCard}>
-            <PrefRow
-              icon={<User size={18} color={Colors.primary} />}
-              label="Name"
-              value={profile.name || "Not set"}
-              onEdit={() => openEditor("name")}
-            />
-            <View style={styles.divider} />
-            <PrefRow
-              icon={<User size={18} color="#8B5CF6" />}
-              label="Gender"
-              value={GENDER_OPTIONS.find((g) => g.id === profile.gender)?.label ?? "Not set"}
-              onEdit={() => openEditor("gender")}
-            />
-            <View style={styles.divider} />
-            <PrefRow
-              icon={<Flame size={18} color="#EF4444" />}
-              label="Age"
-              value={profile.age ? `${profile.age} years` : "Not set"}
-              onEdit={() => openEditor("age")}
-            />
-            <View style={styles.divider} />
-            <PrefRow
-              icon={<Weight size={18} color="#6366F1" />}
-              label="Weight"
-              value={profile.weight ? `${profile.weight} kg` : "Not set"}
-              onEdit={() => openEditor("weight")}
-            />
-            <View style={styles.divider} />
-            <PrefRow
-              icon={<Ruler size={18} color="#8B5CF6" />}
-              label="Height"
-              value={profile.height ? `${profile.height} cm` : "Not set"}
-              onEdit={() => openEditor("height")}
-            />
+        <Pressable
+          onPress={() => {
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push("/profile-details");
+          }}
+          style={({ pressed }) => [
+            styles.sectionCard,
+            styles.playerCard,
+            pressed && { backgroundColor: Colors.surfaceElevated },
+          ]}
+        >
+          <View style={styles.playerIconWrap}>
+            <User size={20} color={Colors.primary} />
           </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Football Profile</Text>
-        <View style={styles.sectionCard}>
-            <PrefRow
-              icon={<Activity size={18} color="#F59E0B" />}
-              label="Position"
-              value={positionLabel ?? "Not set"}
-              onEdit={() => openEditor("footballPosition")}
-            />
-            <View style={styles.divider} />
-            <PrefRow
-              icon={<Activity size={18} color="#EF4444" />}
-              label="Training Frequency"
-              value={trainingFreqLabel ?? "Not set"}
-              onEdit={() => openEditor("trainingFrequency")}
-            />
-            <View style={styles.divider} />
-            <PrefRow
-              icon={<Target size={18} color={Colors.primary} />}
-              label="Season Phase"
-              value={seasonPhaseLabel ?? "Not set"}
-              onEdit={() => openEditor("seasonPhase")}
-            />
+          <View style={styles.playerTextWrap}>
+            <Text style={styles.playerTitle}>Body & Football Profile</Text>
+            <Text style={styles.playerSubtitle} numberOfLines={1}>
+              {playerSummary}
+            </Text>
           </View>
+          <ChevronRight size={18} color={Colors.textTertiary} />
+        </Pressable>
       </View>
 
       <View style={styles.section}>
@@ -741,10 +700,6 @@ export default function ProfileScreen() {
               onEdit={() => openEditor("allergies")}
             />
           </View>
-      </View>
-
-      <View style={styles.section}>
-        <DailyTargetsCard profile={profile} dayType="training" />
       </View>
 
       <View style={styles.section}>
@@ -1111,6 +1066,33 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.cardBorder,
     overflow: "hidden",
+  },
+  playerCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 16,
+  },
+  playerIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: Colors.primaryLight,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  playerTextWrap: {
+    flex: 1,
+  },
+  playerTitle: {
+    fontSize: 15,
+    fontWeight: "700" as const,
+    color: Colors.text,
+  },
+  playerSubtitle: {
+    fontSize: 12,
+    color: Colors.textTertiary,
+    marginTop: 2,
   },
   prefRow: {
     flexDirection: "row",
