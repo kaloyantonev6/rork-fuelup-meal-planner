@@ -4,7 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import createContextHook from "@nkzw/create-context-hook";
 import { MealPlan, ShoppingItem, UserProfile } from "@/types";
 import { sampleMealPlan, weeklyMealPlans, sampleShoppingList } from "@/mocks/recipes";
-import { supabase } from "@/lib/supabase";
+import { getProfile, kvGet, kvSet, upsertProfile } from "@/lib/database";
 import { useAuth } from "@/providers/AuthProvider";
 
 const DEFAULT_PROFILE: UserProfile = {
@@ -57,6 +57,8 @@ const DEFAULT_PROFILE: UserProfile = {
  * Keep in sync with the add_football_profile_fields migration. */
 function profileToSupabaseRow(p: UserProfile): Record<string, unknown> {
   return {
+    display_name: p.name,
+    full_name: p.name,
     age: p.age,
     gender: p.gender,
     weight_kg: p.weight,
@@ -72,6 +74,10 @@ function profileToSupabaseRow(p: UserProfile): Record<string, unknown> {
     default_kickoff_time: p.defaultKickoffTime,
     default_training_time: p.defaultTrainingTime,
     parental_consent_status: p.parentalConsent ?? "not_required",
+    country: p.country || null,
+    weekly_budget: p.weeklyBudget ?? null,
+    // Full local profile snapshot so a new device restores every field.
+    preferences: p,
   };
 }
 
@@ -86,35 +92,40 @@ interface SyncUser {
  * in the profiles table, so it is included on insert. */
 async function upsertProfileRow(user: SyncUser, p: UserProfile): Promise<void> {
   const row = profileToSupabaseRow(p);
-  const updated = await supabase.from("profiles").eq("id", user.id).update(row);
-  if (!Array.isArray(updated) || updated.length === 0) {
-    await supabase.from("profiles").insert({ id: user.id, email: user.email ?? "", ...row });
-  }
+  const { error } = await upsertProfile(user.id, row, user.email ?? "");
+  if (error) throw new Error(error);
 }
 
 /** Merges a fetched `profiles` row into the local UserProfile. Only touches
  * fields Supabase owns -- everything else stays as-is. */
 function applySupabaseRow(local: UserProfile, row: Record<string, any>): UserProfile {
+  // The full profile snapshot (profiles.preferences) restores fields without a
+  // dedicated column; the dedicated columns below always win.
+  const stored =
+    row.preferences && typeof row.preferences === "object"
+      ? (row.preferences as Partial<UserProfile>)
+      : null;
+  const base: UserProfile = stored ? { ...local, ...stored } : local;
   return {
-    ...local,
-    age: row.age ?? local.age,
-    gender: row.gender ?? local.gender,
-    weight: row.weight_kg ?? local.weight,
-    height: row.height_cm ?? local.height,
-    dietType: row.diet_type ?? local.dietType,
-    allergies: row.allergies ?? local.allergies,
-    position: row.position ?? local.position,
-    level: row.player_level ?? local.level,
-    trainingFrequency: row.training_frequency ?? local.trainingFrequency,
-    seasonPhase: row.season_phase ?? local.seasonPhase,
-    performanceGoal: row.performance_goal ?? local.performanceGoal,
+    ...base,
+    age: row.age ?? base.age,
+    gender: row.gender ?? base.gender,
+    weight: row.weight_kg ?? base.weight,
+    height: row.height_cm ?? base.height,
+    dietType: row.diet_type ?? base.dietType,
+    allergies: row.allergies ?? base.allergies,
+    position: row.position ?? base.position,
+    level: row.player_level ?? base.level,
+    trainingFrequency: row.training_frequency ?? base.trainingFrequency,
+    seasonPhase: row.season_phase ?? base.seasonPhase,
+    performanceGoal: row.performance_goal ?? base.performanceGoal,
     weeklySchedule:
       row.weekly_schedule && row.weekly_schedule.length === 7
         ? row.weekly_schedule
-        : local.weeklySchedule,
-    defaultKickoffTime: row.default_kickoff_time ?? local.defaultKickoffTime,
-    defaultTrainingTime: row.default_training_time ?? local.defaultTrainingTime,
-    parentalConsent: row.parental_consent_status ?? local.parentalConsent,
+        : base.weeklySchedule,
+    defaultKickoffTime: row.default_kickoff_time ?? base.defaultKickoffTime,
+    defaultTrainingTime: row.default_training_time ?? base.defaultTrainingTime,
+    parentalConsent: row.parental_consent_status ?? base.parentalConsent,
   };
 }
 
@@ -130,7 +141,7 @@ interface AuthData {
 }
 
 export const [MealPlanProvider, useMealPlan] = createContextHook(() => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
 
   const [profile, setProfile] = useState<UserProfile>(DEFAULT_PROFILE);
   const [todayPlan, setTodayPlan] = useState<MealPlan>(sampleMealPlan);
@@ -143,18 +154,19 @@ export const [MealPlanProvider, useMealPlan] = createContextHook(() => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
+    if (authLoading) return;
     const loadData = async () => {
       try {
         const [storedProfile, onboarded, authData, session] = await Promise.all([
           AsyncStorage.getItem(PROFILE_KEY),
-          AsyncStorage.getItem(ONBOARDED_KEY),
+          kvGet<boolean>(ONBOARDED_KEY),
           AsyncStorage.getItem(AUTH_KEY),
           AsyncStorage.getItem(SESSION_KEY),
         ]);
         if (storedProfile) {
           setProfile(JSON.parse(storedProfile));
         }
-        if (onboarded === "true") {
+        if (onboarded === true) {
           setHasOnboarded(true);
         }
         if (authData) {
@@ -174,7 +186,7 @@ export const [MealPlanProvider, useMealPlan] = createContextHook(() => {
       }
     };
     void loadData();
-  }, []);
+  }, [authLoading, user?.id]);
 
   // Pull the server-side profile once authenticated, so a fresh install or
   // a new device gets real data instead of DEFAULT_PROFILE.
@@ -182,7 +194,7 @@ export const [MealPlanProvider, useMealPlan] = createContextHook(() => {
     if (!isAuthenticated || !user) return;
     (async () => {
       try {
-        const row = await supabase.from<Record<string, any>>("profiles").eq("id", user.id).single();
+        const { data: row } = await getProfile(user.id);
         if (row) {
           setProfile((prev) => {
             const merged = applySupabaseRow(prev, row);
@@ -226,7 +238,7 @@ export const [MealPlanProvider, useMealPlan] = createContextHook(() => {
   }, [saveProfileMutation]);
 
   const completeOnboarding = useCallback(async () => {
-    await AsyncStorage.setItem(ONBOARDED_KEY, "true");
+    await kvSet(ONBOARDED_KEY, true);
     if (isAuthenticated && user) {
       try {
         await upsertProfileRow(user, profile);

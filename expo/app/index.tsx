@@ -265,7 +265,7 @@ if (isAuthenticated && hasOnboarded) {
             <Text style={styles.tagline}>
               {lastEmail !== "" && mode === "signin"
                 ? "Welcome back! Sign in to continue."
-                : "Eat smarter. Save more. Feel great."}
+                : "AI Nutrition for Footballers"}
             </Text>
           </Animated.View>
 

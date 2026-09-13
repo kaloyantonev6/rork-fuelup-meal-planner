@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import createContextHook from "@nkzw/create-context-hook";
+import { kvSet } from "@/lib/database";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 
@@ -179,7 +179,7 @@ export const [NotificationProvider, useNotifications] = createContextHook(() => 
       const req = await Notifications.requestPermissionsAsync({
         ios: { allowAlert: true, allowBadge: false, allowSound: true },
       });
-      await AsyncStorage.setItem(NOTIFICATION_PERMISSION_KEY, req.granted ? "granted" : "denied");
+      await kvSet(NOTIFICATION_PERMISSION_KEY, req.granted ? "granted" : "denied");
       return req.granted;
     } catch (e) {
       console.log("[Notifications] permission request error:", e);
@@ -190,11 +190,8 @@ export const [NotificationProvider, useNotifications] = createContextHook(() => 
   /** "Maybe Later" — defer the permission ask by 3 days. */
   const deferPermissions = useCallback(async () => {
     try {
-      await AsyncStorage.setItem(NOTIFICATION_PERMISSION_KEY, "deferred");
-      await AsyncStorage.setItem(
-        NOTIFICATION_PERMISSION_DEFERRED_AT_KEY,
-        new Date().toISOString(),
-      );
+      await kvSet(NOTIFICATION_PERMISSION_KEY, "deferred");
+      await kvSet(NOTIFICATION_PERMISSION_DEFERRED_AT_KEY, new Date().toISOString());
     } catch (e) {
       console.log("[Notifications] defer error:", e);
     }

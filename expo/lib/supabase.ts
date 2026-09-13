@@ -27,7 +27,7 @@ export class SupabaseRestError extends Error {
 
 export type QueryFilter = {
   column: string;
-  op: "eq" | "neq" | "gt" | "gte" | "lt" | "lte" | "like" | "ilike" | "in" | "is";
+  op: "eq" | "neq" | "gt" | "gte" | "lt" | "lte" | "like" | "ilike" | "in" | "is" | "cs";
   value: unknown;
 };
 
@@ -39,6 +39,7 @@ class QueryBuilder {
   private readonly filters: QueryFilter[] = [];
   private readonly orders: OrderSpec[] = [];
   private limitCount: number | null = null;
+  private onConflictColumns: string | null = null;
 
   constructor(table: string, token: string | null) {
     this.table = table;
@@ -72,6 +73,10 @@ class QueryBuilder {
   }
   is(column: string, value: boolean | null): this {
     return this.add({ column, op: "is", value });
+  }
+  /** PostgREST `cs` (contains) — array/jsonb containment filter. */
+  contains(column: string, values: Array<string | number>): this {
+    return this.add({ column, op: "cs", value: values });
   }
 
   private add(filter: QueryFilter): this {
@@ -116,9 +121,13 @@ class QueryBuilder {
 
   async insert<T>(payload: Record<string, unknown> | Array<Record<string, unknown>>): Promise<T[]> {
     const body = Array.isArray(payload) ? payload : [payload];
-    return this.request<T[]>("POST", `/rest/v1/${this.table}`, new URLSearchParams(), body, {
-      return: "representation",
-    });
+    return this.request<T[]>(
+      "POST",
+      `/rest/v1/${this.table}`,
+      new URLSearchParams(),
+      body,
+      "return=representation"
+    );
   }
 
   async update<T>(changes: Record<string, unknown>): Promise<T[]> {
@@ -130,9 +139,13 @@ class QueryBuilder {
     }
     const params = new URLSearchParams();
     this.applyFilters(params);
-    return this.request<T[]>("PATCH", `/rest/v1/${this.table}`, params, changes, {
-      return: "representation",
-    });
+    return this.request<T[]>(
+      "PATCH",
+      `/rest/v1/${this.table}`,
+      params,
+      changes,
+      "return=representation"
+    );
   }
 
   async delete(): Promise<void> {
@@ -147,6 +160,32 @@ class QueryBuilder {
     await this.request<unknown>("DELETE", `/rest/v1/${this.table}`, params);
   }
 
+  /**
+   * Upsert (insert-or-update). PostgREST merges on the table's primary key by
+   * default; call .onConflict("col1,col2") first to merge on a different
+   * unique constraint.
+   */
+  async upsert<T>(
+    payload: Record<string, unknown> | Array<Record<string, unknown>>
+  ): Promise<T[]> {
+    const body = Array.isArray(payload) ? payload : [payload];
+    const params = new URLSearchParams();
+    if (this.onConflictColumns) params.append("on_conflict", this.onConflictColumns);
+    return this.request<T[]>(
+      "POST",
+      `/rest/v1/${this.table}`,
+      params,
+      body,
+      "return=representation,resolution=merge-duplicates"
+    );
+  }
+
+  /** Columns of a unique constraint to merge on (for upsert). */
+  onConflict(columns: string): this {
+    this.onConflictColumns = columns;
+    return this;
+  }
+
   // Internals
 
   private applyFilters(params: URLSearchParams): void {
@@ -156,6 +195,9 @@ class QueryBuilder {
         const list = value as Array<string | number>;
         // Inner list only — applyFilters wraps it in parens below
         serialized = list.map((v) => encodeValue(v)).join(",");
+      } else if (op === "cs") {
+        const list = value as Array<string | number>;
+        serialized = `{${list.map((v) => `"${String(v).replace(/"/g, '\\"')}"`).join(",")}}`;
       } else if (op === "is") {
         serialized = value === null ? "null" : String(value);
       } else {
@@ -174,7 +216,7 @@ class QueryBuilder {
     path: string,
     params: URLSearchParams,
     body?: unknown,
-    prefer?: { return: "representation" | "minimal" }
+    prefer?: string
   ): Promise<T> {
     const headers: Record<string, string> = {
       apikey: SUPABASE_ANON_KEY,
@@ -182,7 +224,7 @@ class QueryBuilder {
       "Content-Type": "application/json",
       Accept: "application/json",
     };
-    if (prefer) headers.Prefer = `return=${prefer.return}`;
+    if (prefer) headers.Prefer = prefer;
 
     const url = `${SUPABASE_URL}${path}${params.size > 0 ? `?${params.toString()}` : ""}`;
     let response: Response;

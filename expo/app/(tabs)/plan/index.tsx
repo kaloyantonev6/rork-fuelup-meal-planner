@@ -10,7 +10,7 @@ import {
   Text,
   View,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { kvGet, kvSet } from "@/lib/database";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -288,9 +288,8 @@ export default function PlanScreen() {
   const checkFreeGenerationLimit = useCallback(async (): Promise<boolean> => {
     if (profile.isPremium) return true;
     try {
-      const stored = await AsyncStorage.getItem(FREE_DAILY_GEN_KEY);
-      if (stored) {
-        const data = JSON.parse(stored) as { date: string; count: number };
+      const data = await kvGet<{ date: string; count: number }>(FREE_DAILY_GEN_KEY);
+      if (data) {
         const today = new Date().toISOString().split("T")[0];
         if (data.date === today && data.count >= FREE_DAILY_LIMIT) return false;
       }
@@ -304,13 +303,10 @@ export default function PlanScreen() {
     if (profile.isPremium) return;
     try {
       const today = new Date().toISOString().split("T")[0];
-      const stored = await AsyncStorage.getItem(FREE_DAILY_GEN_KEY);
+      const data = await kvGet<{ date: string; count: number }>(FREE_DAILY_GEN_KEY);
       let count = 1;
-      if (stored) {
-        const data = JSON.parse(stored) as { date: string; count: number };
-        if (data.date === today) count = data.count + 1;
-      }
-      await AsyncStorage.setItem(FREE_DAILY_GEN_KEY, JSON.stringify({ date: today, count }));
+      if (data && data.date === today) count = data.count + 1;
+      await kvSet(FREE_DAILY_GEN_KEY, { date: today, count });
     } catch (e) {
       console.log("[Plan] Error incrementing generation count:", e);
     }

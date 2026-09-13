@@ -1,4 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { kvGet, kvSet } from "@/lib/database";
 
 /**
  * Youth safety guardrails.
@@ -115,7 +115,7 @@ export function healthCheckIntervalMs(age: number): number {
 
 export async function shouldShowHealthCheck(age: number): Promise<boolean> {
   try {
-    const raw = await AsyncStorage.getItem(HEALTH_CHECK_KEY);
+    const raw = await kvGet<string>(HEALTH_CHECK_KEY);
     if (!raw) return true;
     const last = new Date(raw).getTime();
     if (Number.isNaN(last)) return true;
@@ -127,7 +127,7 @@ export async function shouldShowHealthCheck(age: number): Promise<boolean> {
 
 export async function markHealthCheckShown(): Promise<void> {
   try {
-    await AsyncStorage.setItem(HEALTH_CHECK_KEY, new Date().toISOString());
+    await kvSet(HEALTH_CHECK_KEY, new Date().toISOString());
   } catch {
     // best-effort
   }

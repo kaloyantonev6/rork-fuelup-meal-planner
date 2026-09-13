@@ -1,4 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { kvGet, kvSet } from "@/lib/database";
 import type { DayType } from "@/types";
 
 /**
@@ -102,8 +102,8 @@ interface EducationState {
 
 async function loadState(): Promise<EducationState> {
   try {
-    const raw = await AsyncStorage.getItem(EDUCATION_STATE_KEY);
-    if (raw) return JSON.parse(raw) as EducationState;
+    const stored = await kvGet<EducationState>(EDUCATION_STATE_KEY);
+    if (stored) return stored;
   } catch {
     // fall through to fresh state
   }
@@ -112,7 +112,7 @@ async function loadState(): Promise<EducationState> {
 
 async function saveState(state: EducationState): Promise<void> {
   try {
-    await AsyncStorage.setItem(EDUCATION_STATE_KEY, JSON.stringify(state));
+    await kvSet(EDUCATION_STATE_KEY, state);
   } catch {
     // best-effort
   }

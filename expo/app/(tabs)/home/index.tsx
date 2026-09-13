@@ -9,7 +9,7 @@ import {
   Text,
   View,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { kvGet, kvSet } from "@/lib/database";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -130,12 +130,12 @@ export default function HomeScreen() {
     let cancelled = false;
     const check = async () => {
       try {
-        const status = await AsyncStorage.getItem(NOTIFICATION_PERMISSION_KEY);
+        const status = await kvGet<string>(NOTIFICATION_PERMISSION_KEY);
         if (cancelled) return;
         if (!status) {
           setShowPermPrompt(true);
         } else if (status === "deferred") {
-          const at = await AsyncStorage.getItem(NOTIFICATION_PERMISSION_DEFERRED_AT_KEY);
+          const at = await kvGet<string>(NOTIFICATION_PERMISSION_DEFERRED_AT_KEY);
           if (at && Date.now() - new Date(at).getTime() > 3 * 24 * 60 * 60 * 1000) {
             setShowPermPrompt(true);
           }
@@ -157,7 +157,7 @@ export default function HomeScreen() {
     let cancelled = false;
     (async () => {
       try {
-        const shown = await AsyncStorage.getItem("youthSafeguardNoticeShown");
+        const shown = await kvGet<boolean>("youthSafeguardNoticeShown");
         if (!cancelled && !shown) setShowYouthNotice(true);
       } catch {
         // storage read failed — skip the notice this session
@@ -170,7 +170,7 @@ export default function HomeScreen() {
 
   const dismissYouthNotice = useCallback(() => {
     setShowYouthNotice(false);
-    void AsyncStorage.setItem("youthSafeguardNoticeShown", "true").catch(() => undefined);
+    void kvSet("youthSafeguardNoticeShown", true).catch(() => undefined);
   }, []);
 
   // ── Hydration + sleep mini-card data ──

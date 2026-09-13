@@ -1,4 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { kvGet, kvSet } from "@/lib/database";
 import type { DayType } from "@/types";
 
 /**
@@ -101,13 +101,12 @@ export interface StoredSweatTest extends SweatTestResult {
 
 export async function saveSweatTestResult(result: SweatTestResult): Promise<void> {
   const stored: StoredSweatTest = { ...result, testedAt: new Date().toISOString() };
-  await AsyncStorage.setItem(SWEAT_TEST_KEY, JSON.stringify(stored));
+  await kvSet(SWEAT_TEST_KEY, stored);
 }
 
 export async function loadSweatTestResult(): Promise<StoredSweatTest | null> {
   try {
-    const raw = await AsyncStorage.getItem(SWEAT_TEST_KEY);
-    return raw ? (JSON.parse(raw) as StoredSweatTest) : null;
+    return await kvGet<StoredSweatTest>(SWEAT_TEST_KEY);
   } catch {
     return null;
   }

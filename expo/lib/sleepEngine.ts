@@ -1,4 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { kvGet, kvSet } from "@/lib/database";
 
 /**
  * Sleep tracking engine.
@@ -21,8 +21,7 @@ export interface SleepLog {
 
 export async function loadSleepLog(): Promise<SleepLog> {
   try {
-    const raw = await AsyncStorage.getItem(SLEEP_LOG_KEY);
-    return raw ? (JSON.parse(raw) as SleepLog) : {};
+    return (await kvGet<SleepLog>(SLEEP_LOG_KEY)) ?? {};
   } catch {
     return {};
   }
@@ -32,7 +31,7 @@ export async function saveSleepHours(dateKey: string, hours: number): Promise<vo
   const log = await loadSleepLog();
   log[dateKey] = Math.round(hours * 100) / 100;
   try {
-    await AsyncStorage.setItem(SLEEP_LOG_KEY, JSON.stringify(log));
+    await kvSet(SLEEP_LOG_KEY, log);
   } catch {
     // best-effort
   }

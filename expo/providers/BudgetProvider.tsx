@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useMutation } from "@tanstack/react-query";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import createContextHook from "@nkzw/create-context-hook";
+import { kvGet, kvSet } from "@/lib/database";
+import { useAuth } from "@/providers/AuthProvider";
 
 const BUDGET_KEY = "weeklyBudget";
 const PURCHASES_KEY = "budgetPurchases";
@@ -48,6 +49,7 @@ function formatWeekRange(weekStart: string): string {
 }
 
 export const [BudgetProvider, useBudget] = createContextHook(() => {
+  const { user, isLoading: authLoading } = useAuth();
   const [weeklyBudget, setWeeklyBudget] = useState<number>(50);
   const [purchases, setPurchases] = useState<BudgetPurchase[]>([]);
   const [weeklyHistory, setWeeklyHistory] = useState<WeeklyBudgetSummary[]>([]);
@@ -58,27 +60,28 @@ export const [BudgetProvider, useBudget] = createContextHook(() => {
   const currentWeekRange = useMemo(() => formatWeekRange(currentWeekStart), [currentWeekStart]);
 
   useEffect(() => {
+    if (authLoading) return;
     const load = async () => {
       try {
-        const [budgetStr, purchasesStr, historyStr] = await Promise.all([
-          AsyncStorage.getItem(BUDGET_KEY),
-          AsyncStorage.getItem(PURCHASES_KEY),
-          AsyncStorage.getItem(BUDGET_HISTORY_KEY),
+        const [budget, storedPurchases, storedHistory] = await Promise.all([
+          kvGet<number>(BUDGET_KEY),
+          kvGet<BudgetPurchase[]>(PURCHASES_KEY),
+          kvGet<WeeklyBudgetSummary[]>(BUDGET_HISTORY_KEY),
         ]);
 
-        if (budgetStr) {
-          setWeeklyBudget(JSON.parse(budgetStr));
+        if (typeof budget === "number") {
+          setWeeklyBudget(budget);
         }
 
         let allPurchases: BudgetPurchase[] = [];
-        if (purchasesStr) {
-          allPurchases = JSON.parse(purchasesStr);
+        if (Array.isArray(storedPurchases)) {
+          allPurchases = storedPurchases;
           setPurchases(allPurchases);
         }
 
         let history: WeeklyBudgetSummary[] = [];
-        if (historyStr) {
-          history = JSON.parse(historyStr);
+        if (Array.isArray(storedHistory)) {
+          history = storedHistory;
           setWeeklyHistory(history);
         }
 
@@ -100,7 +103,7 @@ export const [BudgetProvider, useBudget] = createContextHook(() => {
               newSummaries.push({
                 weekStart: ws,
                 weekEnd: getWeekEnd(ws),
-                budget: budgetStr ? JSON.parse(budgetStr) : 50,
+                budget: typeof budget === "number" ? budget : 50,
                 totalSpent: groupPurchases.reduce((sum, p) => sum + p.amount, 0),
                 purchaseCount: groupPurchases.length,
               });
@@ -112,7 +115,7 @@ export const [BudgetProvider, useBudget] = createContextHook(() => {
               .sort((a, b) => b.weekStart.localeCompare(a.weekStart))
               .slice(0, 8);
             setWeeklyHistory(updatedHistory);
-            await AsyncStorage.setItem(BUDGET_HISTORY_KEY, JSON.stringify(updatedHistory));
+            await kvSet(BUDGET_HISTORY_KEY, updatedHistory);
           }
         }
 
@@ -124,11 +127,11 @@ export const [BudgetProvider, useBudget] = createContextHook(() => {
       }
     };
     void load();
-  }, []);
+  }, [authLoading, user?.id]);
 
   const saveBudgetMutation = useMutation({
     mutationFn: async (amount: number) => {
-      await AsyncStorage.setItem(BUDGET_KEY, JSON.stringify(amount));
+      await kvSet(BUDGET_KEY, amount);
       return amount;
     },
     onSuccess: (data) => {
@@ -145,7 +148,7 @@ export const [BudgetProvider, useBudget] = createContextHook(() => {
         weekStart: getWeekStart(new Date(purchase.date)),
       };
       const updated = [newPurchase, ...purchases];
-      await AsyncStorage.setItem(PURCHASES_KEY, JSON.stringify(updated));
+      await kvSet(PURCHASES_KEY, updated);
       return updated;
     },
     onSuccess: (data) => {
@@ -157,7 +160,7 @@ export const [BudgetProvider, useBudget] = createContextHook(() => {
   const deletePurchaseMutation = useMutation({
     mutationFn: async (purchaseId: string) => {
       const updated = purchases.filter((p) => p.id !== purchaseId);
-      await AsyncStorage.setItem(PURCHASES_KEY, JSON.stringify(updated));
+      await kvSet(PURCHASES_KEY, updated);
       return updated;
     },
     onSuccess: (data) => {

@@ -3,6 +3,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import createContextHook from "@nkzw/create-context-hook";
 import { useMealPlan } from "@/providers/MealPlanProvider";
 import { useDailyReset } from "@/hooks/useDailyReset";
+import { useAuth } from "@/providers/AuthProvider";
+import { resetHydrationDay } from "@/lib/database";
 import { calculateDayTargets } from "@/utils/dailyTargets";
 import {
   DEFAULT_WEEKLY_SCHEDULE,
@@ -45,6 +47,7 @@ const HYDRATION_KEY = "fuelup_hydration";
  */
 export const [TodayProvider, useToday] = createContextHook(() => {
   const { profile, isLoading } = useMealPlan();
+  const { user } = useAuth();
 
   const [dayKey, setDayKey] = useState<string>(() => getLocalDateString());
   const [bootedWithReset, setBootedWithReset] = useState(false);
@@ -111,12 +114,14 @@ export const [TodayProvider, useToday] = createContextHook(() => {
    * changing their program mid-day). Hydration reloads on the next consumer refresh.
    */
   const resetHydration = useCallback(() => {
-    void AsyncStorage.setItem(
-      HYDRATION_KEY,
-      JSON.stringify({ date: getLocalDateString(), intakeMl: 0 }),
-    ).catch((e) => console.log("[TodayProvider] Hydration reset failed:", e));
+    const today = getLocalDateString();
+    // Clear today's server rows first, then zero the device cache.
+    if (user) void resetHydrationDay(user.id, today);
+    void AsyncStorage.setItem(HYDRATION_KEY, JSON.stringify({ date: today, intakeMl: 0 })).catch(
+      (e) => console.log("[TodayProvider] Hydration reset failed:", e),
+    );
     setRefreshCount((c) => c + 1);
-  }, []);
+  }, [user]);
 
   return useMemo(
     () => ({

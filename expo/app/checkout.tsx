@@ -14,7 +14,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { kvGet, kvSet } from "@/lib/database";
 import {
   ArrowLeft,
   Lock,
@@ -129,7 +129,7 @@ export default function CheckoutScreen() {
   useEffect(() => {
     const loadCountry = async () => {
       try {
-        const stored = await AsyncStorage.getItem("country");
+        const stored = await kvGet<string>("country");
         if (stored) {
           setCountry(stored);
         }
@@ -250,10 +250,10 @@ export default function CheckoutScreen() {
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
     try {
-      await AsyncStorage.setItem("is_premium", "true");
-      await AsyncStorage.setItem("trial_start_date", getTodayISO());
-      await AsyncStorage.setItem("trial_end_date", getTrialEndDateISO());
-      await AsyncStorage.setItem("selected_plan", selectedPlan);
+      await kvSet("is_premium", true);
+      await kvSet("trial_start_date", getTodayISO());
+      await kvSet("trial_end_date", getTrialEndDateISO());
+      await kvSet("selected_plan", selectedPlan);
       console.log("Premium activated:", {
         plan: selectedPlan,
         trialEnd: getTrialEndDateISO(),

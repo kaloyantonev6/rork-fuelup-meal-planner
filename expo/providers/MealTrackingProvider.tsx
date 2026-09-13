@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import createContextHook from "@nkzw/create-context-hook";
+import { getDailyTracking, kvGet, kvSet, upsertDailyTracking } from "@/lib/database";
+import { useAuth } from "@/providers/AuthProvider";
 import { useMealPlan } from "@/providers/MealPlanProvider";
 import { useToday } from "@/providers/TodayProvider";
 import { getLocalDateString } from "@/constants/dayTypes";
@@ -36,6 +38,7 @@ const HIGHLIGHT_CLEAR_MS = 6000;
 export const [MealTrackingProvider, useMealTracking] = createContextHook(() => {
   const { todayPlan, profile } = useMealPlan();
   const { todayData, dayKey } = useToday();
+  const { user, isLoading: authLoading } = useAuth();
 
   const [tracking, setTracking] = useState<DailyTracking | null>(null);
   const [history, setHistory] = useState<DailyTracking[]>([]);
@@ -88,64 +91,55 @@ export const [MealTrackingProvider, useMealTracking] = createContextHook(() => {
   // Load + normalise: archive a stale day into history, initialise today,
   // and patch the calorie target when profile/day-type targets change.
   useEffect(() => {
+    if (authLoading) return;
     let cancelled = false;
     const run = async () => {
       try {
         const today = getLocalDateString();
-        const [trackingRaw, historyRaw, timesRaw, settingsRaw] = await Promise.all([
-          AsyncStorage.getItem(MEAL_TRACKING_KEY),
-          AsyncStorage.getItem(MEAL_TRACKING_HISTORY_KEY),
-          AsyncStorage.getItem(CUSTOM_MEAL_TIMES_KEY),
-          AsyncStorage.getItem(REMINDER_SETTINGS_KEY),
+        const [trackingRow, historyRaw, timesRaw, settingsRaw] = await Promise.all([
+          user ? getDailyTracking(user.id, today) : Promise.resolve({ data: null, error: null }),
+          kvGet<DailyTracking[]>(MEAL_TRACKING_HISTORY_KEY),
+          kvGet<MealTimesConfig>(CUSTOM_MEAL_TIMES_KEY),
+          kvGet<ReminderSettings>(REMINDER_SETTINGS_KEY),
         ]);
         if (cancelled) return;
 
         let nextTimes = DEFAULT_MEAL_TIME_WINDOWS;
-        if (timesRaw) {
-          try {
-            nextTimes = { ...DEFAULT_MEAL_TIME_WINDOWS, ...(JSON.parse(timesRaw) as MealTimesConfig) };
-          } catch {
-            // fall back to defaults
-          }
+        if (timesRaw && typeof timesRaw === "object") {
+          nextTimes = { ...DEFAULT_MEAL_TIME_WINDOWS, ...timesRaw };
         }
         let nextSettings = DEFAULT_REMINDER_SETTINGS;
-        if (settingsRaw) {
-          try {
-            const parsed = JSON.parse(settingsRaw) as Partial<ReminderSettings>;
-            nextSettings = {
-              enabled: parsed.enabled ?? true,
-              delayMinutes: parsed.delayMinutes ?? 30,
-            };
-          } catch {
-            // fall back to defaults
-          }
+        if (settingsRaw && typeof settingsRaw === "object") {
+          nextSettings = {
+            enabled: settingsRaw.enabled ?? true,
+            delayMinutes: settingsRaw.delayMinutes ?? 30,
+          };
         }
 
-        let nextHistory: DailyTracking[] = [];
-        if (historyRaw) {
-          try {
-            nextHistory = JSON.parse(historyRaw) as DailyTracking[];
-          } catch {
-            nextHistory = [];
-          }
-        }
+        let nextHistory: DailyTracking[] = Array.isArray(historyRaw) ? historyRaw : [];
 
-        let current: DailyTracking | null = null;
-        if (trackingRaw) {
-          try {
-            current = JSON.parse(trackingRaw) as DailyTracking;
-          } catch {
-            current = null;
-          }
+        let current: DailyTracking | null =
+          trackingRow && typeof trackingRow.data === "object" && trackingRow.data !== null
+            ? (trackingRow.data as DailyTracking)
+            : null;
+        if (!current) {
+          // No server row — fall back to the device cache (offline/pre-migration)
+          const cached = await kvGet<DailyTracking>(MEAL_TRACKING_KEY);
+          if (cached && typeof cached === "object") current = cached;
         }
 
         const calorieTarget = todayData?.calorieTarget ?? profile.calorieTarget ?? 0;
+
+        const persistCurrent = async (t: DailyTracking) => {
+          void AsyncStorage.setItem(MEAL_TRACKING_KEY, JSON.stringify(t)).catch(() => undefined);
+          if (user) await upsertDailyTracking(user.id, today, t);
+        };
 
         if (current && current.date === today) {
           // Same day — patch the target if it moved (profile edits, program changes)
           if (calorieTarget > 0 && current.calorieTarget !== calorieTarget) {
             current = recomputeTracking({ ...current, calorieTarget });
-            await AsyncStorage.setItem(MEAL_TRACKING_KEY, JSON.stringify(current));
+            await persistCurrent(current);
           }
         } else {
           // Stale or missing — archive yesterday (unchecked meals stay "missed") and start fresh
@@ -153,14 +147,14 @@ export const [MealTrackingProvider, useMealTracking] = createContextHook(() => {
             nextHistory = [...nextHistory.filter((h) => h.date !== current?.date), current].slice(
               -HISTORY_MAX_DAYS,
             );
-            await AsyncStorage.setItem(MEAL_TRACKING_HISTORY_KEY, JSON.stringify(nextHistory));
+            await kvSet(MEAL_TRACKING_HISTORY_KEY, nextHistory);
           }
           const dayType: DayType =
             todayData?.dayType ??
             profile.weeklySchedule?.[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1] ??
             "training";
           current = buildTodaysTracking(dayType, calorieTarget, nextTimes, today);
-          await AsyncStorage.setItem(MEAL_TRACKING_KEY, JSON.stringify(current));
+          await persistCurrent(current);
         }
 
         if (cancelled) return;
@@ -178,16 +172,20 @@ export const [MealTrackingProvider, useMealTracking] = createContextHook(() => {
     return () => {
       cancelled = true;
     };
-  }, [dayKey, todayData?.calorieTarget, todayData?.dayType, profile.calorieTarget, buildTodaysTracking]);
+  }, [dayKey, todayData?.calorieTarget, todayData?.dayType, profile.calorieTarget, buildTodaysTracking, user?.id, authLoading]);
 
-  const persist = useCallback(async (next: DailyTracking) => {
-    setTracking(next);
-    try {
-      await AsyncStorage.setItem(MEAL_TRACKING_KEY, JSON.stringify(next));
-    } catch (e) {
-      console.log("[MealTracking] Persist failed:", e);
-    }
-  }, []);
+  const persist = useCallback(
+    async (next: DailyTracking) => {
+      setTracking(next);
+      try {
+        void AsyncStorage.setItem(MEAL_TRACKING_KEY, JSON.stringify(next)).catch(() => undefined);
+        if (user) await upsertDailyTracking(user.id, next.date, next);
+      } catch (e) {
+        console.log("[MealTracking] Persist failed:", e);
+      }
+    },
+    [user],
+  );
 
   const updateMeal = useCallback(
     (mealId: string, patch: Partial<MealCheckoff>) => {
@@ -240,7 +238,7 @@ export const [MealTrackingProvider, useMealTracking] = createContextHook(() => {
             [category]: { ...(base[category] ?? { reminder: end }), start, end, reminder: end },
           },
         };
-        void AsyncStorage.setItem(CUSTOM_MEAL_TIMES_KEY, JSON.stringify(next)).catch((e) =>
+        void kvSet(CUSTOM_MEAL_TIMES_KEY, next).catch((e) =>
           console.log("[MealTracking] Save meal times failed:", e),
         );
         // Keep today's scheduledTime labels in sync with the new window starts
@@ -262,7 +260,7 @@ export const [MealTrackingProvider, useMealTracking] = createContextHook(() => {
   const updateReminderDelay = useCallback((delayMinutes: number) => {
     setReminderSettings((prev) => {
       const next = { ...prev, delayMinutes };
-      void AsyncStorage.setItem(REMINDER_SETTINGS_KEY, JSON.stringify(next)).catch((e) =>
+      void kvSet(REMINDER_SETTINGS_KEY, next).catch((e) =>
         console.log("[MealTracking] Save reminder settings failed:", e),
       );
       return next;

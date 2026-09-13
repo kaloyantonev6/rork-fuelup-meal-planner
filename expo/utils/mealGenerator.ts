@@ -1,6 +1,6 @@
 import { UserProfile, DayType } from "@/types";
 import { MEAL_CATALOG, CatalogMeal } from "@/mocks/mealCatalog";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { kvGet, kvSet } from "@/lib/database";
 import {
   calculateDayTargets,
   DayTargets,
@@ -544,10 +544,9 @@ function getSlotCalorieTargets(dayType: DayType, totalCalories: number, mealSlot
 
 async function loadRecentHistory(): Promise<MealHistory[]> {
   try {
-    const stored = await AsyncStorage.getItem(RECENT_MEALS_KEY);
+    const stored = await kvGet<MealHistory[]>(RECENT_MEALS_KEY);
     if (stored) {
-      const parsed = JSON.parse(stored) as MealHistory[];
-      return parsed.sort(
+      return stored.sort(
         (a, b) => new Date(b.generatedAt).getTime() - new Date(a.generatedAt).getTime(),
       );
     }
@@ -567,7 +566,7 @@ async function saveToHistory(mealIds: string[]): Promise<void> {
     };
     history.unshift(newEntry);
     const trimmed = history.slice(0, MAX_HISTORY);
-    await AsyncStorage.setItem(RECENT_MEALS_KEY, JSON.stringify(trimmed));
+    await kvSet(RECENT_MEALS_KEY, trimmed);
     console.log("[MealGenerator] Saved plan to history, total entries:", trimmed.length);
   } catch (e) {
     console.log("[MealGenerator] Error saving history:", e);

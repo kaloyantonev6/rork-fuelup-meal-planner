@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useMutation } from "@tanstack/react-query";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import createContextHook from "@nkzw/create-context-hook";
+import { kvGet, kvSet } from "@/lib/database";
+import { useAuth } from "@/providers/AuthProvider";
 import { GeneratedPlan, GeneratedMeal } from "@/utils/mealGenerator";
 
 export interface SavedPlanData {
@@ -48,22 +49,24 @@ const FAVORITES_KEY = "fuelup_favorites";
 const FOLDERS_KEY = "fuelup_folders";
 
 export const [SavedPlansProvider, useSavedPlans] = createContextHook(() => {
+  const { user, isLoading: authLoading } = useAuth();
   const [savedPlans, setSavedPlans] = useState<SavedPlanData[]>([]);
   const [favorites, setFavorites] = useState<FavoriteMeal[]>([]);
   const [folders, setFolders] = useState<PlanFolder[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
+    if (authLoading) return;
     const load = async () => {
       try {
-        const [plansStr, favsStr, foldersStr] = await Promise.all([
-          AsyncStorage.getItem(SAVED_PLANS_KEY),
-          AsyncStorage.getItem(FAVORITES_KEY),
-          AsyncStorage.getItem(FOLDERS_KEY),
+        const [plans, favs, storedFolders] = await Promise.all([
+          kvGet<SavedPlanData[]>(SAVED_PLANS_KEY),
+          kvGet<FavoriteMeal[]>(FAVORITES_KEY),
+          kvGet<PlanFolder[]>(FOLDERS_KEY),
         ]);
-        if (plansStr) setSavedPlans(JSON.parse(plansStr));
-        if (favsStr) setFavorites(JSON.parse(favsStr));
-        if (foldersStr) setFolders(JSON.parse(foldersStr));
+        if (plans) setSavedPlans(plans);
+        if (favs) setFavorites(favs);
+        if (storedFolders) setFolders(storedFolders);
       } catch (e) {
         console.log("[SavedPlans] Error loading:", e);
       } finally {
@@ -71,23 +74,23 @@ export const [SavedPlansProvider, useSavedPlans] = createContextHook(() => {
       }
     };
     void load();
-  }, []);
+  }, [authLoading, user?.id]);
 
   const persistPlans = useMutation({
     mutationFn: async (plans: SavedPlanData[]) => {
-      await AsyncStorage.setItem(SAVED_PLANS_KEY, JSON.stringify(plans));
+      await kvSet(SAVED_PLANS_KEY, plans);
     },
   });
 
   const persistFavorites = useMutation({
     mutationFn: async (favs: FavoriteMeal[]) => {
-      await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(favs));
+      await kvSet(FAVORITES_KEY, favs);
     },
   });
 
   const persistFolders = useMutation({
     mutationFn: async (f: PlanFolder[]) => {
-      await AsyncStorage.setItem(FOLDERS_KEY, JSON.stringify(f));
+      await kvSet(FOLDERS_KEY, f);
     },
   });
 

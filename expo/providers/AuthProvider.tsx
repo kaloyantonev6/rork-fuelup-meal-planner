@@ -10,6 +10,7 @@ import { useCallback, useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import createContextHook from "@nkzw/create-context-hook";
 import { supabase } from "@/lib/supabase";
+import { setDatabaseUserId } from "@/lib/database";
 import {
   SupabaseSession,
   SupabaseUser,
@@ -41,6 +42,8 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
   const applySession = useCallback((next: SupabaseSession | null) => {
     setSession(next);
     supabase.setAccessToken(next?.access_token ?? null);
+    // Bind the RLS-scoped data layer to this account.
+    setDatabaseUserId(next?.user?.id ?? null);
   }, []);
 
   useEffect(() => {

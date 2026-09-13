@@ -10,7 +10,7 @@ import {
   Modal,
   ActivityIndicator,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { kvGet, kvSet } from "@/lib/database";
 import { Lock } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import MealImage from "@/components/MealImage";
@@ -100,8 +100,8 @@ export default function MealResults({
   const handleSave = useCallback(async () => {
     if (!isPremium) {
       try {
-        const saveCountStr = await AsyncStorage.getItem("weekly_save_count");
-        const lastResetStr = await AsyncStorage.getItem("weekly_save_reset");
+        const savedCount = await kvGet<number>("weekly_save_count");
+        const lastResetStr = await kvGet<string>("weekly_save_reset");
         const now = new Date();
         let count = 0;
 
@@ -111,10 +111,10 @@ export default function MealResults({
           const diffDays = diffMs / (1000 * 60 * 60 * 24);
           if (diffDays >= 7) {
             count = 0;
-            await AsyncStorage.setItem("weekly_save_reset", now.toISOString());
-            await AsyncStorage.setItem("weekly_save_count", "0");
+            await kvSet("weekly_save_reset", now.toISOString());
+            await kvSet("weekly_save_count", 0);
           } else {
-            count = saveCountStr ? parseInt(saveCountStr, 10) : 0;
+            count = typeof savedCount === "number" ? savedCount : 0;
             if (count >= 2) {
               const remaining = Math.ceil(7 - diffDays);
               setDaysUntilReset(remaining);
@@ -124,10 +124,10 @@ export default function MealResults({
             }
           }
         } else {
-          await AsyncStorage.setItem("weekly_save_reset", now.toISOString());
+          await kvSet("weekly_save_reset", now.toISOString());
         }
 
-        await AsyncStorage.setItem("weekly_save_count", String(count + 1));
+        await kvSet("weekly_save_count", count + 1);
         console.log("[SaveLimit] Free user save allowed, timestamp stored.");
       } catch (e) {
         console.log("[SaveLimit] Error checking save limit:", e);

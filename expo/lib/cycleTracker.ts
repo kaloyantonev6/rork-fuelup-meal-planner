@@ -1,4 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { kvGet, kvSet } from "@/lib/database";
 
 /**
  * Optional menstrual cycle awareness (Randell et al. 2021 / FIFA Women's
@@ -21,8 +21,8 @@ export const DEFAULT_CYCLE_SETTINGS: CycleSettings = {
 
 export async function loadCycleSettings(): Promise<CycleSettings> {
   try {
-    const raw = await AsyncStorage.getItem(CYCLE_KEY);
-    if (raw) return { ...DEFAULT_CYCLE_SETTINGS, ...(JSON.parse(raw) as Partial<CycleSettings>) };
+    const stored = await kvGet<Partial<CycleSettings>>(CYCLE_KEY);
+    if (stored) return { ...DEFAULT_CYCLE_SETTINGS, ...stored };
   } catch {
     // fall through
   }
@@ -31,7 +31,7 @@ export async function loadCycleSettings(): Promise<CycleSettings> {
 
 export async function saveCycleSettings(settings: CycleSettings): Promise<void> {
   try {
-    await AsyncStorage.setItem(CYCLE_KEY, JSON.stringify(settings));
+    await kvSet(CYCLE_KEY, settings);
   } catch {
     // best-effort
   }

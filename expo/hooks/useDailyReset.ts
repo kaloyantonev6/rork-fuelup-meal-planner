@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { AppState } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { kvGet, kvSet } from "@/lib/database";
 import { getLocalDateString } from "@/constants/dayTypes";
 
 const LAST_RESET_KEY = "fuelup_last_reset_date";
@@ -34,21 +35,11 @@ export function useDailyReset(options: UseDailyResetOptions = {}) {
       // Reset hydration for the new day (target recalculates from the new day type)
       await AsyncStorage.setItem(HYDRATION_KEY, JSON.stringify({ date: today, intakeMl: 0 }));
 
-      // Advance the daily performance tip rotation
-      const tipRaw = await AsyncStorage.getItem(TIP_INDEX_KEY);
-      let currentIndex = 0;
-      if (tipRaw) {
-        try {
-          const parsed = JSON.parse(tipRaw) as { index?: number };
-          if (typeof parsed.index === "number") currentIndex = parsed.index;
-        } catch {
-          // fall through with index 0
-        }
-      }
-      await AsyncStorage.setItem(
-        TIP_INDEX_KEY,
-        JSON.stringify({ date: today, index: (currentIndex + 1) % TIP_COUNT }),
-      );
+      // Advance the daily performance tip rotation (per-user)
+      const tipState = await kvGet<{ date?: string; index?: number }>(TIP_INDEX_KEY);
+      const currentIndex =
+        tipState && typeof tipState.index === "number" ? tipState.index : 0;
+      await kvSet(TIP_INDEX_KEY, { date: today, index: (currentIndex + 1) % TIP_COUNT });
 
       // Mark today as reset
       await AsyncStorage.setItem(LAST_RESET_KEY, today);

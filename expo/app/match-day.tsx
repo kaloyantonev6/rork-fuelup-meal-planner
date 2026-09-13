@@ -10,7 +10,7 @@ import {
   Animated,
   Easing,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { kvGet, kvSet } from "@/lib/database";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import {
@@ -230,14 +230,14 @@ export default function MatchDayScreen() {
     const loadSessionTime = async () => {
       try {
         if (activeDayType === "match") {
-          const stored = await AsyncStorage.getItem(KICKOFF_KEY);
+          const stored = await kvGet<string>(KICKOFF_KEY);
           const time = stored ?? profile.defaultKickoffTime ?? "15:00";
           setSessionTime(time);
           const parsed = parseTimeString(time);
           setPickerHour(parsed.hour);
           setPickerMinute(parsed.minute);
         } else if (activeDayType === "training") {
-          const stored = await AsyncStorage.getItem(TRAINING_TIME_KEY);
+          const stored = await kvGet<string>(TRAINING_TIME_KEY);
           const time = stored ?? profile.defaultTrainingTime ?? "18:00";
           setSessionTime(time);
           const parsed = parseTimeString(time);
@@ -258,12 +258,9 @@ export default function MatchDayScreen() {
   useEffect(() => {
     const loadCompleted = async () => {
       try {
-        const stored = await AsyncStorage.getItem(getCompletedKey());
-        if (stored) {
-          const parsed = JSON.parse(stored) as number[];
-          if (Array.isArray(parsed)) {
-            setCompletedIndices(parsed);
-          }
+        const parsed = await kvGet<number[]>(getCompletedKey());
+        if (Array.isArray(parsed)) {
+          setCompletedIndices(parsed);
         }
       } catch (e) {
         console.log("[DayFuelPlan] Error loading completed sessions:", e);
@@ -300,7 +297,7 @@ export default function MatchDayScreen() {
       const next = isAlready
         ? prev.filter((i) => i !== idx)
         : [...prev, idx];
-      void AsyncStorage.setItem(getCompletedKey(), JSON.stringify(next)).catch((e) =>
+      void kvSet(getCompletedKey(), next).catch((e) =>
         console.log("[DayFuelPlan] Error saving completed sessions:", e),
       );
       return next;
@@ -360,10 +357,10 @@ export default function MatchDayScreen() {
     setShowTimePicker(false);
     try {
       if (activeDayType === "match") {
-        await AsyncStorage.setItem(KICKOFF_KEY, newTime);
+        await kvSet(KICKOFF_KEY, newTime);
         updateProfile({ defaultKickoffTime: newTime });
       } else if (activeDayType === "training") {
-        await AsyncStorage.setItem(TRAINING_TIME_KEY, newTime);
+        await kvSet(TRAINING_TIME_KEY, newTime);
         updateProfile({ defaultTrainingTime: newTime });
       }
     } catch (e) {
