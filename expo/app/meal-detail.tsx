@@ -9,6 +9,7 @@ import {
   Alert,
   Modal,
   Dimensions,
+  Switch,
 } from "react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -998,19 +999,17 @@ export default function MealDetailScreen() {
             )}
 
             <View style={styles.simplAIRow}>
-              <Pressable
-                onPress={handleToggleSimplified}
-                style={({ pressed }) => [
-                  styles.simplAIBtn,
-                  showSimplified && styles.simplAIBtnActive,
-                  pressed && { opacity: 0.8, transform: [{ scale: 0.96 }] },
-                ]}
-              >
-                <Text style={[
-                  styles.simplAIBtnText,
-                  showSimplified && styles.simplAIBtnTextActive,
-                ]}>{"\u2728"} SimplAI</Text>
-              </Pressable>
+              <View style={styles.simplAITextWrap}>
+                <Text style={styles.simplAITitle}>{"\u2728"} SimplAI</Text>
+                <Text style={styles.simplAISubtitle}>Show plain-English explanation</Text>
+              </View>
+              <Switch
+                value={showSimplified}
+                onValueChange={handleToggleSimplified}
+                trackColor={{ false: Colors.border, true: "#F59E0B" }}
+                thumbColor="#fff"
+                accessibilityLabel="Toggle SimplAI plain-English explanation"
+              />
             </View>
           </View>
 
@@ -1602,26 +1601,27 @@ const styles = StyleSheet.create({
   },
   simplAIRow: {
     flexDirection: "row" as const,
-    justifyContent: "flex-end" as const,
-    marginTop: 8,
+    alignItems: "center" as const,
+    justifyContent: "space-between" as const,
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#D4A44C22",
   },
-  simplAIBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 20,
-    backgroundColor: "#D4A44C30",
+  simplAITextWrap: {
+    flex: 1,
+    paddingRight: 12,
   },
-  simplAIBtnActive: {
-    backgroundColor: "#F59E0B",
-  },
-  simplAIBtnText: {
-    fontSize: 12,
+  simplAITitle: {
+    fontSize: 13,
     fontWeight: "700" as const,
     color: "#E3C078",
     letterSpacing: 0.3,
   },
-  simplAIBtnTextActive: {
-    color: "#fff",
+  simplAISubtitle: {
+    fontSize: 11,
+    color: Colors.textTertiary,
+    marginTop: 2,
   },
   regenerateBtn: {
     flexDirection: "row" as const,
