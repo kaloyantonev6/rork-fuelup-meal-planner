@@ -102,10 +102,10 @@ function QuickActionButton({ icon, label, onPress, highlight = false }: QuickAct
         }).start();
       }}
     >
-      <View style={{ transform: [{ scale }], alignItems: "center", gap: 4 }}>
+      <Animated.View style={{ transform: [{ scale }], alignItems: "center", gap: 4 }}>
         {icon}
         <Text style={styles.quickActionLabel}>{label}</Text>
-      </View>
+      </Animated.View>
     </Pressable>
   );
 }
