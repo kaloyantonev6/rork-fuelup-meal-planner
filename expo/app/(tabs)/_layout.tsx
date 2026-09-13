@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { Home, User, Wallet } from "lucide-react-native";
+import { Home, ShoppingCart, Trophy, User, UtensilsCrossed } from "lucide-react-native";
 import { StyleSheet, Text } from "react-native";
 import React from "react";
 
@@ -24,8 +24,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          title: "Fuel",
-          tabBarLabel: ({ color }) => <Text style={[tabStyles.label, { color: color }]}>Fuel</Text>,
+          title: "Home",
+          tabBarLabel: ({ color }) => <Text style={[tabStyles.label, { color }]}>Home</Text>,
           tabBarIcon: ({ color, focused }) => (
             <AnimatedTabIcon focused={!!focused}>
               <Home size={22} color={color} />
@@ -34,13 +34,37 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="budget"
+        name="plan"
         options={{
-          title: "Budget",
-          tabBarLabel: ({ color }) => <Text style={[tabStyles.label, { color: color }]}>Budget</Text>,
+          title: "Plan",
+          tabBarLabel: ({ color }) => <Text style={[tabStyles.label, { color }]}>Plan</Text>,
           tabBarIcon: ({ color, focused }) => (
             <AnimatedTabIcon focused={!!focused}>
-              <Wallet size={22} color={color} />
+              <UtensilsCrossed size={22} color={color} />
+            </AnimatedTabIcon>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="match"
+        options={{
+          title: "Match",
+          tabBarLabel: ({ color }) => <Text style={[tabStyles.label, { color }]}>Match</Text>,
+          tabBarIcon: ({ color, focused }) => (
+            <AnimatedTabIcon focused={!!focused}>
+              <Trophy size={22} color={color} />
+            </AnimatedTabIcon>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="shop"
+        options={{
+          title: "Shop",
+          tabBarLabel: ({ color }) => <Text style={[tabStyles.label, { color }]}>Shop</Text>,
+          tabBarIcon: ({ color, focused }) => (
+            <AnimatedTabIcon focused={!!focused}>
+              <ShoppingCart size={22} color={color} />
             </AnimatedTabIcon>
           ),
         }}
@@ -49,7 +73,7 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: "Profile",
-          tabBarLabel: ({ color }) => <Text style={[tabStyles.label, { color: color }]}>Profile</Text>,
+          tabBarLabel: ({ color }) => <Text style={[tabStyles.label, { color }]}>Profile</Text>,
           tabBarIcon: ({ color, focused }) => (
             <AnimatedTabIcon focused={!!focused}>
               <User size={22} color={color} />
@@ -57,6 +81,8 @@ export default function TabLayout() {
           ),
         }}
       />
+      {/* Budget remains a reachable route (pushed from the Shop tab) but is not a tab */}
+      <Tabs.Screen name="budget" options={{ href: null }} />
     </Tabs>
   );
 }

@@ -125,8 +125,6 @@ export default function ProfileScreen() {
 
   const [editField, setEditField] = useState<EditField>(null);
   const [textValue, setTextValue] = useState("");
-  const [prefsExpanded, setPrefsExpanded] = useState(false);
-  const chevronAnim = useRef(new Animated.Value(0)).current;
   const { todayData, refreshToday, resetHydration } = useToday();
   const [cycle, setCycle] = useState<CycleSettings | null>(null);
   useEffect(() => {
@@ -160,19 +158,6 @@ export default function ProfileScreen() {
     },
     [weeklySchedule, updateProfile, refreshToday, resetHydration],
   );
-
-  const togglePrefs = useCallback(() => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setPrefsExpanded((prev) => {
-      Animated.timing(chevronAnim, {
-        toValue: prev ? 0 : 1,
-        duration: 250,
-        useNativeDriver: true,
-      }).start();
-      return !prev;
-    });
-  }, [chevronAnim]);
 
   const openEditor = useCallback((field: EditField) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -599,34 +584,8 @@ export default function ProfileScreen() {
       <MealTimesSettings />
 
       <View style={styles.section}>
-        <Pressable onPress={togglePrefs} style={styles.folderCard}>
-          <View style={styles.folderLeft}>
-            <View style={styles.folderIconWrap}>
-              <Settings size={20} color={Colors.primary} />
-            </View>
-            <View style={styles.folderTextWrap}>
-              <Text style={styles.folderTitle}>Football Profile</Text>
-              <Text style={styles.folderSubtitle}>Performance settings</Text>
-            </View>
-          </View>
-          <Animated.View
-            style={{
-              transform: [
-                {
-                  rotate: chevronAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ["0deg", "180deg"],
-                  }),
-                },
-              ],
-            }}
-          >
-            <ChevronDown size={20} color={Colors.textTertiary} />
-          </Animated.View>
-        </Pressable>
-
-        {prefsExpanded && (
-          <View style={styles.sectionCard}>
+        <Text style={styles.sectionTitle}>Body Profile</Text>
+        <View style={styles.sectionCard}>
             <PrefRow
               icon={<User size={18} color={Colors.primary} />}
               label="Name"
@@ -661,7 +620,12 @@ export default function ProfileScreen() {
               value={profile.height ? `${profile.height} cm` : "Not set"}
               onEdit={() => openEditor("height")}
             />
-            <View style={styles.divider} />
+          </View>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Football Profile</Text>
+        <View style={styles.sectionCard}>
             <PrefRow
               icon={<Activity size={18} color="#F59E0B" />}
               label="Position"
@@ -682,14 +646,12 @@ export default function ProfileScreen() {
               value={seasonPhaseLabel ?? "Not set"}
               onEdit={() => openEditor("seasonPhase")}
             />
-            <View style={styles.divider} />
-            <PrefRow
-              icon={<Target size={18} color={Colors.primary} />}
-              label="Performance Goal"
-              value={perfGoalLabel ?? "Not set"}
-              onEdit={() => openEditor("performanceGoal")}
-            />
-            <View style={styles.divider} />
+          </View>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Nutrition & Cooking</Text>
+        <View style={styles.sectionCard}>
             <PrefRow
               icon={<Utensils size={18} color={Colors.accent} />}
               label="Diet Type"
@@ -778,15 +740,7 @@ export default function ProfileScreen() {
               }
               onEdit={() => openEditor("allergies")}
             />
-            <View style={styles.divider} />
-            <PrefRow
-              icon={<MapPin size={18} color="#10B981" />}
-              label="Country"
-              value={profile.country || "Not set"}
-              onEdit={() => openEditor("country")}
-            />
           </View>
-        )}
       </View>
 
       <View style={styles.section}>
@@ -794,7 +748,7 @@ export default function ProfileScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Settings</Text>
+        <Text style={styles.sectionTitle}>App</Text>
         <View style={styles.sectionCard}>
           <View style={styles.settingRow}>
             <View style={styles.settingLeft}>
@@ -815,10 +769,17 @@ export default function ProfileScreen() {
             />
           </View>
           <View style={styles.divider} />
-          <Pressable style={styles.settingRow} onPress={() => router.push('/profile/privacy')}>
+          <PrefRow
+            icon={<MapPin size={18} color="#10B981" />}
+            label="Country"
+            value={profile.country || "Not set"}
+            onEdit={() => openEditor("country")}
+          />
+          <View style={styles.divider} />
+          <Pressable style={styles.settingRow} onPress={() => router.push("/premium")}>
             <View style={styles.settingLeft}>
-              <Shield size={18} color={Colors.textSecondary} />
-              <Text style={styles.settingLabel}>Privacy</Text>
+              <Crown size={18} color={Colors.premiumGold} />
+              <Text style={styles.settingLabel}>Subscription</Text>
             </View>
             <ChevronRight size={18} color={Colors.textTertiary} />
           </Pressable>
@@ -827,6 +788,22 @@ export default function ProfileScreen() {
             <View style={styles.settingLeft}>
               <Pill size={18} color={Colors.textSecondary} />
               <Text style={styles.settingLabel}>Supplements</Text>
+            </View>
+            <ChevronRight size={18} color={Colors.textTertiary} />
+          </Pressable>
+          <View style={styles.divider} />
+          <Pressable style={styles.settingRow} onPress={() => router.push("/profile/privacy")}>
+            <View style={styles.settingLeft}>
+              <Shield size={18} color={Colors.textSecondary} />
+              <Text style={styles.settingLabel}>Privacy</Text>
+            </View>
+            <ChevronRight size={18} color={Colors.textTertiary} />
+          </Pressable>
+          <View style={styles.divider} />
+          <Pressable style={styles.settingRow} onPress={() => router.push("/profile/help")}>
+            <View style={styles.settingLeft}>
+              <HelpCircle size={18} color={Colors.textSecondary} />
+              <Text style={styles.settingLabel}>Help & Support</Text>
             </View>
             <ChevronRight size={18} color={Colors.textTertiary} />
           </Pressable>

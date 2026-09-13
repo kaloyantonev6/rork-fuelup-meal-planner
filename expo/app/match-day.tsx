@@ -26,7 +26,7 @@ import {
   Check,
   ChevronRight,
 } from "lucide-react-native";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter, useLocalSearchParams, useSegments } from "expo-router";
 import * as Haptics from "expo-haptics";
 
 import Colors from "@/constants/colors";
@@ -197,6 +197,8 @@ export default function MatchDayScreen() {
   const router = useRouter();
   const { profile, updateProfile } = useMealPlan();
   const params = useLocalSearchParams<{ dayType?: DayType }>();
+  // Rendered both as a pushed screen (/match-day) and as the Match tab
+  const inTabs = useSegments()[0] === "(tabs)";
   const firstName = profile.name?.split(" ")[0] || "player";
 
   const todayDayType = useMemo((): DayType => {
@@ -377,12 +379,16 @@ export default function MatchDayScreen() {
         style={[styles.headerGradient, { paddingTop: insets.top + 8 }]}
       >
         <View style={styles.topBar}>
-          <Pressable
-            onPress={() => router.back()}
-            style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}
-          >
-            <ArrowLeft size={22} color={Colors.text} />
-          </Pressable>
+          {inTabs ? (
+            <View style={styles.backBtn} />
+          ) : (
+            <Pressable
+              onPress={() => router.back()}
+              style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}
+            >
+              <ArrowLeft size={22} color={Colors.text} />
+            </Pressable>
+          )}
           <Text style={styles.topBarTitle}>{config.title}</Text>
           <View style={styles.backBtn} />
         </View>

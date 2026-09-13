@@ -579,6 +579,8 @@ export default function MealDetailScreen() {
   const [meal, setMeal] = useState<GeneratedMeal | null>(null);
   const [showSimplified, setShowSimplified] = useState<boolean>(false);
   const [expandedIngredient, setExpandedIngredient] = useState<number | null>(null);
+  const [showIngredients, setShowIngredients] = useState<boolean>(false);
+  const [showInstructions, setShowInstructions] = useState<boolean>(false);
   const [showTutorialModal, setShowTutorialModal] = useState<boolean>(false);
   const [showPremiumModal, setShowPremiumModal] = useState<boolean>(false);
   const [showRegenPremiumModal, setShowRegenPremiumModal] = useState<boolean>(false);
@@ -831,13 +833,27 @@ export default function MealDetailScreen() {
           </View>
 
           <View style={styles.section}>
-            <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitle}>Ingredients</Text>
-              <View style={styles.substituteHint}>
-                <Shuffle size={12} color={Colors.primary} />
-                <Text style={styles.substituteHintText}>Tap for substitutes</Text>
+            <Pressable
+              onPress={() => setShowIngredients((p) => !p)}
+              style={styles.accordionHeader}
+            >
+              <View style={styles.accordionTitleRow}>
+                <Text style={styles.sectionTitle}>Ingredients</Text>
+                <Text style={styles.accordionCount}>({meal.ingredientQuantities.length})</Text>
               </View>
-            </View>
+              {showIngredients ? (
+                <View style={styles.substituteHint}>
+                  <Shuffle size={12} color={Colors.primary} />
+                  <Text style={styles.substituteHintText}>Tap for substitutes</Text>
+                </View>
+              ) : null}
+              {showIngredients ? (
+                <ChevronUp size={16} color={Colors.textTertiary} />
+              ) : (
+                <ChevronDown size={16} color={Colors.textTertiary} />
+              )}
+            </Pressable>
+            {showIngredients ? (
             <View style={styles.ingredientsList}>
               {meal.ingredientQuantities.map((ing, idx) => {
                 const subs = getSubstitutesForIngredient(ing);
@@ -885,10 +901,25 @@ export default function MealDetailScreen() {
                 );
               })}
             </View>
+            ) : null}
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Instructions</Text>
+            <Pressable
+              onPress={() => setShowInstructions((p) => !p)}
+              style={styles.accordionHeader}
+            >
+              <View style={styles.accordionTitleRow}>
+                <Text style={styles.sectionTitle}>Instructions</Text>
+                <Text style={styles.accordionCount}>{`${meal.instructions.length} steps`}</Text>
+              </View>
+              {showInstructions ? (
+                <ChevronUp size={16} color={Colors.textTertiary} />
+              ) : (
+                <ChevronDown size={16} color={Colors.textTertiary} />
+              )}
+            </Pressable>
+            {showInstructions ? (
             <View style={styles.instructionsList}>
               {meal.instructions.map((step, idx) => (
                 <View key={`step-${idx}`} style={styles.instructionRow}>
@@ -899,6 +930,7 @@ export default function MealDetailScreen() {
                 </View>
               ))}
             </View>
+            ) : null}
           </View>
 
           <Pressable
@@ -1296,6 +1328,22 @@ const styles = StyleSheet.create({
     fontWeight: "700" as const,
     color: Colors.text,
     marginBottom: 0,
+  },
+  accordionHeader: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "space-between" as const,
+    marginBottom: 12,
+  },
+  accordionTitleRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 6,
+  },
+  accordionCount: {
+    fontSize: 13,
+    fontWeight: "500" as const,
+    color: Colors.textTertiary,
   },
   substituteHint: {
     flexDirection: "row" as const,
