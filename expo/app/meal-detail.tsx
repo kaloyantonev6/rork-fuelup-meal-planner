@@ -586,6 +586,10 @@ export default function MealDetailScreen() {
   const [showPremiumModal, setShowPremiumModal] = useState<boolean>(false);
   const [showRegenPremiumModal, setShowRegenPremiumModal] = useState<boolean>(false);
   const simplifiedAnim = useRef(new Animated.Value(0)).current;
+  // Height of the SimplAI card, animated 0 → measured content height for a
+  // fluid expand/collapse instead of a hard mount/unmount.
+  const simplifiedHeight = useRef(new Animated.Value(0)).current;
+  const [simplifiedContentH, setSimplifiedContentH] = useState<number>(0);
 
   useEffect(() => {
     try {
@@ -624,15 +628,27 @@ export default function MealDetailScreen() {
 
   const handleToggleSimplified = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const nextVal = !showSimplified;
-    setShowSimplified(nextVal);
-    Animated.spring(simplifiedAnim, {
-      toValue: nextVal ? 1 : 0,
-      friction: 8,
-      tension: 60,
-      useNativeDriver: false,
-    }).start();
-  }, [showSimplified, simplifiedAnim]);
+    setShowSimplified((p) => !p);
+  }, []);
+
+  // Height, opacity and translateY animate together so the card grows out of
+  // (and folds back into) the tip card fluidly.
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(simplifiedAnim, {
+        toValue: showSimplified ? 1 : 0,
+        friction: 8,
+        tension: 60,
+        useNativeDriver: false,
+      }),
+      Animated.spring(simplifiedHeight, {
+        toValue: showSimplified ? simplifiedContentH : 0,
+        friction: 8,
+        tension: 60,
+        useNativeDriver: false,
+      }),
+    ]).start();
+  }, [showSimplified, simplifiedContentH, simplifiedAnim, simplifiedHeight]);
 
   const simplifiedTip = useMemo(() => {
     if (!meal) return "";
@@ -979,24 +995,32 @@ export default function MealDetailScreen() {
             <Text style={styles.tipText}>{meal.nutritionTip}</Text>
             <Text style={styles.tipSource}>Source: UEFA Expert Group, 2021</Text>
 
-            {showSimplified && (
-              <Animated.View
-                style={[
-                  styles.simplifiedWrap,
-                  {
-                    opacity: simplifiedAnim,
-                    transform: [{
-                      translateY: simplifiedAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [8, 0],
-                      }),
-                    }],
-                  },
-                ]}
+            <Animated.View
+              style={[
+                styles.simplifiedClip,
+                {
+                  height: simplifiedHeight,
+                  opacity: simplifiedAnim,
+                  transform: [{
+                    translateY: simplifiedAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [8, 0],
+                    }),
+                  }],
+                },
+              ]}
+              pointerEvents={showSimplified ? "auto" : "none"}
+            >
+              <View
+                style={styles.simplifiedWrap}
+                onLayout={(e) => {
+                  const h = e.nativeEvent.layout.height;
+                  if (h > 0 && h !== simplifiedContentH) setSimplifiedContentH(h);
+                }}
               >
                 <Text style={styles.simplifiedText}>{simplifiedTip}</Text>
-              </Animated.View>
-            )}
+              </View>
+            </Animated.View>
 
             <View style={styles.simplAIRow}>
               <View style={styles.simplAITextWrap}>
@@ -1585,11 +1609,14 @@ const styles = StyleSheet.create({
     color: "#F1F5F9",
     lineHeight: 21,
   },
+  simplifiedClip: {
+    overflow: "hidden" as const,
+    marginTop: 4,
+  },
   simplifiedWrap: {
     backgroundColor: "#D4A44C18",
     borderRadius: 12,
     padding: 12,
-    marginTop: 4,
     borderWidth: 1,
     borderColor: "#D4A44C45",
   },
