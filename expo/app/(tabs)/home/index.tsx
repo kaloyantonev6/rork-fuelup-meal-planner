@@ -21,7 +21,7 @@ import { useToday } from "@/providers/TodayProvider";
 import { useMealTracking } from "@/providers/MealTrackingProvider";
 import { useNotifications } from "@/providers/NotificationProvider";
 import {
-  DAY_LETTERS,
+  DAY_ABBREVIATIONS,
   DAY_TYPE_META,
   DEFAULT_WEEKLY_SCHEDULE,
   getMondayIndex,
@@ -264,6 +264,20 @@ export default function HomeScreen() {
       : DEFAULT_WEEKLY_SCHEDULE;
   const todayIndex = getMondayIndex();
 
+  // ── Day strip — real calendar dates for the current Mon–Sun week ──
+  const weekDates = useMemo(() => {
+    const today = new Date();
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(today);
+      d.setDate(today.getDate() - todayIndex + i);
+      return d;
+    });
+  }, [todayIndex]);
+  const weekMonthLabel = useMemo(
+    () => weekDates[0].toLocaleDateString("en-US", { month: "long", year: "numeric" }),
+    [weekDates],
+  );
+
   return (
     <View style={styles.container}>
       <ScrollView
@@ -306,6 +320,40 @@ export default function HomeScreen() {
             </Pressable>
           </View>
         </View>
+
+        {/* DAY STRIP — real dates for the week, colour-coded by day type */}
+        <Pressable
+          onPress={() => {
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push("/(tabs)/profile" as never);
+          }}
+          style={({ pressed }) => [styles.dayStripCard, pressed && { opacity: 0.9 }]}
+        >
+          <Text style={styles.dayStripMonth}>{weekMonthLabel}</Text>
+          <View style={styles.dayStripRow}>
+            {weeklySchedule.map((type, i) => {
+              const dayMeta = DAY_TYPE_META[type] ?? DAY_TYPE_META.rest;
+              const isToday = i === todayIndex;
+              const date = weekDates[i];
+              return (
+                <View key={`day-${i}`} style={styles.dayStripItem}>
+                  <Text style={styles.dayStripLabel}>{DAY_ABBREVIATIONS[i]}</Text>
+                  <View
+                    style={[
+                      styles.dayStripBubble,
+                      { backgroundColor: isToday ? dayMeta.color : dayMeta.bgColor },
+                      isToday && styles.dayStripBubbleActive,
+                    ]}
+                  >
+                    <Text style={[styles.dayStripDate, isToday && styles.dayStripDateActive]}>
+                      {date.getDate()}
+                    </Text>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        </Pressable>
 
         {/* MAIN CARD — Today's Fuel → Plan tab */}
         <Pressable
@@ -481,37 +529,6 @@ export default function HomeScreen() {
             }}
           />
         </View>
-
-        {/* ROW 5 — Week strip */}
-        <Pressable
-          onPress={() => {
-            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.push("/(tabs)/profile" as never);
-          }}
-          style={({ pressed }) => [styles.weekStrip, pressed && { opacity: 0.8 }]}
-        >
-          {weeklySchedule.map((type, i) => {
-            const dayMeta = DAY_TYPE_META[type] ?? DAY_TYPE_META.rest;
-            const isToday = i === todayIndex;
-            return (
-              <View key={`day-${i}`} style={styles.weekDay}>
-                <View
-                  style={{
-                    width: isToday ? 14 : 10,
-                    height: isToday ? 14 : 10,
-                    borderRadius: isToday ? 7 : 5,
-                    backgroundColor: dayMeta.color,
-                    borderWidth: isToday ? 2 : 0,
-                    borderColor: Colors.text,
-                  }}
-                />
-                <Text style={[styles.weekLabel, isToday && styles.weekLabelActive]}>
-                  {DAY_LETTERS[i]}
-                </Text>
-              </View>
-            );
-          })}
-        </Pressable>
       </ScrollView>
 
       {/* RED-S health check — periodic popup modal */}
@@ -639,6 +656,57 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
+  },
+
+  // Day strip
+  dayStripCard: {
+    backgroundColor: Colors.bg2,
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginBottom: 10,
+  },
+  dayStripMonth: {
+    fontSize: 11,
+    fontWeight: "700" as const,
+    color: Colors.textSecondary,
+    marginBottom: 10,
+    textTransform: "uppercase" as const,
+    letterSpacing: 0.6,
+  },
+  dayStripRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  dayStripItem: {
+    alignItems: "center",
+    gap: 6,
+  },
+  dayStripLabel: {
+    fontSize: 10,
+    fontWeight: "600" as const,
+    color: Colors.textTertiary,
+  },
+  dayStripBubble: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dayStripBubbleActive: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  dayStripDate: {
+    fontSize: 13,
+    fontWeight: "700" as const,
+    color: Colors.text,
+  },
+  dayStripDateActive: {
+    color: Colors.textInverse,
   },
 
   // Main card
@@ -856,31 +924,6 @@ const styles = StyleSheet.create({
     fontWeight: "600" as const,
     color: Colors.textSecondary,
     marginTop: 2,
-  },
-
-  // Week strip
-  weekStrip: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    backgroundColor: Colors.bg2,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  weekDay: {
-    alignItems: "center",
-    gap: 4,
-  },
-  weekLabel: {
-    fontSize: 10,
-    fontWeight: "500" as const,
-    color: Colors.textTertiary,
-  },
-  weekLabelActive: {
-    color: Colors.text,
-    fontWeight: "700" as const,
   },
 
   // Modals
