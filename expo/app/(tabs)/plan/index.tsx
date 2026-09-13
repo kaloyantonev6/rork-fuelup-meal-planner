@@ -45,6 +45,7 @@ import {
 import { prefetchMealPlanImages } from "@/lib/pexelsApi";
 import { DAY_LETTERS, DAY_TYPE_META, DEFAULT_WEEKLY_SCHEDULE, getMondayIndex } from "@/constants/dayTypes";
 import { getMealWindows, MEAL_CATEGORY_META } from "@/constants/mealTimes";
+import type { MealCategory } from "@/constants/mealTimes";
 import type { GeneratedMeal } from "@/utils/mealGenerator";
 import MealResults from "@/components/MealResults";
 import WeeklyHistoryStrip from "@/components/WeeklyHistoryStrip";
@@ -52,6 +53,15 @@ import Skeleton from "@/components/ui/Skeleton";
 
 const FREE_DAILY_GEN_KEY = "nutriplan_free_daily_gen";
 const FREE_DAILY_LIMIT = 1;
+
+/** Filter chips shown above the meal list — "All" plus one per meal category. */
+const MEAL_FILTERS: { id: "all" | MealCategory; label: string; icon: string }[] = [
+  { id: "all", label: "All", icon: "✨" },
+  { id: "breakfast", label: "Breakfast", icon: MEAL_CATEGORY_META.breakfast.icon },
+  { id: "lunch", label: "Lunch", icon: MEAL_CATEGORY_META.lunch.icon },
+  { id: "dinner", label: "Dinner", icon: MEAL_CATEGORY_META.dinner.icon },
+  { id: "snack", label: "Snack", icon: MEAL_CATEGORY_META.snack.icon },
+];
 
 const PERFORMANCE_TIPS = [
   "Carb-load 24–48h before match day, not just the night before.",
@@ -280,6 +290,7 @@ export default function PlanScreen() {
   const [generatedPlans, setGeneratedPlans] = useState<GeneratedPlan[] | null>(null);
   const [shoppingList, setShoppingList] = useState<ShoppingIngredient[]>([]);
   const [planType, setPlanType] = useState<"daily" | "weekly">("daily");
+  const [mealFilter, setMealFilter] = useState<"all" | MealCategory>("all");
   const [currentTip, setCurrentTip] = useState(PERFORMANCE_TIPS[0] ?? "");
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -406,6 +417,9 @@ export default function PlanScreen() {
   }
 
   const windows = tracking ? getMealWindows(customTimes, tracking.dayType) : null;
+  const filteredMeals =
+    tracking?.meals.filter((m) => mealFilter === "all" || m.category === mealFilter) ?? [];
+  const filterEmptyLabel = mealFilter === "all" ? "meal" : MEAL_CATEGORY_META[mealFilter].label.toLowerCase();
   const weeklySchedule: DayType[] =
     profile.weeklySchedule && profile.weeklySchedule.length === 7
       ? profile.weeklySchedule
@@ -524,10 +538,44 @@ export default function PlanScreen() {
           })}
         </View>
 
+        {/* Meal-type filter */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterRow}
+        >
+          {MEAL_FILTERS.map((f) => {
+            const isActive = mealFilter === f.id;
+            return (
+              <Pressable
+                key={f.id}
+                onPress={() => {
+                  if (isActive) return;
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setMealFilter(f.id);
+                }}
+                style={[styles.filterChip, isActive && styles.filterChipActive]}
+              >
+                <Text style={styles.filterChipIcon}>{f.icon}</Text>
+                <Text style={[styles.filterChipText, isActive && styles.filterChipTextActive]}>
+                  {f.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+
         {/* Meals — compact swipeable rows */}
         {tracking && windows ? (
           <View style={styles.mealsWrap}>
-            {tracking.meals.map((meal) => (
+            {filteredMeals.length === 0 ? (
+              <View style={styles.filterEmpty}>
+                <Text style={styles.filterEmptyText}>
+                  No {filterEmptyLabel} meals planned today
+                </Text>
+              </View>
+            ) : (
+              filteredMeals.map((meal) => (
               <SwipeableMealRow
                 key={meal.mealId}
                 mealTitle={meal.mealTitle}
@@ -544,7 +592,8 @@ export default function PlanScreen() {
                 onUndo={() => undoMeal(meal.mealId)}
                 onOpen={() => openMeal(meal.category)}
               />
-            ))}
+              ))
+            )}
           </View>
         ) : (
           <View style={styles.skeletonWrap}>
@@ -819,6 +868,52 @@ const styles = StyleSheet.create({
   dayStripLabelActive: {
     color: Colors.text,
     fontWeight: "700" as const,
+  },
+
+  filterRow: {
+    flexDirection: "row" as const,
+    gap: 8,
+    paddingBottom: 2,
+    marginBottom: 12,
+  },
+  filterChip: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 6,
+    height: 36,
+    paddingHorizontal: 14,
+    borderRadius: 18,
+    backgroundColor: Colors.bg2,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  filterChipActive: {
+    backgroundColor: Colors.primaryLight,
+    borderColor: Colors.accentLight,
+  },
+  filterChipIcon: {
+    fontSize: 13,
+  },
+  filterChipText: {
+    fontSize: 12,
+    fontWeight: "600" as const,
+    color: Colors.textSecondary,
+  },
+  filterChipTextActive: {
+    color: Colors.primary,
+  },
+  filterEmpty: {
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    backgroundColor: Colors.bg2,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingVertical: 28,
+  },
+  filterEmptyText: {
+    fontSize: 13,
+    color: Colors.textTertiary,
   },
 
   mealsWrap: {
