@@ -37,8 +37,12 @@ import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 import { useSavedPlans } from "@/providers/SavedPlansProvider";
 import { GeneratedMeal } from "@/utils/mealGenerator";
+import { kvGet, kvSet } from "@/lib/database";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+/** Persisted SimplAI preference — remembered across sessions via the app KV store. */
+const SIMPLAI_PREF_KEY = "nutriplan_simplai_enabled";
 
 interface SubstituteOption {
   name: string;
@@ -603,6 +607,20 @@ export default function MealDetailScreen() {
     }
   }, [params.meal]);
 
+  // Restore the saved SimplAI preference; the expand animation effect reacts
+  // to the state change, so an enabled preference unfolds after content loads.
+  useEffect(() => {
+    let cancelled = false;
+    void kvGet<{ enabled: boolean }>(SIMPLAI_PREF_KEY)
+      .then((v) => {
+        if (!cancelled && v?.enabled === true) setShowSimplified(true);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const isPremium = params.isPremium === "true";
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -628,7 +646,11 @@ export default function MealDetailScreen() {
 
   const handleToggleSimplified = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setShowSimplified((p) => !p);
+    setShowSimplified((p) => {
+      const next = !p;
+      void kvSet(SIMPLAI_PREF_KEY, { enabled: next });
+      return next;
+    });
   }, []);
 
   // Height, opacity and translateY animate together so the card grows out of
