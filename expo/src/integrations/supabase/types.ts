@@ -14,7 +14,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.17"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -85,6 +85,35 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "coach_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      app_data: {
+        Row: {
+          key: string
+          updated_at: string
+          user_id: string
+          value: Json | null
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          user_id: string
+          value?: Json | null
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          user_id?: string
+          value?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_data_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -163,6 +192,77 @@ export type Database = {
           },
           {
             foreignKeyName: "comment_likes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_tracking: {
+        Row: {
+          calorie_target: number | null
+          calories_consumed: number | null
+          carbs_consumed: number | null
+          carbs_target: number | null
+          created_at: string | null
+          date: string
+          day_type: string | null
+          fats_consumed: number | null
+          fats_target: number | null
+          fiber_consumed: number | null
+          id: string
+          meals_completed: number | null
+          meals_total: number | null
+          notes: string | null
+          protein_consumed: number | null
+          protein_target: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          calorie_target?: number | null
+          calories_consumed?: number | null
+          carbs_consumed?: number | null
+          carbs_target?: number | null
+          created_at?: string | null
+          date: string
+          day_type?: string | null
+          fats_consumed?: number | null
+          fats_target?: number | null
+          fiber_consumed?: number | null
+          id?: string
+          meals_completed?: number | null
+          meals_total?: number | null
+          notes?: string | null
+          protein_consumed?: number | null
+          protein_target?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          calorie_target?: number | null
+          calories_consumed?: number | null
+          carbs_consumed?: number | null
+          carbs_target?: number | null
+          created_at?: string | null
+          date?: string
+          day_type?: string | null
+          fats_consumed?: number | null
+          fats_target?: number | null
+          fiber_consumed?: number | null
+          id?: string
+          meals_completed?: number | null
+          meals_total?: number | null
+          notes?: string | null
+          protein_consumed?: number | null
+          protein_target?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_tracking_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -258,6 +358,41 @@ export type Database = {
         }
         Relationships: []
       }
+      hydration_logs: {
+        Row: {
+          amount_ml: number
+          created_at: string | null
+          date: string
+          id: string
+          source: string | null
+          user_id: string
+        }
+        Insert: {
+          amount_ml: number
+          created_at?: string | null
+          date: string
+          id?: string
+          source?: string | null
+          user_id: string
+        }
+        Update: {
+          amount_ml?: number
+          created_at?: string | null
+          date?: string
+          id?: string
+          source?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hydration_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ingredient_prices: {
         Row: {
           id: string
@@ -338,6 +473,8 @@ export type Database = {
         Row: {
           calories: number
           carbs_g: number | null
+          completed: boolean | null
+          completed_at: string | null
           cost_estimate_eur: number | null
           day_number: number
           fats_g: number | null
@@ -352,10 +489,13 @@ export type Database = {
           protein_g: number | null
           recipe_id: string | null
           tutorial_steps: Json | null
+          user_id: string | null
         }
         Insert: {
           calories: number
           carbs_g?: number | null
+          completed?: boolean | null
+          completed_at?: string | null
           cost_estimate_eur?: number | null
           day_number: number
           fats_g?: number | null
@@ -370,10 +510,13 @@ export type Database = {
           protein_g?: number | null
           recipe_id?: string | null
           tutorial_steps?: Json | null
+          user_id?: string | null
         }
         Update: {
           calories?: number
           carbs_g?: number | null
+          completed?: boolean | null
+          completed_at?: string | null
           cost_estimate_eur?: number | null
           day_number?: number
           fats_g?: number | null
@@ -388,6 +531,7 @@ export type Database = {
           protein_g?: number | null
           recipe_id?: string | null
           tutorial_steps?: Json | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -404,16 +548,26 @@ export type Database = {
             referencedRelation: "recipes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "meal_plan_items_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       meal_plans: {
         Row: {
           created_at: string | null
+          date: string | null
+          day_type: string | null
           duration_days: number
           folder_id: string | null
           generation_model: string | null
           id: string
           is_saved: boolean | null
+          items: Json | null
           profile_snapshot: Json
           target_calories: number | null
           target_carbs_g: number | null
@@ -425,11 +579,14 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          date?: string | null
+          day_type?: string | null
           duration_days: number
           folder_id?: string | null
           generation_model?: string | null
           id?: string
           is_saved?: boolean | null
+          items?: Json | null
           profile_snapshot?: Json
           target_calories?: number | null
           target_carbs_g?: number | null
@@ -441,11 +598,14 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          date?: string | null
+          day_type?: string | null
           duration_days?: number
           folder_id?: string | null
           generation_model?: string | null
           id?: string
           is_saved?: boolean | null
+          items?: Json | null
           profile_snapshot?: Json
           target_calories?: number | null
           target_carbs_g?: number | null
@@ -620,10 +780,13 @@ export type Database = {
           country_code: string | null
           created_at: string | null
           dark_mode: boolean | null
+          default_kickoff_time: string | null
+          default_training_time: string | null
           diet_type: string | null
           disliked_ingredients: string[] | null
           display_name: string | null
           email: string
+          equipment: string[] | null
           fitness_goal: string | null
           full_name: string | null
           gender: string | null
@@ -632,14 +795,25 @@ export type Database = {
           id: string
           intolerances: string[] | null
           kitchen_equipment: string[] | null
+          kitchen_type: string | null
+          level: string | null
+          max_cook_time: number | null
+          meal_prep_style: string | null
           onboarding_complete: boolean | null
+          parental_consent_status: string | null
+          performance_goal: string | null
+          player_level: string | null
+          position: string | null
           preferences: Json | null
           region: string | null
+          season_phase: string | null
           subscription_tier: string | null
           target_weight_kg: number | null
           tdee_cached: number | null
+          training_frequency: string | null
           updated_at: string | null
           weekly_budget: number | null
+          weekly_schedule: Json | null
           weight: number | null
           weight_kg: number | null
         }
@@ -656,10 +830,13 @@ export type Database = {
           country_code?: string | null
           created_at?: string | null
           dark_mode?: boolean | null
+          default_kickoff_time?: string | null
+          default_training_time?: string | null
           diet_type?: string | null
           disliked_ingredients?: string[] | null
           display_name?: string | null
           email: string
+          equipment?: string[] | null
           fitness_goal?: string | null
           full_name?: string | null
           gender?: string | null
@@ -668,14 +845,25 @@ export type Database = {
           id: string
           intolerances?: string[] | null
           kitchen_equipment?: string[] | null
+          kitchen_type?: string | null
+          level?: string | null
+          max_cook_time?: number | null
+          meal_prep_style?: string | null
           onboarding_complete?: boolean | null
+          parental_consent_status?: string | null
+          performance_goal?: string | null
+          player_level?: string | null
+          position?: string | null
           preferences?: Json | null
           region?: string | null
+          season_phase?: string | null
           subscription_tier?: string | null
           target_weight_kg?: number | null
           tdee_cached?: number | null
+          training_frequency?: string | null
           updated_at?: string | null
           weekly_budget?: number | null
+          weekly_schedule?: Json | null
           weight?: number | null
           weight_kg?: number | null
         }
@@ -692,10 +880,13 @@ export type Database = {
           country_code?: string | null
           created_at?: string | null
           dark_mode?: boolean | null
+          default_kickoff_time?: string | null
+          default_training_time?: string | null
           diet_type?: string | null
           disliked_ingredients?: string[] | null
           display_name?: string | null
           email?: string
+          equipment?: string[] | null
           fitness_goal?: string | null
           full_name?: string | null
           gender?: string | null
@@ -704,14 +895,25 @@ export type Database = {
           id?: string
           intolerances?: string[] | null
           kitchen_equipment?: string[] | null
+          kitchen_type?: string | null
+          level?: string | null
+          max_cook_time?: number | null
+          meal_prep_style?: string | null
           onboarding_complete?: boolean | null
+          parental_consent_status?: string | null
+          performance_goal?: string | null
+          player_level?: string | null
+          position?: string | null
           preferences?: Json | null
           region?: string | null
+          season_phase?: string | null
           subscription_tier?: string | null
           target_weight_kg?: number | null
           tdee_cached?: number | null
+          training_frequency?: string | null
           updated_at?: string | null
           weekly_budget?: number | null
+          weekly_schedule?: Json | null
           weight?: number | null
           weight_kg?: number | null
         }
@@ -901,15 +1103,19 @@ export type Database = {
           diet_tags: string[]
           equipment_needed: string[] | null
           fats_g: number
+          fiber_g: number | null
           id: string
           image_url: string | null
           ingredients: Json
           instructions: string
           is_community: boolean | null
           likes_count: number | null
+          no_cook: boolean | null
+          performance_tags: string[] | null
           prep_time_min: number | null
           protein_g: number
           rating_count: number | null
+          science_note: string | null
           skill_level: string | null
           title: string
           tutorial_steps: Json | null
@@ -930,15 +1136,19 @@ export type Database = {
           diet_tags?: string[]
           equipment_needed?: string[] | null
           fats_g: number
+          fiber_g?: number | null
           id?: string
           image_url?: string | null
           ingredients?: Json
           instructions?: string
           is_community?: boolean | null
           likes_count?: number | null
+          no_cook?: boolean | null
+          performance_tags?: string[] | null
           prep_time_min?: number | null
           protein_g: number
           rating_count?: number | null
+          science_note?: string | null
           skill_level?: string | null
           title: string
           tutorial_steps?: Json | null
@@ -959,15 +1169,19 @@ export type Database = {
           diet_tags?: string[]
           equipment_needed?: string[] | null
           fats_g?: number
+          fiber_g?: number | null
           id?: string
           image_url?: string | null
           ingredients?: Json
           instructions?: string
           is_community?: boolean | null
           likes_count?: number | null
+          no_cook?: boolean | null
+          performance_tags?: string[] | null
           prep_time_min?: number | null
           protein_g?: number
           rating_count?: number | null
+          science_note?: string | null
           skill_level?: string | null
           title?: string
           tutorial_steps?: Json | null
@@ -1124,6 +1338,53 @@ export type Database = {
           },
         ]
       }
+      weekly_schedules: {
+        Row: {
+          friday: string
+          id: string
+          monday: string
+          saturday: string
+          sunday: string
+          thursday: string
+          tuesday: string
+          updated_at: string
+          user_id: string
+          wednesday: string
+        }
+        Insert: {
+          friday?: string
+          id?: string
+          monday?: string
+          saturday?: string
+          sunday?: string
+          thursday?: string
+          tuesday?: string
+          updated_at?: string
+          user_id: string
+          wednesday?: string
+        }
+        Update: {
+          friday?: string
+          id?: string
+          monday?: string
+          saturday?: string
+          sunday?: string
+          thursday?: string
+          tuesday?: string
+          updated_at?: string
+          user_id?: string
+          wednesday?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weekly_schedules_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       coach_conversations: {
@@ -1262,12 +1523,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1291,11 +1552,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1316,11 +1577,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1341,11 +1602,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1358,11 +1619,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
