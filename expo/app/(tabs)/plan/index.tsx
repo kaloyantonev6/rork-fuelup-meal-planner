@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
   Animated,
+  Easing,
   Modal,
   PanResponder,
   Pressable,
@@ -10,7 +11,8 @@ import {
   Text,
   View,
 } from "react-native";
-import { kvGet, kvSet } from "@/lib/database";
+import { canGenerate, FREE_TIER_LIMIT, incrementGenerationCount } from "@/lib/generationLimit";
+import PremiumGate from "@/components/PremiumGate";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -50,9 +52,6 @@ import type { GeneratedMeal } from "@/utils/mealGenerator";
 import MealResults from "@/components/MealResults";
 import WeeklyHistoryStrip from "@/components/WeeklyHistoryStrip";
 import Skeleton from "@/components/ui/Skeleton";
-
-const FREE_DAILY_GEN_KEY = "nutriplan_free_daily_gen";
-const FREE_DAILY_LIMIT = 1;
 
 /** Filter chips shown above the meal list — "All" plus one per meal category. */
 const MEAL_FILTERS: { id: "all" | MealCategory; label: string; icon: string }[] = [
@@ -296,32 +295,56 @@ export default function PlanScreen() {
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const loadingAnim = useRef(new Animated.Value(0)).current;
 
-  const checkFreeGenerationLimit = useCallback(async (): Promise<boolean> => {
-    if (profile.isPremium) return true;
-    try {
-      const data = await kvGet<{ date: string; count: number }>(FREE_DAILY_GEN_KEY);
-      if (data) {
-        const today = new Date().toISOString().split("T")[0];
-        if (data.date === today && data.count >= FREE_DAILY_LIMIT) return false;
-      }
-      return true;
-    } catch {
-      return true;
+  // ── Free-tier generation limit (3 total; premium unlimited) ──
+  const [freeRemaining, setFreeRemaining] = useState<number | null>(null);
+  const [gateVisible, setGateVisible] = useState(false);
+  const [showNudge, setShowNudge] = useState(false);
+  const nudgeAnim = useRef(new Animated.Value(0)).current;
+  const nudgeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (profile.isPremium) {
+      setGateVisible(false);
+      return;
     }
+    let cancelled = false;
+    void canGenerate(profile.isPremium).then((status) => {
+      if (cancelled) return;
+      setFreeRemaining(status.remaining);
+      if (!status.allowed) setGateVisible(true);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [profile.isPremium]);
 
-  const incrementGenerationCount = useCallback(async () => {
-    if (profile.isPremium) return;
-    try {
-      const today = new Date().toISOString().split("T")[0];
-      const data = await kvGet<{ date: string; count: number }>(FREE_DAILY_GEN_KEY);
-      let count = 1;
-      if (data && data.date === today) count = data.count + 1;
-      await kvSet(FREE_DAILY_GEN_KEY, { date: today, count });
-    } catch (e) {
-      console.log("[Plan] Error incrementing generation count:", e);
-    }
-  }, [profile.isPremium]);
+  useEffect(() => {
+    return () => {
+      if (nudgeTimer.current) clearTimeout(nudgeTimer.current);
+    };
+  }, []);
+
+  /** Soft nudge after the 2nd generation — slides down, auto-dismisses after 4s. */
+  const triggerNudge = useCallback(() => {
+    setShowNudge(true);
+    Animated.timing(nudgeAnim, {
+      toValue: 1,
+      duration: 300,
+      easing: Easing.out(Easing.ease),
+      useNativeDriver: true,
+    }).start();
+    if (nudgeTimer.current) clearTimeout(nudgeTimer.current);
+    nudgeTimer.current = setTimeout(() => {
+      Animated.timing(nudgeAnim, {
+        toValue: 0,
+        duration: 300,
+        easing: Easing.in(Easing.ease),
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (finished) setShowNudge(false);
+      });
+    }, 4000);
+  }, [nudgeAnim]);
 
   const handleGenerate = useCallback(
     async (type: "daily" | "weekly") => {
@@ -330,16 +353,10 @@ export default function PlanScreen() {
         return;
       }
       if (!profile.isPremium) {
-        const canGenerate = await checkFreeGenerationLimit();
-        if (!canGenerate) {
-          Alert.alert(
-            "Daily Limit Reached",
-            "Free users can generate 1 meal plan per day. Upgrade to Premium for unlimited generations!",
-            [
-              { text: "Maybe Later", style: "cancel" },
-              { text: "Upgrade to Premium", onPress: () => router.push("/premium") },
-            ],
-          );
+        const status = await canGenerate(profile.isPremium);
+        if (!status.allowed) {
+          // Limit reached — replace the screen with the premium gate.
+          setGateVisible(true);
           return;
         }
       }
@@ -382,15 +399,19 @@ export default function PlanScreen() {
       }
 
       setIsGenerating(false);
-      await incrementGenerationCount();
+      // Count only successful generations — failures return above.
+      if (!profile.isPremium) {
+        const newCount = await incrementGenerationCount();
+        setFreeRemaining(Math.max(0, FREE_TIER_LIMIT - newCount));
+        if (newCount === FREE_TIER_LIMIT - 1) triggerNudge();
+      }
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
     },
     [
       profile,
       mealsPerDay,
       router,
-      checkFreeGenerationLimit,
-      incrementGenerationCount,
+      triggerNudge,
       localMaxCookTime,
       localNoCookOnly,
       localMaxFiveIngredients,
@@ -414,6 +435,11 @@ export default function PlanScreen() {
         onUpgrade={() => router.push("/premium")}
       />
     );
+  }
+
+  // Limit reached — the gate replaces the whole generation screen (no modal).
+  if (gateVisible && !profile.isPremium) {
+    return <PremiumGate />;
   }
 
   const windows = tracking ? getMealWindows(customTimes, tracking.dayType) : null;
@@ -463,6 +489,37 @@ export default function PlanScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Soft nudge — 1 free plan left (slides down from the top) */}
+      {showNudge && !profile.isPremium ? (
+        <Animated.View
+          style={[
+            styles.nudgeBanner,
+            {
+              top: insets.top + 8,
+              transform: [
+                {
+                  translateY: nudgeAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [-60, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <Pressable
+            onPress={() => {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push("/premium");
+            }}
+            style={styles.nudgeContent}
+          >
+            <Crown size={16} color={Colors.primary} />
+            <Text style={styles.nudgeText}>1 free plan left — go Premium for unlimited</Text>
+          </Pressable>
+        </Animated.View>
+      ) : null}
+
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[
@@ -757,6 +814,31 @@ export default function PlanScreen() {
             </View>
           </Pressable>
         </View>
+
+        {/* Free-tier counter — remaining generations at a glance */}
+        {!profile.isPremium && freeRemaining !== null ? (
+          <View style={styles.counterBar}>
+            <View style={styles.counterDots}>
+              {Array.from({ length: FREE_TIER_LIMIT }, (_, i) => {
+                const used = i < FREE_TIER_LIMIT - freeRemaining;
+                return (
+                  <View
+                    key={`gen-dot-${i}`}
+                    style={[
+                      styles.counterDot,
+                      used ? styles.counterDotUsed : styles.counterDotRemaining,
+                    ]}
+                  />
+                );
+              })}
+            </View>
+            <Text style={[styles.counterText, freeRemaining === 1 && styles.counterTextWarning]}>
+              {freeRemaining === 1
+                ? "Last free plan — make it count!"
+                : `${freeRemaining} of ${FREE_TIER_LIMIT} free plans remaining`}
+            </Text>
+          </View>
+        ) : null}
       </ScrollView>
 
       {/* Generating overlay */}
@@ -1254,6 +1336,65 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: "700" as const,
     color: Colors.premiumGold,
+  },
+
+  counterBar: {
+    alignSelf: "center",
+    alignItems: "center",
+    backgroundColor: Colors.bg4,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    gap: 5,
+  },
+  counterDots: {
+    flexDirection: "row",
+    gap: 6,
+  },
+  counterDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  counterDotUsed: {
+    backgroundColor: Colors.primary,
+  },
+  counterDotRemaining: {
+    borderWidth: 1,
+    borderColor: Colors.textTertiary,
+    backgroundColor: "transparent",
+  },
+  counterText: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+  },
+  counterTextWarning: {
+    color: Colors.warning,
+  },
+
+  nudgeBanner: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    zIndex: 20,
+    backgroundColor: Colors.bg3,
+    borderWidth: 1,
+    borderColor: "rgba(45,212,168,0.3)",
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  nudgeContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+  },
+  nudgeText: {
+    flex: 1,
+    fontSize: 13,
+    color: "#B8C0CC",
+    lineHeight: 18,
   },
 
   loadingOverlay: {

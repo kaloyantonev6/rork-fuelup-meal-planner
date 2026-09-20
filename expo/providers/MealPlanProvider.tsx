@@ -5,6 +5,7 @@ import createContextHook from "@nkzw/create-context-hook";
 import { MealPlan, ShoppingItem, UserProfile } from "@/types";
 import { sampleMealPlan, weeklyMealPlans, sampleShoppingList } from "@/mocks/recipes";
 import { getProfile, kvGet, kvSet, upsertProfile } from "@/lib/database";
+import { resetGenerationCount } from "@/lib/generationLimit";
 import { useAuth } from "@/providers/AuthProvider";
 
 const DEFAULT_PROFILE: UserProfile = {
@@ -211,6 +212,12 @@ export const [MealPlanProvider, useMealPlan] = createContextHook(() => {
       }
     })();
   }, [isAuthenticated, user]);
+
+  // Premium users have no generation limit — clear the free-tier counter so
+  // a future downgrade starts fresh with 3 new generations.
+  useEffect(() => {
+    if (profile.isPremium) void resetGenerationCount();
+  }, [profile.isPremium]);
 
   const saveProfileMutation = useMutation({
     mutationFn: async (newProfile: UserProfile) => {
