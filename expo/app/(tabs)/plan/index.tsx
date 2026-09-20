@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import {
+  AlertTriangle,
   Bookmark,
   Calendar,
   Check,
@@ -772,6 +773,28 @@ export default function PlanScreen() {
           </View>
         ) : null}
 
+        {/* Free-tier warning — one generation left before the limit */}
+        {!profile.isPremium && freeRemaining === 1 ? (
+          <Pressable
+            onPress={() => {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push("/premium");
+            }}
+            style={({ pressed }) => [styles.limitWarningBanner, pressed && { opacity: 0.85 }]}
+          >
+            <View style={styles.limitWarningIconWrap}>
+              <AlertTriangle size={16} color={Colors.warning} />
+            </View>
+            <View style={styles.limitWarningTextWrap}>
+              <Text style={styles.limitWarningTitle}>Last free plan</Text>
+              <Text style={styles.limitWarningSubtitle}>
+                You have 1 meal plan generation left — upgrade for unlimited
+              </Text>
+            </View>
+            <ChevronRight size={16} color={Colors.warning} />
+          </Pressable>
+        ) : null}
+
         {/* Generate buttons */}
         <View style={styles.generateSection}>
           <Pressable
@@ -1370,6 +1393,40 @@ const styles = StyleSheet.create({
   },
   counterTextWarning: {
     color: Colors.warning,
+  },
+
+  limitWarningBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: Colors.bg3,
+    borderWidth: 1,
+    borderColor: "rgba(245,158,11,0.35)",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+  },
+  limitWarningIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(245,158,11,0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  limitWarningTextWrap: {
+    flex: 1,
+    gap: 2,
+  },
+  limitWarningTitle: {
+    fontSize: 13,
+    fontWeight: "700" as const,
+    color: Colors.warning,
+  },
+  limitWarningSubtitle: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    lineHeight: 16,
   },
 
   nudgeBanner: {
