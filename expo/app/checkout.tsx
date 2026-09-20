@@ -391,7 +391,7 @@ export default function CheckoutScreen() {
 
               <View style={styles.orderSummaryBody}>
                 <View style={styles.planRow}>
-                  <Text style={styles.planTitle}>FuelUp Premium</Text>
+                  <Text style={styles.planTitle}>Fuelify Premium</Text>
                   <View style={styles.trialBadge}>
                     <Sparkles size={12} color="#D4A44C" />
                     <Text style={styles.trialBadgeText}>10-day free trial</Text>

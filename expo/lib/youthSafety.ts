@@ -36,7 +36,7 @@ export function checkYouthSafety(
       return {
         allowed: false,
         message:
-          "FuelUp doesn't offer weight-loss or calorie restriction for under-18s. Research shows this can harm your development, bone health, and performance. Focus on \"General Performance\" instead. If you have concerns, speak to a doctor or sports dietitian.",
+          "Fuelify doesn't offer weight-loss or calorie restriction for under-18s. Research shows this can harm your development, bone health, and performance. Focus on \"General Performance\" instead. If you have concerns, speak to a doctor or sports dietitian.",
         severity: "block",
       };
 
@@ -76,7 +76,7 @@ export function checkYouthSafety(
       return {
         allowed: false,
         message:
-          "FuelUp doesn't set body composition or weight targets for under-18 players. Focus on fuelling your training and recovery.",
+          "Fuelify doesn't set body composition or weight targets for under-18 players. Focus on fuelling your training and recovery.",
         severity: "block",
       };
 
@@ -97,12 +97,12 @@ export const REDS_SYMPTOMS = [
 ] as const;
 
 export const REDS_RESPONSE_TEXT =
-  "These can be signs of under-fuelling (Relative Energy Deficiency in Sport). We recommend speaking to a doctor or sports dietitian. FuelUp can help you eat enough — but it can't diagnose or treat medical conditions.";
+  "These can be signs of under-fuelling (Relative Energy Deficiency in Sport). We recommend speaking to a doctor or sports dietitian. Fuelify can help you eat enough — but it can't diagnose or treat medical conditions.";
 
 export const REDS_INFO_TEXT =
   "Learn more about RED-S: the IOC consensus (2023) describes how chronic under-fuelling relative to exercise load impairs metabolism, bone health, immunity, and performance. Recovery focuses on gradually increasing energy intake to match training demands.";
 
-const HEALTH_CHECK_KEY = "fuelup_health_check_last_shown";
+const HEALTH_CHECK_KEY = "fuelify_health_check_last_shown";
 
 /** Health check cadence: monthly for adults, fortnightly for under-18s. */
 export function healthCheckIntervalDays(age: number): number {

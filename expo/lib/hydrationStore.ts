@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { brandGetItem } from "@/lib/brandKeys";
 import {
   getDatabaseUserId,
   getHydrationEntries,
@@ -9,12 +10,12 @@ import {
 /**
  * Shared hydration tracking store — Supabase (`hydration_logs`) is the source
  * of truth for signed-in users; AsyncStorage keeps an offline cache mirror:
- * - "fuelup_hydration": { date, intakeMl }
- * - "fuelup_hydration_log": { date, entries }
+ * - "fuelify_hydration": { date, intakeMl }
+ * - "fuelify_hydration_log": { date, entries }
  */
 
-export const HYDRATION_KEY = "fuelup_hydration";
-const HYDRATION_LOG_KEY = "fuelup_hydration_log";
+export const HYDRATION_KEY = "fuelify_hydration";
+const HYDRATION_LOG_KEY = "fuelify_hydration_log";
 
 export interface HydrationLogEntry {
   time: string;
@@ -34,7 +35,7 @@ function nowLabel(): string {
 
 async function readCacheIntake(): Promise<number> {
   try {
-    const stored = await AsyncStorage.getItem(HYDRATION_KEY);
+    const stored = await brandGetItem(HYDRATION_KEY);
     if (!stored) return 0;
     const data = JSON.parse(stored) as { date: string; intakeMl: number };
     if (data.date !== todayKey()) {
@@ -49,7 +50,7 @@ async function readCacheIntake(): Promise<number> {
 
 async function readCacheLog(): Promise<HydrationLogEntry[]> {
   try {
-    const raw = await AsyncStorage.getItem(HYDRATION_LOG_KEY);
+    const raw = await brandGetItem(HYDRATION_LOG_KEY);
     if (!raw) return [];
     const log = JSON.parse(raw) as { date: string; entries: HydrationLogEntry[] };
     return log.date === todayKey() ? log.entries : [];

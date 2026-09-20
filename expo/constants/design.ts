@@ -1,5 +1,5 @@
 /**
- * FuelUp design system — typography, spacing and radius scales.
+ * Fuelify design system — typography, spacing and radius scales.
  *
  * Typography uses the system font stack (San Francisco on iOS,
  * Roboto on Android) with tightened letter-spacing on headings

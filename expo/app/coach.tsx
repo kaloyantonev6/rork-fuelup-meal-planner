@@ -217,7 +217,7 @@ function CoachContent({ text }: { text: string }) {
 /**
  * AI Coach — a football nutrition chat powered through the Rork Toolkit proxy
  * (Vercel AI Gateway, OpenAI-compatible chat completions) using the
- * source-aware FuelUp coach system prompt. Responses reveal word-by-word
+ * source-aware Fuelify coach system prompt. Responses reveal word-by-word
  * after a pulsing "thinking" indicator, rendered as styled cards.
  */
 export default function CoachScreen() {

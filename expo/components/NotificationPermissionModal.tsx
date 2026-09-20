@@ -24,7 +24,7 @@ export default function NotificationPermissionModal({
           <Text style={styles.icon}>🔔</Text>
           <Text style={styles.title}>Stay on Track with Reminders</Text>
           <Text style={styles.body}>
-            FuelUp can remind you when it&apos;s time to eat, so you never miss a meal before
+            Fuelify can remind you when it&apos;s time to eat, so you never miss a meal before
             training or a match.
           </Text>
           <Pressable

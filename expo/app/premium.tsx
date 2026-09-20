@@ -86,7 +86,7 @@ export default function PremiumScreen() {
           <View style={styles.crownBadge}>
             <Crown size={28} color="#D4A44C" />
           </View>
-          <Text style={styles.headerTitle}>FuelUp Pro</Text>
+          <Text style={styles.headerTitle}>Fuelify Pro</Text>
           <Text style={styles.headerSubtitle}>
             Fuel like a pro footballer.{"\n"}Match-day ready, every week.
           </Text>
@@ -139,7 +139,7 @@ export default function PremiumScreen() {
         <View style={styles.cardsRow}>
           <View style={styles.freeCard}>
             <Text style={styles.freePrice}>€0</Text>
-            <Text style={styles.freeSubtext}>Enough for trying out FuelUp</Text>
+            <Text style={styles.freeSubtext}>Enough for trying out Fuelify</Text>
 
             <View style={styles.featuresList}>
               {FREE_FEATURES.map((f, i) => (

@@ -24,6 +24,7 @@ import {
   ChevronRight,
 } from "lucide-react-native";
 import Colors from "@/constants/colors";
+import { BrandLogo } from "@/components/BrandLogo";
 import { useMealPlan } from "@/providers/MealPlanProvider";
 import { useAuth } from "@/providers/AuthProvider";
 
@@ -209,7 +210,7 @@ if (isAuthenticated && hasOnboarded) {
         <View style={styles.loadingLogoIcon}>
           <Leaf size={32} color="#fff" strokeWidth={2.5} />
         </View>
-        <Text style={styles.loadingLogoText}>FuelUp</Text>
+        <BrandLogo />
         <ActivityIndicator color={Colors.primary} size="small" style={{ marginTop: 24 }} />
       </View>
     );
@@ -261,7 +262,7 @@ if (isAuthenticated && hasOnboarded) {
             <View style={styles.logoIcon}>
               <Leaf size={32} color="#fff" strokeWidth={2.5} />
             </View>
-            <Text style={styles.logoText}>FuelUp</Text>
+            <BrandLogo />
             <Text style={styles.tagline}>
               {lastEmail !== "" && mode === "signin"
                 ? "Welcome back! Sign in to continue."

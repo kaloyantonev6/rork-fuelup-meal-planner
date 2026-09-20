@@ -5,7 +5,7 @@ import { kvGet, kvSet } from "@/lib/database";
  * Health Project). Education, not prescription — fully opt-in, stored locally.
  */
 
-const CYCLE_KEY = "fuelup_cycle_tracking";
+const CYCLE_KEY = "fuelify_cycle_tracking";
 
 export interface CycleSettings {
   enabled: boolean;

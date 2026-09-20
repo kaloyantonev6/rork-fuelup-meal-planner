@@ -19,6 +19,7 @@ import { ArrowLeft, ArrowRight, Check, ChevronDown, Sparkles, Search } from "luc
 import * as Haptics from "expo-haptics";
 
 import Colors from "@/constants/colors";
+import { BrandLogo } from "@/components/BrandLogo";
 import { useMealPlan } from "@/providers/MealPlanProvider";
 import {
   Gender,
@@ -314,7 +315,7 @@ export default function OnboardingScreen() {
     <View style={styles.stepContent}>
       <View style={styles.welcomeContainer}>
         <Text style={styles.welcomeEmoji}>⚽</Text>
-        <Text style={styles.welcomeTitle}>FuelUp</Text>
+        <BrandLogo />
         <Text style={styles.welcomeSubtitle}>AI nutrition built for footballers</Text>
         <View style={styles.welcomeFeatures}>
           <FeatureLine icon="⚽" text="Meal plans adapted to training & match days" />

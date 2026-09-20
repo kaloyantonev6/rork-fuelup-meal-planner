@@ -88,7 +88,7 @@ export const educationCards: EducationCard[] = [
   },
 ];
 
-const EDUCATION_STATE_KEY = "fuelup_education_state";
+const EDUCATION_STATE_KEY = "fuelify_education_state";
 
 interface EducationState {
   /** Titles shown recently — cleared once all matching cards have cycled */

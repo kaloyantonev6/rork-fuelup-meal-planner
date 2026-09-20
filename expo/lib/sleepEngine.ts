@@ -5,7 +5,7 @@ import { kvGet, kvSet } from "@/lib/database";
  * Source: Walsh et al. 2021 (Expert consensus on sleep and athlete health).
  */
 
-const SLEEP_LOG_KEY = "fuelup_sleep_log";
+const SLEEP_LOG_KEY = "fuelify_sleep_log";
 
 /** Sleep target by age (Walsh 2021 consensus). */
 export function getSleepTarget(age: number): { min: number; max: number; unit: string } {

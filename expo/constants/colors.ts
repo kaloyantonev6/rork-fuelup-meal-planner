@@ -1,5 +1,5 @@
 /**
- * FuelUp design system — color tokens.
+ * Fuelify design system — color tokens.
  *
  * Layered dark palette for a premium performance-tool feel.
  * Legacy key names (background, surface, card, primary, ...) are kept

@@ -24,16 +24,16 @@ export default function HelpScreen() {
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 24 }]}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.title}>Help & Support — FuelUp</Text>
+        <Text style={styles.title}>Help & Support — Fuelify</Text>
         <Text style={styles.body}>
-          We are here to help you get the most out of FuelUp. Please find answers to the most common questions below, or reach out to our support team directly.
+          We are here to help you get the most out of Fuelify. Please find answers to the most common questions below, or reach out to our support team directly.
         </Text>
 
         <Text style={styles.sectionTitle}>Frequently asked questions</Text>
 
-        <Text style={styles.question}>How does FuelUp generate my meal plan?</Text>
+        <Text style={styles.question}>How does Fuelify generate my meal plan?</Text>
         <Text style={styles.body}>
-          FuelUp uses artificial intelligence to create personalised meal plans based on your dietary preferences, health goals, and nutritional requirements. The more information you provide in your profile, the more accurate and tailored your plan will be.
+          Fuelify uses artificial intelligence to create personalised meal plans based on your dietary preferences, health goals, and nutritional requirements. The more information you provide in your profile, the more accurate and tailored your plan will be.
         </Text>
 
         <Text style={styles.question}>Can I update my dietary preferences or health goals?</Text>
@@ -48,7 +48,7 @@ export default function HelpScreen() {
 
         <Text style={styles.question}>Is my health data kept private?</Text>
         <Text style={styles.body}>
-          Yes. FuelUp does not sell or share your personal or health data with third parties for marketing purposes. Please refer to our Privacy Policy for full details.
+          Yes. Fuelify does not sell or share your personal or health data with third parties for marketing purposes. Please refer to our Privacy Policy for full details.
         </Text>
 
         <Text style={styles.question}>I found a bug or something is not working. What should I do?</Text>
@@ -62,7 +62,7 @@ export default function HelpScreen() {
         </Text>
 
         <Pressable
-          onPress={() => Linking.openURL("mailto:support@fuelup.app")}
+          onPress={() => Linking.openURL("mailto:support@fuelify.app")}
           style={({ pressed }) => [styles.contactCard, pressed && { opacity: 0.85 }]}
         >
           <View style={styles.contactIconWrap}>
@@ -70,14 +70,14 @@ export default function HelpScreen() {
           </View>
           <View style={styles.contactTextWrap}>
             <Text style={styles.contactLabel}>Email</Text>
-            <Text style={styles.contactValue}>support@fuelup.app</Text>
+            <Text style={styles.contactValue}>support@fuelify.app</Text>
           </View>
         </Pressable>
 
         <Text style={styles.responseTime}>Response time: within 1–2 business days</Text>
 
         <Text style={styles.bodySpaced}>
-          We value your feedback and are continuously working to improve FuelUp.
+          We value your feedback and are continuously working to improve Fuelify.
         </Text>
       </ScrollView>
     </View>

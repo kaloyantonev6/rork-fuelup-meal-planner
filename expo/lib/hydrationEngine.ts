@@ -7,7 +7,7 @@ import type { DayType } from "@/types";
  * GSSI Sports Science Exchange.
  */
 
-const SWEAT_TEST_KEY = "fuelup_sweat_test";
+const SWEAT_TEST_KEY = "fuelify_sweat_test";
 
 export interface HydrationTargets {
   baselineDaily: number; // liters

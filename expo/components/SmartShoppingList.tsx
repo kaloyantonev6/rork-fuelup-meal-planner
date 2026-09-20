@@ -158,7 +158,7 @@ export default function SmartShoppingList({
           <Text style={styles.headerTitle}>🛒 Smart Shopping List</Text>
           <View style={styles.aiBadge}>
             <Sparkles size={10} color={Colors.primary} />
-            <Text style={styles.aiBadgeText}>FuelUp AI</Text>
+            <Text style={styles.aiBadgeText}>Fuelify AI</Text>
           </View>
         </View>
         <View style={styles.locationRow}>
@@ -257,7 +257,7 @@ export default function SmartShoppingList({
             </View>
             <Text style={styles.upgradeTitle}>Premium Feature</Text>
             <Text style={styles.upgradeMessage}>
-              Price comparison, checkboxes, and smart budget tracking are available with FuelUp Premium.
+              Price comparison, checkboxes, and smart budget tracking are available with Fuelify Premium.
             </Text>
             <Pressable
               onPress={() => {

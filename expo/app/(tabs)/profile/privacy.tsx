@@ -23,12 +23,12 @@ export default function PrivacyScreen() {
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 24 }]}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.title}>Privacy Policy — FuelUp</Text>
+        <Text style={styles.title}>Privacy Policy — Fuelify</Text>
         <Text style={styles.updated}>Last updated: March 2026</Text>
 
         <Text style={styles.sectionTitle}>1. Who we are</Text>
         <Text style={styles.body}>
-          FuelUp is an AI-powered meal planning application operated by FuelUp. We are committed to protecting your personal data in accordance with the General Data Protection Regulation (GDPR) and applicable EU member state law.
+          Fuelify is an AI-powered meal planning application operated by Fuelify. We are committed to protecting your personal data in accordance with the General Data Protection Regulation (GDPR) and applicable EU member state law.
         </Text>
 
         <Text style={styles.sectionTitle}>2. Data we collect</Text>
@@ -44,7 +44,7 @@ export default function PrivacyScreen() {
         <Text style={styles.body}>
           We process your data on the following legal bases under GDPR Article 6 and Article 9:
         </Text>
-        <Text style={styles.bullet}>• <Text style={styles.boldInline}>Performance of a contract:</Text> to provide the FuelUp service you have signed up for.</Text>
+        <Text style={styles.bullet}>• <Text style={styles.boldInline}>Performance of a contract:</Text> to provide the Fuelify service you have signed up for.</Text>
         <Text style={styles.bullet}>• <Text style={styles.boldInline}>Legitimate interests:</Text> to improve app performance and prevent misuse.</Text>
         <Text style={styles.bullet}>• <Text style={styles.boldInline}>Explicit consent:</Text> for the processing of health-related data (Article 9(2)(a) GDPR). You may withdraw consent at any time.</Text>
 
@@ -73,12 +73,12 @@ export default function PrivacyScreen() {
         <Text style={styles.bullet}>• Data portability</Text>
         <Text style={styles.bullet}>• Lodge a complaint with your local supervisory authority</Text>
         <Text style={styles.bodySpaced}>
-          To exercise any of these rights, please contact us at privacy@fuelup.app
+          To exercise any of these rights, please contact us at privacy@fuelify.app
         </Text>
 
         <Text style={styles.sectionTitle}>8. Cookies & analytics</Text>
         <Text style={styles.body}>
-          FuelUp uses essential cookies required for app functionality and, with your consent, analytics cookies to improve the user experience. You may manage your cookie preferences at any time in this Settings menu.
+          Fuelify uses essential cookies required for app functionality and, with your consent, analytics cookies to improve the user experience. You may manage your cookie preferences at any time in this Settings menu.
         </Text>
       </ScrollView>
     </View>

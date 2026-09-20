@@ -2,11 +2,12 @@ import { useCallback, useEffect, useRef } from "react";
 import { AppState } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { kvGet, kvSet } from "@/lib/database";
+import { brandGetItem } from "@/lib/brandKeys";
 import { getLocalDateString } from "@/constants/dayTypes";
 
-const LAST_RESET_KEY = "fuelup_last_reset_date";
-const HYDRATION_KEY = "fuelup_hydration";
-const TIP_INDEX_KEY = "fuelup_tip_index";
+const LAST_RESET_KEY = "fuelify_last_reset_date";
+const HYDRATION_KEY = "fuelify_hydration";
+const TIP_INDEX_KEY = "fuelify_tip_index";
 const TIP_COUNT = 14;
 
 export interface UseDailyResetOptions {
@@ -28,7 +29,7 @@ export function useDailyReset(options: UseDailyResetOptions = {}) {
   const performReset = useCallback(async (): Promise<boolean> => {
     const today = getLocalDateString();
     try {
-      const lastReset = await AsyncStorage.getItem(LAST_RESET_KEY);
+      const lastReset = await brandGetItem(LAST_RESET_KEY);
       const isFirstCheck = lastReset === null;
       if (lastReset === today) return false; // already reset today
 

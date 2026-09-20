@@ -20,7 +20,7 @@ export default function ConsentPendingScreen() {
       <Text style={styles.title}>Almost there</Text>
       <Text style={styles.body}>
         Since you&apos;re under 16, a parent or guardian needs to approve your
-        account before FuelUp can build meal plans or store your details.
+        account before Fuelify can build meal plans or store your details.
         We&apos;ll let you in as soon as that&apos;s confirmed.
       </Text>
       <TouchableOpacity style={styles.btn} onPress={() => signOut()} activeOpacity={0.8}>

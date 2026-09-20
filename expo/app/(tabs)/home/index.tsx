@@ -150,7 +150,7 @@ export default function HomeScreen() {
     };
   }, [hasOnboarded]);
 
-  // ── Youth safeguard (under-18): one-time popup — FuelUp fuels growth, never restricts ──
+  // ── Youth safeguard (under-18): one-time popup — Fuelify fuels growth, never restricts ──
   const [showYouthNotice, setShowYouthNotice] = useState(false);
   useEffect(() => {
     if (!profile.age || profile.age >= 18) return;
@@ -557,7 +557,7 @@ export default function HomeScreen() {
           <View style={styles.modalCard}>
             <Text style={styles.youthTitle}>Fueling Your Growth 🌱</Text>
             <Text style={styles.youthText}>
-              FuelUp is designed to fuel your growth and performance — not restrict your eating.
+              Fuelify is designed to fuel your growth and performance — not restrict your eating.
               Young athletes need adequate energy to develop. If you have concerns about your
               weight, speak to a doctor or qualified sports dietitian.
             </Text>

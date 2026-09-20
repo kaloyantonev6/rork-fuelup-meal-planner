@@ -36,7 +36,7 @@ export interface TodayData {
   tomorrow: TomorrowPreview;
 }
 
-const HYDRATION_KEY = "fuelup_hydration";
+const HYDRATION_KEY = "fuelify_hydration";
 
 /**
  * Single source of truth for "today": day type from the weekly schedule, the

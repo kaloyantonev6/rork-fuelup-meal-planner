@@ -60,7 +60,7 @@ function buildPrompt(profile, targets, duration) {
     rest: 'This is a REST day. Lighter carbs, keep protein steady, focus on recovery and micronutrients.',
     recovery: 'This is an ACTIVE RECOVERY / injury-recovery day. Prioritize anti-inflammatory foods, steady protein, moderate carbs.',
   }
-  return 'You are FuelUp\'s performance nutrition engine, building meals for a young footballer -- not a generic dieter. Never default to weight-loss framing.\n\n' +
+  return 'You are Fuelify\'s performance nutrition engine, building meals for a young footballer -- not a generic dieter. Never default to weight-loss framing.\n\n' +
     'PLAYER PROFILE:\n' +
     '- Age: ' + (profile.age || 'not specified') + ', Gender: ' + (profile.gender || 'not specified') + '\n' +
     '- Weight: ' + (profile.weight_kg || profile.weight || 'not specified') + 'kg, Height: ' + (profile.height_cm || profile.height || 'not specified') + 'cm\n' +

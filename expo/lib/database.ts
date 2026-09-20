@@ -9,6 +9,7 @@
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "@/lib/supabase";
+import { ensureLegacyKeyMigration } from "@/lib/brandKeys";
 
 let currentUserId: string | null = null;
 
@@ -33,6 +34,8 @@ function errorMessage(err: unknown): string {
  * server row — it gets pushed up on the next write).
  */
 export async function kvGet<T>(key: string): Promise<T | null> {
+  // Serve pre-rebrand data: copy any legacy "fuelup_*" values forward once.
+  await ensureLegacyKeyMigration();
   if (currentUserId) {
     try {
       const row = await supabase

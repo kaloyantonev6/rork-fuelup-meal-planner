@@ -174,7 +174,7 @@ export default function ProfileScreen() {
             <Camera size={14} color="#fff" />
           </View>
         </Pressable>
-        <Text style={styles.name}>{profile.name || "FuelUp Player"}</Text>
+        <Text style={styles.name}>{profile.name || "Fuelify Player"}</Text>
         <Text style={styles.goalText}>
           {FOOTBALL_POSITIONS.find((p) => p.id === profile.position)?.icon ?? "⚽"} {positionLabel ?? "Player"}
         </Text>
@@ -496,7 +496,7 @@ export default function ProfileScreen() {
         </Pressable>
       </View>
 
-      <Text style={styles.version}>FuelUp AI v1.0.0</Text>
+      <Text style={styles.version}>Fuelify AI v1.0.0</Text>
       <View style={{ height: 40 }} />
 
       <Modal visible={showCountryPicker} animationType="slide" transparent>

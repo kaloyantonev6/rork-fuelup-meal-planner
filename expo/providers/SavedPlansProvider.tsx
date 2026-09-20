@@ -44,9 +44,9 @@ export interface PlanFolder {
   color: string;
 }
 
-const SAVED_PLANS_KEY = "fuelup_saved_plans";
-const FAVORITES_KEY = "fuelup_favorites";
-const FOLDERS_KEY = "fuelup_folders";
+const SAVED_PLANS_KEY = "fuelify_saved_plans";
+const FAVORITES_KEY = "fuelify_favorites";
+const FOLDERS_KEY = "fuelify_folders";
 
 export const [SavedPlansProvider, useSavedPlans] = createContextHook(() => {
   const { user, isLoading: authLoading } = useAuth();

@@ -32,7 +32,7 @@ export default function ShopScreen() {
     const lines = latestPlan.plans
       .flatMap((p) => p.meals.map((m) => `• ${m.name}`))
       .join("\n");
-    void Share.share({ message: `FuelUp — ${latestPlan.title}\n\n${lines}` }).catch(() => undefined);
+    void Share.share({ message: `Fuelify — ${latestPlan.title}\n\n${lines}` }).catch(() => undefined);
   }, [latestPlan]);
 
   const budgetAccent = useMemo(() => {

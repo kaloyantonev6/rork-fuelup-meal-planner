@@ -45,9 +45,9 @@ import {
 import type { DayType } from "@/types";
 import type { TimelineEntry, TimelineTemplate } from "@/utils/timeline";
 
-const KICKOFF_KEY = "fuelup_default_kickoff";
-const TRAINING_TIME_KEY = "fuelup_default_training_time";
-const COMPLETED_SESSIONS_PREFIX = "fuelup_completed_sessions_";
+const KICKOFF_KEY = "fuelify_default_kickoff";
+const TRAINING_TIME_KEY = "fuelify_default_training_time";
+const COMPLETED_SESSIONS_PREFIX = "fuelify_completed_sessions_";
 
 /** Pulsing glow ring shown behind the current timeline node. */
 function TimelinePulseGlow() {
