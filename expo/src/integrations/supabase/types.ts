@@ -206,6 +206,7 @@ export type Database = {
           carbs_consumed: number | null
           carbs_target: number | null
           created_at: string | null
+          data: Json | null
           date: string
           day_type: string | null
           fats_consumed: number | null
@@ -226,6 +227,7 @@ export type Database = {
           carbs_consumed?: number | null
           carbs_target?: number | null
           created_at?: string | null
+          data?: Json | null
           date: string
           day_type?: string | null
           fats_consumed?: number | null
@@ -246,6 +248,7 @@ export type Database = {
           carbs_consumed?: number | null
           carbs_target?: number | null
           created_at?: string | null
+          data?: Json | null
           date?: string
           day_type?: string | null
           fats_consumed?: number | null

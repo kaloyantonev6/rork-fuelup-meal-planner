@@ -408,35 +408,6 @@ export default function PlanScreen() {
     setShoppingList([]);
   }, []);
 
-  if (generatedPlans) {
-    return (
-      <MealResults
-        plans={generatedPlans}
-        shoppingList={shoppingList}
-        planType={planType}
-        isPremium={profile.isPremium}
-        country={profile.country}
-        onBack={handleBack}
-        onUpgrade={() => router.push("/premium")}
-      />
-    );
-  }
-
-  // Limit reached — the gate replaces the whole generation screen (no modal).
-  if (gateVisible && !profile.isPremium) {
-    return <PremiumGate />;
-  }
-
-  const windows = tracking ? getMealWindows(customTimes, tracking.dayType) : null;
-  const filteredMeals =
-    tracking?.meals.filter((m) => mealFilter === "all" || m.category === mealFilter) ?? [];
-  const filterEmptyLabel = mealFilter === "all" ? "meal" : MEAL_CATEGORY_META[mealFilter].label.toLowerCase();
-  const weeklySchedule: DayType[] =
-    profile.weeklySchedule && profile.weeklySchedule.length === 7
-      ? profile.weeklySchedule
-      : DEFAULT_WEEKLY_SCHEDULE;
-  const todayIndex = getMondayIndex();
-
   /** Maps today's Recipe into the GeneratedMeal shape meal-detail expects. */
   const openMeal = useCallback(
     (category: string) => {
@@ -471,6 +442,35 @@ export default function PlanScreen() {
     },
     [todayPlan, dayType, profile.isPremium, router],
   );
+
+  if (generatedPlans) {
+    return (
+      <MealResults
+        plans={generatedPlans}
+        shoppingList={shoppingList}
+        planType={planType}
+        isPremium={profile.isPremium}
+        country={profile.country}
+        onBack={handleBack}
+        onUpgrade={() => router.push("/premium")}
+      />
+    );
+  }
+
+  // Limit reached — the gate replaces the whole generation screen (no modal).
+  if (gateVisible && !profile.isPremium) {
+    return <PremiumGate />;
+  }
+
+  const windows = tracking ? getMealWindows(customTimes, tracking.dayType) : null;
+  const filteredMeals =
+    tracking?.meals.filter((m) => mealFilter === "all" || m.category === mealFilter) ?? [];
+  const filterEmptyLabel = mealFilter === "all" ? "meal" : MEAL_CATEGORY_META[mealFilter].label.toLowerCase();
+  const weeklySchedule: DayType[] =
+    profile.weeklySchedule && profile.weeklySchedule.length === 7
+      ? profile.weeklySchedule
+      : DEFAULT_WEEKLY_SCHEDULE;
+  const todayIndex = getMondayIndex();
 
   return (
     <View style={styles.container}>
