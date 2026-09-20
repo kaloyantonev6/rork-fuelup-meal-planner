@@ -21,9 +21,7 @@ import {
   Bookmark,
   Calendar,
   Check,
-  ChevronDown,
   ChevronRight,
-  ChevronUp,
   Crown,
   Heart,
   RefreshCw,
@@ -36,8 +34,6 @@ import { useToday } from "@/providers/TodayProvider";
 import { useNotificationFeed } from "@/providers/NotificationFeedProvider";
 import { useMealTracking } from "@/providers/MealTrackingProvider";
 import { useSavedPlans } from "@/providers/SavedPlansProvider";
-import { COOK_TIME_OPTIONS } from "@/constants/onboarding";
-import type { CookTimeFilter } from "@/constants/onboarding";
 import type { DayType } from "@/types";
 import {
   compileShoppingList,
@@ -279,15 +275,6 @@ export default function PlanScreen() {
   const meta = DAY_TYPE_META[dayType];
 
   // ── Plan generation state (moved from the old home screen) ──
-  const [mealsPerDay, setMealsPerDay] = useState<number>(4);
-  const [showCookingPrefs, setShowCookingPrefs] = useState(false);
-  const [localMaxCookTime, setLocalMaxCookTime] = useState<CookTimeFilter>(
-    (profile.maxCookTime as CookTimeFilter) ?? "any",
-  );
-  const [localNoCookOnly, setLocalNoCookOnly] = useState(profile.noCookOnly ?? false);
-  const [localMaxFiveIngredients, setLocalMaxFiveIngredients] = useState(
-    profile.maxFiveIngredients ?? false,
-  );
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedPlans, setGeneratedPlans] = useState<GeneratedPlan[] | null>(null);
   const [shoppingList, setShoppingList] = useState<ShoppingIngredient[]>([]);
@@ -370,23 +357,16 @@ export default function PlanScreen() {
 
       await new Promise((r) => setTimeout(r, 1800));
 
-      const adjustedProfile = {
-        ...profile,
-        maxCookTime: localMaxCookTime,
-        noCookOnly: localNoCookOnly,
-        maxFiveIngredients: localMaxFiveIngredients,
-      };
-
       try {
         if (type === "daily") {
-          const plan = await generateDailyPlan(adjustedProfile, mealsPerDay, null);
+          const plan = await generateDailyPlan(profile, 4, null);
           setGeneratedPlans([plan]);
           setShoppingList(compileShoppingList([plan]));
           void prefetchMealPlanImages(
             plan.meals.map((m) => ({ title: m.name, category: m.mealType })),
           ).catch(() => undefined);
         } else {
-          const plans = await generateWeeklyPlan(adjustedProfile, mealsPerDay, null);
+          const plans = await generateWeeklyPlan(profile, 4, null);
           setGeneratedPlans(plans);
           setShoppingList(compileShoppingList(plans));
           void prefetchMealPlanImages(
@@ -420,17 +400,7 @@ export default function PlanScreen() {
       );
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
     },
-    [
-      profile,
-      mealsPerDay,
-      router,
-      triggerNudge,
-      addNotification,
-      dayType,
-      localMaxCookTime,
-      localNoCookOnly,
-      localMaxFiveIngredients,
-    ],
+    [profile, router, triggerNudge, addNotification, dayType],
   );
 
   const handleBack = useCallback(() => {
@@ -683,109 +653,6 @@ export default function PlanScreen() {
 
         {/* Weekly history */}
         {tracking ? <WeeklyHistoryStrip history={history} today={tracking} /> : null}
-
-        {/* Meals per day */}
-        <View style={styles.optionsSection}>
-          <Text style={styles.optionLabel}>Meals per day</Text>
-          <Text style={styles.optionHint}>Training & match days include a post-session snack</Text>
-          <View style={styles.optionRow}>
-            {[3, 4, 5].map((n) => (
-              <Pressable
-                key={n}
-                onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setMealsPerDay(n);
-                }}
-                style={[styles.optionBtn, mealsPerDay === n && styles.optionBtnActive]}
-              >
-                <Text style={[styles.optionBtnText, mealsPerDay === n && styles.optionBtnTextActive]}>
-                  {n}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-
-        {/* Cooking preferences */}
-        <Pressable
-          onPress={() => {
-            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            setShowCookingPrefs((p) => !p);
-          }}
-          style={({ pressed }) => [styles.cookingToggleCard, pressed && { opacity: 0.8 }]}
-        >
-          <Text style={styles.cookingToggleLabel}>🍳 Cooking Preferences</Text>
-          <View style={styles.cookingToggleRight}>
-            {localMaxCookTime !== "any" ? (
-              <View style={styles.cookingChip}>
-                <Text style={styles.cookingChipText}>
-                  {COOK_TIME_OPTIONS.find((o) => o.id === localMaxCookTime)?.label ?? localMaxCookTime}
-                </Text>
-              </View>
-            ) : null}
-            {localNoCookOnly ? (
-              <View style={styles.cookingChip}>
-                <Text style={styles.cookingChipText}>No-Cook</Text>
-              </View>
-            ) : null}
-            {localMaxFiveIngredients ? (
-              <View style={styles.cookingChip}>
-                <Text style={styles.cookingChipText}>5 Ing.</Text>
-              </View>
-            ) : null}
-            {showCookingPrefs ? (
-              <ChevronUp size={16} color={Colors.textTertiary} />
-            ) : (
-              <ChevronDown size={16} color={Colors.textTertiary} />
-            )}
-          </View>
-        </Pressable>
-
-        {showCookingPrefs ? (
-          <View style={styles.cookingPanel}>
-            <Text style={styles.cookingSectionLabel}>Max Cook Time</Text>
-            <View style={styles.cookingChipRow}>
-              {COOK_TIME_OPTIONS.map((opt) => (
-                <Pressable
-                  key={opt.id}
-                  onPress={() => {
-                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setLocalMaxCookTime(opt.id);
-                  }}
-                  style={[styles.cookingChip, localMaxCookTime === opt.id && styles.cookingChipActive]}
-                >
-                  <Text style={[styles.cookingChipText, localMaxCookTime === opt.id && styles.cookingChipTextActive]}>
-                    {opt.icon} {opt.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-            <View style={styles.cookingToggleRow}>
-              <Text style={styles.cookingToggleRowLabel}>No-Cook Only</Text>
-              <Pressable
-                onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setLocalNoCookOnly((p) => !p);
-                }}
-                style={[styles.toggleSwitch, localNoCookOnly && styles.toggleSwitchOn]}
-              >
-                <View style={[styles.toggleThumb, localNoCookOnly && styles.toggleThumbOn]} />
-              </Pressable>
-            </View>
-            <View style={styles.cookingToggleRow}>
-              <Text style={styles.cookingToggleRowLabel}>Simple meals only (max 5 ingredients)</Text>
-              <Pressable
-                onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setLocalMaxFiveIngredients((p) => !p);
-                }}
-                style={[styles.toggleSwitch, localMaxFiveIngredients && styles.toggleSwitchOn]}
-              >
-                <View style={[styles.toggleThumb, localMaxFiveIngredients && styles.toggleThumbOn]} />
-              </Pressable>
-            </View>
-          </View>
-        ) : null}
 
         {/* Free-tier warning — one generation left before the limit */}
         {!profile.isPremium && freeRemaining === 1 ? (
@@ -1175,140 +1042,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
     padding: 14,
-  },
-
-  optionsSection: {
-    marginTop: 4,
-    marginBottom: 12,
-  },
-  optionLabel: {
-    fontSize: 14,
-    fontWeight: "700" as const,
-    color: Colors.text,
-  },
-  optionHint: {
-    fontSize: 11,
-    color: Colors.textTertiary,
-    marginTop: 2,
-    marginBottom: 8,
-  },
-  optionRow: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  optionBtn: {
-    width: 44,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: Colors.bg2,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  optionBtnActive: {
-    backgroundColor: Colors.primaryLight,
-    borderColor: Colors.accentLight,
-  },
-  optionBtnText: {
-    fontSize: 14,
-    fontWeight: "700" as const,
-    color: Colors.textSecondary,
-  },
-  optionBtnTextActive: {
-    color: Colors.primary,
-  },
-
-  cookingToggleCard: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: Colors.bg2,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    padding: 14,
-    marginBottom: 10,
-  },
-  cookingToggleLabel: {
-    fontSize: 14,
-    fontWeight: "600" as const,
-    color: Colors.text,
-  },
-  cookingToggleRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  cookingChip: {
-    backgroundColor: Colors.bg3,
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  cookingChipText: {
-    fontSize: 10,
-    fontWeight: "600" as const,
-    color: Colors.textSecondary,
-  },
-  cookingChipActive: {
-    backgroundColor: Colors.primaryLight,
-    borderColor: Colors.accentLight,
-    borderWidth: 1,
-  },
-  cookingChipTextActive: {
-    color: Colors.primary,
-  },
-  cookingPanel: {
-    backgroundColor: Colors.bg2,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    padding: 14,
-    marginBottom: 12,
-    gap: 12,
-  },
-  cookingSectionLabel: {
-    fontSize: 12,
-    fontWeight: "700" as const,
-    color: Colors.text,
-  },
-  cookingChipRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  cookingToggleRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  cookingToggleRowLabel: {
-    fontSize: 12,
-    fontWeight: "600" as const,
-    color: Colors.text,
-    flex: 1,
-    paddingRight: 12,
-  },
-  toggleSwitch: {
-    width: 44,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: Colors.bg4,
-    padding: 2,
-    justifyContent: "center",
-  },
-  toggleSwitchOn: {
-    backgroundColor: Colors.primary,
-  },
-  toggleThumb: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: "#fff",
-  },
-  toggleThumbOn: {
-    alignSelf: "flex-end",
   },
 
   generateSection: {

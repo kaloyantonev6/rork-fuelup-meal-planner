@@ -132,7 +132,7 @@ function FuelProgressRing({ percentage, size, strokeWidth }: FuelProgressRingPro
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke="rgba(255,255,255,0.25)"
+          stroke="rgba(45,212,168,0.2)"
           strokeWidth={strokeWidth}
           fill="none"
         />
@@ -141,7 +141,7 @@ function FuelProgressRing({ percentage, size, strokeWidth }: FuelProgressRingPro
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke="#FFFFFF"
+          stroke={Colors.primary}
           strokeWidth={strokeWidth}
           fill="none"
           strokeDasharray={circumference}
@@ -151,7 +151,7 @@ function FuelProgressRing({ percentage, size, strokeWidth }: FuelProgressRingPro
       </Svg>
       {/* Center percentage text */}
       <View style={{ position: "absolute", alignItems: "center", justifyContent: "center" }}>
-        <Text style={{ fontSize: 22, fontWeight: "700" as const, color: "#FFFFFF" }}>
+        <Text style={{ fontSize: 22, fontWeight: "700" as const, color: Colors.text }}>
           {Math.round(clampedPct)}%
         </Text>
       </View>
@@ -465,7 +465,7 @@ export default function HomeScreen() {
               activeOpacity={0.7}
               onPress={() => undefined}
             >
-              <MoreHorizontal size={18} color="rgba(255,255,255,0.7)" />
+              <MoreHorizontal size={18} color={Colors.textSecondary} />
             </TouchableOpacity>
           </TouchableOpacity>
         </Animated.View>
@@ -801,7 +801,7 @@ const styles = StyleSheet.create({
 
   // Hero card
   heroCard: {
-    backgroundColor: "#5F33E1",
+    backgroundColor: Colors.bg2,
     borderRadius: 24,
     padding: 24,
     // Parent scroll already applies 16px horizontal padding — no extra margin
@@ -811,11 +811,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     minHeight: 146,
-    shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.03,
-    shadowRadius: 20,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   heroLeft: {
     flex: 1,
@@ -824,12 +821,12 @@ const styles = StyleSheet.create({
   heroHeading: {
     fontSize: 19,
     fontWeight: "700" as const,
-    color: "#FFFFFF",
+    color: Colors.text,
     lineHeight: 26,
     marginBottom: 16,
   },
   heroButton: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: Colors.primary,
     borderRadius: 20,
     paddingVertical: 8,
     paddingHorizontal: 20,
@@ -838,7 +835,7 @@ const styles = StyleSheet.create({
   heroButtonText: {
     fontSize: 14,
     fontWeight: "700" as const,
-    color: "#5F33E1",
+    color: Colors.bg0,
   },
   heroRight: {
     alignItems: "center",
@@ -848,7 +845,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 14,
     right: 14,
-    backgroundColor: "rgba(255,255,255,0.15)",
+    backgroundColor: "rgba(241,245,249,0.08)",
     borderRadius: 8,
     width: 30,
     height: 30,
