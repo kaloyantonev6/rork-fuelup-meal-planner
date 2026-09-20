@@ -2,18 +2,21 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   Alert,
   Animated,
+  Easing,
   Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
+import Svg, { Circle } from "react-native-svg";
 import { kvGet, kvSet } from "@/lib/database";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { Bell, Bot, ChevronDown, ChevronUp, Crown, ShoppingCart, Trophy, User } from "lucide-react-native";
+import { Bell, Bot, ChevronDown, ChevronUp, Crown, MoreHorizontal, ShoppingCart, Trophy, User } from "lucide-react-native";
 
 import Colors from "@/constants/colors";
 import { useMealPlan } from "@/providers/MealPlanProvider";
@@ -47,26 +50,6 @@ import {
 import { loadTodayHydration } from "@/lib/hydrationStore";
 import { getSleepTarget, loadSleepLog, weeklyAverage } from "@/lib/sleepEngine";
 import Toast from "@/components/ui/Toast";
-
-interface MacroChipProps {
-  label: string;
-  current: number;
-  target: number;
-  color: string;
-}
-
-/** Compact macro chip — coloured dot + current/target grams. */
-function MacroChip({ label, current, target, color }: MacroChipProps) {
-  return (
-    <View style={styles.macroChip}>
-      <View style={[styles.macroDot, { backgroundColor: color }]} />
-      <Text style={styles.macroLabel}>{label}</Text>
-      <Text style={styles.macroValue}>
-        {Math.round(current)}/{target}g
-      </Text>
-    </View>
-  );
-}
 
 interface QuickActionButtonProps {
   icon: React.ReactNode;
@@ -108,6 +91,71 @@ function QuickActionButton({ icon, label, onPress, highlight = false }: QuickAct
         <Text style={styles.quickActionLabel}>{label}</Text>
       </Animated.View>
     </Pressable>
+  );
+}
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
+interface FuelProgressRingProps {
+  percentage: number;
+  size: number;
+  strokeWidth: number;
+}
+
+/** Circular SVG progress ring — fill animates from 0 to the target percentage on mount. */
+function FuelProgressRing({ percentage, size, strokeWidth }: FuelProgressRingProps) {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const clampedPct = Math.min(100, Math.max(0, percentage));
+  const progress = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(progress, {
+      toValue: clampedPct,
+      duration: 800,
+      easing: Easing.out(Easing.ease),
+      useNativeDriver: false, // strokeDashoffset is an SVG prop — not native-drivable
+    }).start();
+  }, [clampedPct, progress]);
+
+  const strokeDashoffset = progress.interpolate({
+    inputRange: [0, 100],
+    outputRange: [circumference, 0],
+    extrapolate: "clamp",
+  });
+
+  return (
+    <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
+      <Svg width={size} height={size} style={{ transform: [{ rotate: "-90deg" }] }}>
+        {/* Track ring */}
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="rgba(255,255,255,0.25)"
+          strokeWidth={strokeWidth}
+          fill="none"
+        />
+        {/* Progress arc */}
+        <AnimatedCircle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="#FFFFFF"
+          strokeWidth={strokeWidth}
+          fill="none"
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+        />
+      </Svg>
+      {/* Center percentage text */}
+      <View style={{ position: "absolute", alignItems: "center", justifyContent: "center" }}>
+        <Text style={{ fontSize: 22, fontWeight: "700" as const, color: "#FFFFFF" }}>
+          {Math.round(clampedPct)}%
+        </Text>
+      </View>
+    </View>
   );
 }
 
@@ -194,23 +242,29 @@ export default function HomeScreen() {
   const hydrationTargetMl = Math.round((todayData?.hydrationTarget ?? 3) * 1000);
   const sleepTarget = getSleepTarget(age);
 
-  // ── Today's Fuel main card data (from the meal-tracking store) ──
-  const consumedMacros = useMemo(() => {
-    let protein = 0;
-    let carbs = 0;
-    let fats = 0;
-    for (const m of tracking?.meals ?? []) {
-      if (!m.completedAt) continue;
-      protein += m.protein;
-      carbs += m.carbs;
-      fats += m.fats;
-    }
-    return { protein, carbs, fats };
-  }, [tracking]);
-
+  // ── Today's Fuel hero card data (from the meal-tracking store) ──
   const calorieTarget = todayData?.calorieTarget ?? 0;
-  const caloriesConsumed = stats.caloriesConsumed;
-  const fuelPct = calorieTarget > 0 ? Math.min(Math.round((caloriesConsumed / calorieTarget) * 100), 100) : 0;
+  const fuelPct =
+    calorieTarget > 0 ? Math.min(Math.round((stats.caloriesConsumed / calorieTarget) * 100), 100) : 0;
+
+  // Hero card entry animation — opacity 0→1, translateY 15→0
+  const heroEntry = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(heroEntry, {
+      toValue: 1,
+      duration: 400,
+      easing: Easing.out(Easing.ease),
+      useNativeDriver: true,
+    }).start();
+  }, [heroEntry]);
+
+  // Hero heading adapts to meal completion
+  const heroHeading =
+    stats.completedCount === 0
+      ? `Your ${meta.label}\nfuel plan`
+      : stats.completedCount >= stats.totalMeals
+        ? "All meals done!\nGreat job today"
+        : `${stats.completedCount}/${stats.totalMeals} meals\nlogged today`;
 
   // ── Day-change toast ──
   const [dayToast, setDayToast] = useState<{ message: string; color: string; icon: string } | null>(null);
@@ -370,45 +424,51 @@ export default function HomeScreen() {
           </View>
         </Pressable>
 
-        {/* MAIN CARD — Today's Fuel → Plan tab */}
-        <Pressable
-          onPress={() => {
-            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.push("/(tabs)/plan" as never);
+        {/* MAIN CARD — purple fuel hero → Plan tab */}
+        <Animated.View
+          style={{
+            opacity: heroEntry,
+            transform: [
+              {
+                translateY: heroEntry.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [15, 0],
+                }),
+              },
+            ],
           }}
-          style={({ pressed }) => [
-            styles.mainCard,
-            { borderLeftColor: meta.color },
-            pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
-          ]}
         >
-          <View style={styles.mainCardHeader}>
-            <Text style={styles.mainCardTitle}>Today&apos;s Fuel</Text>
-            <Text style={styles.mainCardCalories}>
-              {calorieTarget.toLocaleString()} kcal
-            </Text>
-          </View>
+          <TouchableOpacity
+            activeOpacity={0.92}
+            onPress={() => {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push("/(tabs)/plan" as never);
+            }}
+            style={styles.heroCard}
+          >
+            {/* Left side */}
+            <View style={styles.heroLeft}>
+              <Text style={styles.heroHeading}>{heroHeading}</Text>
+              <View style={styles.heroButton}>
+                <Text style={styles.heroButtonText}>View Plan</Text>
+              </View>
+            </View>
 
-          {/* Progress bar */}
-          <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: `${fuelPct}%` }]} />
-          </View>
+            {/* Right side — circular progress */}
+            <View style={styles.heroRight}>
+              <FuelProgressRing percentage={fuelPct} size={90} strokeWidth={9} />
+            </View>
 
-          {/* Macro chips */}
-          <View style={styles.macroRow}>
-            <MacroChip label="P" current={consumedMacros.protein} target={todayData?.proteinGrams ?? 0} color="#60A5FA" />
-            <MacroChip label="C" current={consumedMacros.carbs} target={todayData?.carbsGrams ?? 0} color="#FBBF24" />
-            <MacroChip label="F" current={consumedMacros.fats} target={todayData?.fatsGrams ?? 0} color="#F87171" />
-          </View>
-
-          {/* Footer — meal count + arrow */}
-          <View style={styles.mainCardFooter}>
-            <Text style={styles.mealCount}>
-              {stats.completedCount}/{stats.totalMeals} meals ✓
-            </Text>
-            <Text style={[styles.mainCardCta, { color: meta.color }]}>Open plan →</Text>
-          </View>
-        </Pressable>
+            {/* 3-dot menu — top right */}
+            <TouchableOpacity
+              style={styles.heroMenu}
+              activeOpacity={0.7}
+              onPress={() => undefined}
+            >
+              <MoreHorizontal size={18} color="rgba(255,255,255,0.7)" />
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </Animated.View>
 
         {/* ROW 2 — Hydration + Sleep side by side */}
         <View style={styles.dualRow}>
@@ -739,87 +799,61 @@ const styles = StyleSheet.create({
     color: Colors.textInverse,
   },
 
-  // Main card
-  mainCard: {
-    backgroundColor: Colors.bg2,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderLeftWidth: 3,
-    marginBottom: 10,
-  },
-  mainCardHeader: {
+  // Hero card
+  heroCard: {
+    backgroundColor: "#5F33E1",
+    borderRadius: 24,
+    padding: 24,
+    // Parent scroll already applies 16px horizontal padding — no extra margin
+    marginTop: 12,
+    marginBottom: 8,
     flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
-    alignItems: "baseline",
-    marginBottom: 10,
+    minHeight: 146,
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.03,
+    shadowRadius: 20,
+    elevation: 3,
   },
-  mainCardTitle: {
-    fontSize: 15,
-    fontWeight: "600" as const,
-    color: Colors.text,
-  },
-  mainCardCalories: {
-    fontSize: 20,
-    fontWeight: "800" as const,
-    color: Colors.text,
-  },
-  progressTrack: {
-    height: 6,
-    backgroundColor: Colors.bg4,
-    borderRadius: 3,
-    marginBottom: 12,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: Colors.primary,
-  },
-  macroRow: {
-    flexDirection: "row",
-    gap: 8,
-    marginBottom: 10,
-  },
-  macroChip: {
+  heroLeft: {
     flex: 1,
-    backgroundColor: Colors.bg3,
+    marginRight: 16,
+  },
+  heroHeading: {
+    fontSize: 19,
+    fontWeight: "700" as const,
+    color: "#FFFFFF",
+    lineHeight: 26,
+    marginBottom: 16,
+  },
+  heroButton: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    alignSelf: "flex-start",
+  },
+  heroButtonText: {
+    fontSize: 14,
+    fontWeight: "700" as const,
+    color: "#5F33E1",
+  },
+  heroRight: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  heroMenu: {
+    position: "absolute",
+    top: 14,
+    right: 14,
+    backgroundColor: "rgba(255,255,255,0.15)",
     borderRadius: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    flexDirection: "row",
+    width: 30,
+    height: 30,
     alignItems: "center",
-    gap: 6,
-  },
-  macroDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  macroLabel: {
-    fontSize: 12,
-    fontWeight: "700" as const,
-    color: Colors.text,
-  },
-  macroValue: {
-    fontSize: 11,
-    color: Colors.textSecondary,
-    flex: 1,
-  },
-  mainCardFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  mealCount: {
-    fontSize: 12,
-    fontWeight: "600" as const,
-    color: Colors.textSecondary,
-  },
-  mainCardCta: {
-    fontSize: 12,
-    fontWeight: "700" as const,
+    justifyContent: "center",
   },
 
   // Dual row
