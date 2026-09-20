@@ -12,6 +12,7 @@ import { AuthProvider } from "@/providers/AuthProvider";
 import { SavedPlansProvider } from "@/providers/SavedPlansProvider";
 import { BudgetProvider } from "@/providers/BudgetProvider";
 import { NotificationProvider } from "@/providers/NotificationProvider";
+import { NotificationFeedProvider } from "@/providers/NotificationFeedProvider";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 void SplashScreen.preventAutoHideAsync();
@@ -40,6 +41,7 @@ function RootLayoutNav() {
       <Stack.Screen name="saved-plan-detail" options={{ headerShown: false }} />
       <Stack.Screen name="consent-pending" options={{ headerShown: false, gestureEnabled: false }} />
       <Stack.Screen name="match-day" options={{ headerShown: false }} />
+      <Stack.Screen name="notifications" options={{ headerShown: false }} />
       </Stack>
     </>
   );
@@ -60,7 +62,9 @@ export default function RootLayout() {
           <SavedPlansProvider>
             <BudgetProvider>
               <NotificationProvider>
-                <RootLayoutNav />
+                <NotificationFeedProvider>
+                  <RootLayoutNav />
+                </NotificationFeedProvider>
               </NotificationProvider>
             </BudgetProvider>
           </SavedPlansProvider>

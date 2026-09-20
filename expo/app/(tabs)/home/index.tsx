@@ -13,13 +13,14 @@ import { kvGet, kvSet } from "@/lib/database";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { Bot, ChevronDown, ChevronUp, Crown, ShoppingCart, Trophy, User } from "lucide-react-native";
+import { Bell, Bot, ChevronDown, ChevronUp, Crown, ShoppingCart, Trophy, User } from "lucide-react-native";
 
 import Colors from "@/constants/colors";
 import { useMealPlan } from "@/providers/MealPlanProvider";
 import { useToday } from "@/providers/TodayProvider";
 import { useMealTracking } from "@/providers/MealTrackingProvider";
 import { useNotifications } from "@/providers/NotificationProvider";
+import { useNotificationFeed } from "@/providers/NotificationFeedProvider";
 import {
   DAY_ABBREVIATIONS,
   DAY_TYPE_META,
@@ -278,6 +279,8 @@ export default function HomeScreen() {
     [weekDates],
   );
 
+  const { unreadCount: feedUnread } = useNotificationFeed();
+
   return (
     <View style={styles.container}>
       <ScrollView
@@ -309,6 +312,18 @@ export default function HomeScreen() {
                 <Text style={styles.proBadgeText}>PRO</Text>
               </Pressable>
             )}
+            <Pressable
+              onPress={() => {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push("/notifications");
+              }}
+              style={({ pressed }) => [styles.bellBtn, pressed && { opacity: 0.7 }]}
+            >
+              <View>
+                <Bell size={24} color={Colors.textSecondary} />
+                {feedUnread > 0 ? <View style={styles.bellDot} /> : null}
+              </View>
+            </Pressable>
             <Pressable
               onPress={() => {
                 void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -633,6 +648,21 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+  },
+  bellBtn: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  bellDot: {
+    position: "absolute",
+    top: -2,
+    right: -2,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.primary,
   },
   proBadge: {
     flexDirection: "row",

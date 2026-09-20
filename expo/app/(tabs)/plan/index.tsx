@@ -33,6 +33,7 @@ import {
 import Colors from "@/constants/colors";
 import { useMealPlan } from "@/providers/MealPlanProvider";
 import { useToday } from "@/providers/TodayProvider";
+import { useNotificationFeed } from "@/providers/NotificationFeedProvider";
 import { useMealTracking } from "@/providers/MealTrackingProvider";
 import { useSavedPlans } from "@/providers/SavedPlansProvider";
 import { COOK_TIME_OPTIONS } from "@/constants/onboarding";
@@ -269,6 +270,7 @@ export default function PlanScreen() {
   const router = useRouter();
   const { profile, todayPlan } = useMealPlan();
   const { todayData } = useToday();
+  const { add: addNotification } = useNotificationFeed();
   const { tracking, customTimes, history, stats, checkoffMeal, skipMeal, undoMeal } =
     useMealTracking();
   const { favorites } = useSavedPlans();
@@ -406,6 +408,16 @@ export default function PlanScreen() {
         setFreeRemaining(Math.max(0, FREE_TIER_LIMIT - newCount));
         if (newCount === FREE_TIER_LIMIT - 1) triggerNudge();
       }
+      // Auto-notification: plan is ready (once per day)
+      void addNotification(
+        {
+          type: "meal_plan_ready",
+          tab: "reminders",
+          title: "Your meal plan is ready",
+          message: `Today's ${dayType} meals have been generated.`,
+        },
+        { dedupePerDay: true },
+      );
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
     },
     [
@@ -413,6 +425,8 @@ export default function PlanScreen() {
       mealsPerDay,
       router,
       triggerNudge,
+      addNotification,
+      dayType,
       localMaxCookTime,
       localNoCookOnly,
       localMaxFiveIngredients,
