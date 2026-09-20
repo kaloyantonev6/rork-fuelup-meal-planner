@@ -12,8 +12,8 @@
       "framework": "react-native"
     },
     {
-      "name": "FuelUp",
-      "path": "ios-fuelup",
+      "name": "Fuelify",
+      "path": "ios-fuelify",
       "framework": "swift"
     },
     {
