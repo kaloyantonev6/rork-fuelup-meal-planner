@@ -203,7 +203,13 @@ class QueryBuilder {
       } else {
         serialized = encodeValue(value);
       }
-      params.append(`${column}.${op}`, op === "in" ? `(${serialized})` : serialized);
+      // PostgREST filter syntax: `column=op.value` (e.g. `user_id=eq.<uuid>`).
+      // The operator and value BOTH live in the param value — a bare operand
+      // without the operator prefix fails with "failed to parse filter".
+      params.append(
+        column,
+        `${op}.${op === "in" ? `(${serialized})` : serialized}`
+      );
     }
     for (const { column, ascending, nullsFirst } of this.orders) {
       params.append("order", `${column}.${ascending ? "asc" : "desc"}.${nullsFirst ? "nullsfirst" : "nullslast"}`);
