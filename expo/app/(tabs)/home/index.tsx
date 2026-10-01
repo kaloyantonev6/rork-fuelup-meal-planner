@@ -10,13 +10,14 @@ import {
   Text,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 import { kvGet, kvSet } from "@/lib/database";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { Bell, Bot, ChevronDown, ChevronUp, Crown, MoreHorizontal, ShoppingCart, Trophy, User } from "lucide-react-native";
+import { Bell, Bot, ChevronDown, ChevronUp, Crown, ShoppingCart, Trophy, User, Zap } from "lucide-react-native";
 
 import Colors from "@/constants/colors";
 import { useMealPlan } from "@/providers/MealPlanProvider";
@@ -51,27 +52,26 @@ import { loadTodayHydration } from "@/lib/hydrationStore";
 import { getSleepTarget, loadSleepLog, weeklyAverage } from "@/lib/sleepEngine";
 import Toast from "@/components/ui/Toast";
 
-interface QuickActionButtonProps {
+interface ActionBoxProps {
   icon: React.ReactNode;
-  label: string;
+  title: string;
+  subtitle: string;
+  buttonLabel: string;
   onPress: () => void;
   highlight?: boolean;
 }
 
-/** Square quick-action button with a spring press scale. */
-function QuickActionButton({ icon, label, onPress, highlight = false }: QuickActionButtonProps) {
+/** Bottom action card with a pill push button — spring press scale for tactile feedback. */
+function ActionBox({ icon, title, subtitle, buttonLabel, onPress, highlight = false }: ActionBoxProps) {
   const scale = useRef(new Animated.Value(1)).current;
 
   return (
     <Pressable
-      style={[
-        styles.quickAction,
-        highlight && styles.quickActionHighlight,
-      ]}
+      style={[styles.actionBox, highlight && styles.actionBoxHighlight]}
       onPress={onPress}
       onPressIn={() => {
         Animated.spring(scale, {
-          toValue: 0.95,
+          toValue: 0.96,
           useNativeDriver: true,
           speed: 50,
           bounciness: 0,
@@ -86,9 +86,22 @@ function QuickActionButton({ icon, label, onPress, highlight = false }: QuickAct
         }).start();
       }}
     >
-      <Animated.View style={{ transform: [{ scale }], alignItems: "center", gap: 4 }}>
-        {icon}
-        <Text style={styles.quickActionLabel}>{label}</Text>
+      <Animated.View
+        style={{
+          transform: [{ scale }],
+          flex: 1,
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+        }}
+      >
+        <View style={styles.actionBoxTop}>
+          {icon}
+          <Text style={styles.actionBoxTitle}>{title}</Text>
+          <Text style={styles.actionBoxSubtitle}>{subtitle}</Text>
+        </View>
+        <View style={styles.actionBoxButton}>
+          <Text style={styles.actionBoxButtonText}>{buttonLabel}</Text>
+        </View>
       </Animated.View>
     </Pressable>
   );
@@ -100,10 +113,11 @@ interface FuelProgressRingProps {
   percentage: number;
   size: number;
   strokeWidth: number;
+  children?: React.ReactNode;
 }
 
 /** Circular SVG progress ring — fill animates from 0 to the target percentage on mount. */
-function FuelProgressRing({ percentage, size, strokeWidth }: FuelProgressRingProps) {
+function FuelProgressRing({ percentage, size, strokeWidth, children }: FuelProgressRingProps) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const clampedPct = Math.min(100, Math.max(0, percentage));
@@ -149,11 +163,9 @@ function FuelProgressRing({ percentage, size, strokeWidth }: FuelProgressRingPro
           strokeLinecap="round"
         />
       </Svg>
-      {/* Center percentage text */}
+      {/* Center content (label, value, goal line) */}
       <View style={{ position: "absolute", alignItems: "center", justifyContent: "center" }}>
-        <Text style={{ fontSize: 22, fontWeight: "700" as const, color: Colors.text }}>
-          {Math.round(clampedPct)}%
-        </Text>
+        {children}
       </View>
     </View>
   );
@@ -247,6 +259,10 @@ export default function HomeScreen() {
   const fuelPct =
     calorieTarget > 0 ? Math.min(Math.round((stats.caloriesConsumed / calorieTarget) * 100), 100) : 0;
 
+  // Dial sized to the screen — thick ring like a hero gauge
+  const { width: screenWidth } = useWindowDimensions();
+  const ringSize = Math.min(screenWidth - 72, 300);
+
   // Hero card entry animation — opacity 0→1, translateY 15→0
   const heroEntry = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -257,14 +273,6 @@ export default function HomeScreen() {
       useNativeDriver: true,
     }).start();
   }, [heroEntry]);
-
-  // Hero heading adapts to meal completion
-  const heroHeading =
-    stats.completedCount === 0
-      ? `Your ${meta.label}\nfuel plan`
-      : stats.completedCount >= stats.totalMeals
-        ? "All meals done!\nGreat job today"
-        : `${stats.completedCount}/${stats.totalMeals} meals\nlogged today`;
 
   // ── Day-change toast ──
   const [dayToast, setDayToast] = useState<{ message: string; color: string; icon: string } | null>(null);
@@ -390,6 +398,52 @@ export default function HomeScreen() {
           </View>
         </View>
 
+        {/* HERO DIAL — full-width fuel ring, taps through to the Plan tab */}
+        <Animated.View
+          style={{
+            opacity: heroEntry,
+            transform: [
+              {
+                translateY: heroEntry.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [15, 0],
+                }),
+              },
+            ],
+          }}
+        >
+          <TouchableOpacity
+            activeOpacity={0.92}
+            onPress={() => {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push("/(tabs)/plan" as never);
+            }}
+            style={styles.heroTouch}
+          >
+            <FuelProgressRing percentage={fuelPct} size={ringSize} strokeWidth={20}>
+              <Text style={styles.heroLabel}>⚽ Fuel today</Text>
+              <Text style={styles.heroValue}>{stats.caloriesConsumed}</Text>
+              <Text style={styles.heroUnit}>kcal consumed</Text>
+              <Text style={styles.heroSub}>
+                {stats.completedCount > 0 && stats.completedCount >= stats.totalMeals
+                  ? "All meals done — great job!"
+                  : fuelPct >= 100
+                    ? "Goal achieved"
+                    : `Goal: ${calorieTarget} kcal`}
+              </Text>
+              <Text style={styles.heroMeals}>
+                {stats.completedCount}/{stats.totalMeals} meals logged
+              </Text>
+            </FuelProgressRing>
+            {/* Floating boost chip — anchored at the bottom of the dial */}
+            <View style={styles.heroBoostRow} pointerEvents="none">
+              <View style={styles.heroBoost}>
+                <Zap size={22} color={Colors.primary} fill={Colors.primary} />
+              </View>
+            </View>
+          </TouchableOpacity>
+        </Animated.View>
+
         {/* DAY STRIP — real dates for the week, colour-coded by day type */}
         <Pressable
           onPress={() => {
@@ -423,52 +477,6 @@ export default function HomeScreen() {
             })}
           </View>
         </Pressable>
-
-        {/* MAIN CARD — purple fuel hero → Plan tab */}
-        <Animated.View
-          style={{
-            opacity: heroEntry,
-            transform: [
-              {
-                translateY: heroEntry.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [15, 0],
-                }),
-              },
-            ],
-          }}
-        >
-          <TouchableOpacity
-            activeOpacity={0.92}
-            onPress={() => {
-              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.push("/(tabs)/plan" as never);
-            }}
-            style={styles.heroCard}
-          >
-            {/* Left side */}
-            <View style={styles.heroLeft}>
-              <Text style={styles.heroHeading}>{heroHeading}</Text>
-              <View style={styles.heroButton}>
-                <Text style={styles.heroButtonText}>View Plan</Text>
-              </View>
-            </View>
-
-            {/* Right side — circular progress */}
-            <View style={styles.heroRight}>
-              <FuelProgressRing percentage={fuelPct} size={90} strokeWidth={9} />
-            </View>
-
-            {/* 3-dot menu — top right */}
-            <TouchableOpacity
-              style={styles.heroMenu}
-              activeOpacity={0.7}
-              onPress={() => undefined}
-            >
-              <MoreHorizontal size={18} color={Colors.textSecondary} />
-            </TouchableOpacity>
-          </TouchableOpacity>
-        </Animated.View>
 
         {/* ROW 2 — Hydration + Sleep side by side */}
         <View style={styles.dualRow}>
@@ -576,34 +584,44 @@ export default function HomeScreen() {
           </View>
         ) : null}
 
-        {/* ROW 4 — Quick actions */}
-        <View style={styles.quickActions}>
-          <QuickActionButton
-            icon={<ShoppingCart size={22} color={Colors.text} />}
-            label="Shop List"
+        {/* ACTION BOXES — Shop List, Match Day, AI Coach with pill push buttons */}
+        <View style={styles.actionRow}>
+          <ActionBox
+            icon={<ShoppingCart size={22} color={Colors.primary} />}
+            title="Shop List"
+            subtitle="This week's groceries, sorted"
+            buttonLabel="Open"
             onPress={() => {
               void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               router.push("/(tabs)/shop" as never);
             }}
           />
-          <QuickActionButton
+          <ActionBox
             icon={<Trophy size={22} color={dayType === "match" ? Colors.match : Colors.text} />}
-            label="Match Day"
+            title="Match Day"
+            subtitle={
+              dayType === "match" ? "It's match day — fuel up right" : `Your ${meta.label.toLowerCase()} schedule`
+            }
+            buttonLabel="View"
             highlight={dayType === "match"}
             onPress={() => {
               void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               router.push("/(tabs)/match" as never);
             }}
           />
-          <QuickActionButton
+          <ActionBox
             icon={<Bot size={22} color={Colors.primary} />}
-            label="AI Coach"
+            title="AI Coach"
+            subtitle="Nutrition answers, anytime"
+            buttonLabel="Ask"
             onPress={() => {
               void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               router.push("/coach" as never);
             }}
           />
         </View>
+
+        {/* ROW 2 — Hydration + Sleep side by side */}
       </ScrollView>
 
       {/* RED-S health check — periodic popup modal */}
@@ -799,56 +817,56 @@ const styles = StyleSheet.create({
     color: Colors.textInverse,
   },
 
-  // Hero card
-  heroCard: {
-    backgroundColor: Colors.bg2,
-    borderRadius: 24,
-    padding: 24,
-    // Parent scroll already applies 16px horizontal padding — no extra margin
-    marginTop: 12,
-    marginBottom: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    minHeight: 146,
-    borderWidth: 1,
-    borderColor: Colors.border,
+  // Hero dial
+  heroTouch: {
+    alignSelf: "center",
+    marginTop: 4,
+    marginBottom: 12,
   },
-  heroLeft: {
-    flex: 1,
-    marginRight: 16,
+  heroLabel: {
+    fontSize: 13,
+    fontWeight: "600" as const,
+    color: Colors.textSecondary,
+    marginBottom: 4,
   },
-  heroHeading: {
-    fontSize: 19,
-    fontWeight: "700" as const,
+  heroValue: {
+    fontSize: 52,
+    fontWeight: "800" as const,
     color: Colors.text,
-    lineHeight: 26,
-    marginBottom: 16,
+    letterSpacing: -1.5,
   },
-  heroButton: {
-    backgroundColor: Colors.primary,
-    borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    alignSelf: "flex-start",
+  heroUnit: {
+    fontSize: 14,
+    fontWeight: "600" as const,
+    color: Colors.textSecondary,
+    marginTop: -2,
   },
-  heroButtonText: {
+  heroSub: {
     fontSize: 14,
     fontWeight: "700" as const,
-    color: Colors.bg0,
+    color: Colors.text,
+    marginTop: 10,
   },
-  heroRight: {
-    alignItems: "center",
-    justifyContent: "center",
+  heroMeals: {
+    fontSize: 12,
+    fontWeight: "600" as const,
+    color: Colors.textSecondary,
+    marginTop: 4,
   },
-  heroMenu: {
+  heroBoostRow: {
     position: "absolute",
-    top: 14,
-    right: 14,
-    backgroundColor: "rgba(241,245,249,0.08)",
-    borderRadius: 8,
-    width: 30,
-    height: 30,
+    left: 0,
+    right: 0,
+    bottom: 2,
+    alignItems: "center",
+  },
+  heroBoost: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: Colors.bg3,
+    borderWidth: 1,
+    borderColor: Colors.border,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -960,31 +978,51 @@ const styles = StyleSheet.create({
     color: Colors.primary,
   },
 
-  // Quick actions
-  quickActions: {
+  // Action boxes
+  actionRow: {
     flexDirection: "row",
     gap: 10,
     marginBottom: 12,
   },
-  quickAction: {
+  actionBox: {
     flex: 1,
     backgroundColor: Colors.bg2,
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: "center",
-    justifyContent: "center",
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: Colors.border,
+    minHeight: 150,
+    padding: 14,
   },
-  quickActionHighlight: {
+  actionBoxHighlight: {
     backgroundColor: Colors.primaryLight,
     borderColor: Colors.accentLight,
   },
-  quickActionLabel: {
+  actionBoxTop: {
+    gap: 6,
+  },
+  actionBoxTitle: {
+    fontSize: 15,
+    fontWeight: "800" as const,
+    color: Colors.text,
+  },
+  actionBoxSubtitle: {
     fontSize: 11,
-    fontWeight: "600" as const,
+    fontWeight: "500" as const,
     color: Colors.textSecondary,
-    marginTop: 2,
+    lineHeight: 15,
+  },
+  actionBoxButton: {
+    backgroundColor: Colors.primary,
+    borderRadius: 16,
+    paddingVertical: 8,
+    alignItems: "center",
+    alignSelf: "stretch",
+    marginTop: 12,
+  },
+  actionBoxButtonText: {
+    fontSize: 12,
+    fontWeight: "700" as const,
+    color: Colors.bg0,
   },
 
   // Modals
