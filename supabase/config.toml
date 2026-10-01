@@ -1,0 +1,32 @@
+# Mirrors the live Supabase project (ref xneeairdnupxhqazgygw).
+# Only per-function JWT settings are declared; everything else uses CLI defaults.
+project_id = "xneeairdnupxhqazgygw"
+
+[functions.generate-meal-plan]
+verify_jwt = true
+
+[functions.regenerate-meal]
+verify_jwt = true
+
+[functions.ai-coach]
+verify_jwt = true
+
+[functions.price-comparison]
+verify_jwt = true
+
+[functions.export-pdf]
+verify_jwt = true
+
+[functions.create-checkout-session]
+verify_jwt = true
+
+[functions.create-billing-portal]
+verify_jwt = true
+
+# Stripe calls this directly; auth is the Stripe signature check in the function.
+[functions.stripe-webhook]
+verify_jwt = false
+
+# Called by pg_cron; auth is the x-cron-secret header check in the function.
+[functions.cron-weekly-regeneration]
+verify_jwt = false

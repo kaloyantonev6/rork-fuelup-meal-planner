@@ -1,10 +1,17 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useMutation } from "@tanstack/react-query";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import createContextHook from "@nkzw/create-context-hook";
 import { MealPlan, ShoppingItem, UserProfile } from "@/types";
 import { sampleMealPlan, weeklyMealPlans, sampleShoppingList } from "@/mocks/recipes";
-import { getProfile, kvGet, kvSet, upsertProfile } from "@/lib/database";
+import {
+  getProfile,
+  kvGet,
+  kvSet,
+  scheduleToRow,
+  upsertProfile,
+  upsertWeeklySchedule,
+} from "@/lib/database";
 import { resetGenerationCount } from "@/lib/generationLimit";
 import { useAuth } from "@/providers/AuthProvider";
 
@@ -57,15 +64,20 @@ const DEFAULT_PROFILE: UserProfile = {
 /** Maps the local UserProfile to the `profiles` columns that exist server-side.
  * Keep in sync with the add_football_profile_fields migration. */
 function profileToSupabaseRow(p: UserProfile): Record<string, unknown> {
+  // profiles.age has CHECK (13..120). An out-of-range value would reject the
+  // WHOLE row, so send null instead and keep the real value in `preferences`.
+  const age = typeof p.age === "number" && p.age >= 13 && p.age <= 120 ? p.age : null;
   return {
     display_name: p.name,
     full_name: p.name,
-    age: p.age,
+    age,
     gender: p.gender,
     weight_kg: p.weight,
     height_cm: p.height,
     diet_type: p.dietType,
     allergies: p.allergies,
+    cooking_skill: p.cookingSkill,
+    kitchen_equipment: p.kitchenEquipment ?? [],
     position: p.position,
     player_level: p.level,
     training_frequency: p.trainingFrequency,
@@ -91,10 +103,25 @@ interface SyncUser {
 /** Writes the profile row for `user`: updates the existing row, and when the
  * user has no row yet (fresh signup) inserts one instead. `email` is NOT NULL
  * in the profiles table, so it is included on insert. */
-async function upsertProfileRow(user: SyncUser, p: UserProfile): Promise<void> {
-  const row = profileToSupabaseRow(p);
+async function upsertProfileRow(
+  user: SyncUser,
+  p: UserProfile,
+  extra: Record<string, unknown> = {}
+): Promise<void> {
+  const row = { ...profileToSupabaseRow(p), ...extra };
   const { error } = await upsertProfile(user.id, row, user.email ?? "");
   if (error) throw new Error(error);
+  // Keep the weekly_schedules table identical to profiles.weekly_schedule.
+  if (Array.isArray(p.weeklySchedule) && p.weeklySchedule.length === 7) {
+    const { error: schedErr } = await upsertWeeklySchedule(user.id, scheduleToRow(p.weeklySchedule));
+    if (schedErr) console.log("[MealPlanProvider] weekly_schedules sync failed:", schedErr);
+  }
+}
+
+/** True when the server row was written by the app (has the full snapshot),
+ * as opposed to the empty row the signup trigger creates. */
+function rowHasAppData(row: Record<string, any>): boolean {
+  return !!row.preferences && typeof row.preferences === "object" && Object.keys(row.preferences).length > 0;
 }
 
 /** Merges a fetched `profiles` row into the local UserProfile. Only touches
@@ -132,14 +159,6 @@ function applySupabaseRow(local: UserProfile, row: Record<string, any>): UserPro
 
 const PROFILE_KEY = "nutriplan_profile";
 const ONBOARDED_KEY = "nutriplan_onboarded";
-const AUTH_KEY = "nutriplan_auth";
-const SESSION_KEY = "nutriplan_session";
-
-interface AuthData {
-  email: string;
-  password: string;
-  name: string;
-}
 
 export const [MealPlanProvider, useMealPlan] = createContextHook(() => {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
@@ -149,36 +168,29 @@ export const [MealPlanProvider, useMealPlan] = createContextHook(() => {
   const [weekPlans] = useState<MealPlan[]>(weeklyMealPlans);
   const [shoppingList, setShoppingList] = useState<ShoppingItem[]>(sampleShoppingList);
   const [hasOnboarded, setHasOnboarded] = useState<boolean>(false);
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-  const [hasAccount, setHasAccount] = useState<boolean>(false);
-  const [savedEmail, setSavedEmail] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  // Always-current profile for async callbacks (avoids stale closures).
+  const profileRef = useRef<UserProfile>(DEFAULT_PROFILE);
+  useEffect(() => {
+    profileRef.current = profile;
+  }, [profile]);
 
   useEffect(() => {
     if (authLoading) return;
     const loadData = async () => {
       try {
-        const [storedProfile, onboarded, authData, session] = await Promise.all([
+        // Purge the retired on-device login (it stored a plaintext password);
+        // auth is handled by Supabase in AuthProvider.
+        void AsyncStorage.multiRemove(["nutriplan_auth", "nutriplan_session"]).catch(() => undefined);
+        const [storedProfile, onboarded] = await Promise.all([
           AsyncStorage.getItem(PROFILE_KEY),
           kvGet<boolean>(ONBOARDED_KEY),
-          AsyncStorage.getItem(AUTH_KEY),
-          AsyncStorage.getItem(SESSION_KEY),
         ]);
         if (storedProfile) {
           setProfile(JSON.parse(storedProfile));
         }
         if (onboarded === true) {
           setHasOnboarded(true);
-        }
-        if (authData) {
-          const parsed: AuthData = JSON.parse(authData);
-          setHasAccount(true);
-          setSavedEmail(parsed.email);
-          console.log("Found existing account for:", parsed.email);
-        }
-        if (session === "true") {
-          setIsLoggedIn(true);
-          console.log("User session active, auto-logging in");
         }
       } catch (e) {
         console.log("Error loading profile:", e);
@@ -196,7 +208,16 @@ export const [MealPlanProvider, useMealPlan] = createContextHook(() => {
     (async () => {
       try {
         const { data: row } = await getProfile(user.id);
-        if (row) {
+        const localRaw = await AsyncStorage.getItem(PROFILE_KEY);
+        const local: UserProfile | null = localRaw ? JSON.parse(localRaw) : null;
+        if (row && !rowHasAppData(row) && local) {
+          // Server only has the empty signup-trigger row (DB defaults like
+          // diet_type='omnivore'); this device holds the real profile. Device
+          // wins and is pushed up so both sides become identical.
+          setProfile(local);
+          const onboarded = (await kvGet<boolean>(ONBOARDED_KEY)) === true;
+          await upsertProfileRow(user, local, onboarded ? { onboarding_complete: true } : {});
+        } else if (row) {
           setProfile((prev) => {
             const merged = applySupabaseRow(prev, row);
             void AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(merged));
@@ -237,63 +258,26 @@ export const [MealPlanProvider, useMealPlan] = createContextHook(() => {
   });
 
   const updateProfile = useCallback((updates: Partial<UserProfile>) => {
-    setProfile((prev) => {
-      const updated = { ...prev, ...updates };
-      saveProfileMutation.mutate(updated);
-      return updated;
-    });
+    const updated = { ...profileRef.current, ...updates };
+    profileRef.current = updated;
+    setProfile(updated);
+    saveProfileMutation.mutate(updated);
   }, [saveProfileMutation]);
 
   const completeOnboarding = useCallback(async () => {
     await kvSet(ONBOARDED_KEY, true);
     if (isAuthenticated && user) {
       try {
-        await upsertProfileRow(user, profile);
+        // Read the ref, not the `profile` closure: onboarding calls
+        // updateProfile() right before this, and the closure would still
+        // hold the pre-onboarding profile and overwrite the fresh one.
+        await upsertProfileRow(user, profileRef.current, { onboarding_complete: true });
       } catch (e) {
         console.log("[MealPlanProvider] Supabase profile sync failed on onboarding complete:", e);
       }
     }
     setHasOnboarded(true);
-  }, [isAuthenticated, user, profile]);
-
-  const signUp = useCallback(async (email: string, password: string, name: string) => {
-    const authData: AuthData = { email: email.toLowerCase().trim(), password, name };
-    await AsyncStorage.setItem(AUTH_KEY, JSON.stringify(authData));
-    await AsyncStorage.setItem(SESSION_KEY, "true");
-    setHasAccount(true);
-    setIsLoggedIn(true);
-    setSavedEmail(authData.email);
-    console.log("User signed up:", authData.email);
-  }, []);
-
-  const signIn = useCallback(async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
-    try {
-      const authData = await AsyncStorage.getItem(AUTH_KEY);
-      if (!authData) {
-        return { success: false, error: "No account found. Please sign up first." };
-      }
-      const parsed: AuthData = JSON.parse(authData);
-      if (parsed.email !== email.toLowerCase().trim()) {
-        return { success: false, error: "Email not found. Check your email or sign up." };
-      }
-      if (parsed.password !== password) {
-        return { success: false, error: "Incorrect password. Please try again." };
-      }
-      await AsyncStorage.setItem(SESSION_KEY, "true");
-      setIsLoggedIn(true);
-      console.log("User signed in:", email);
-      return { success: true };
-    } catch (e) {
-      console.log("Sign in error:", e);
-      return { success: false, error: "Something went wrong. Please try again." };
-    }
-  }, []);
-
-  const signOut = useCallback(async () => {
-    await AsyncStorage.removeItem(SESSION_KEY);
-    setIsLoggedIn(false);
-    console.log("User signed out");
-  }, []);
+  }, [isAuthenticated, user]);
 
   const toggleShoppingItem = useCallback((id: string) => {
     setShoppingList((prev) =>
@@ -337,11 +321,5 @@ export const [MealPlanProvider, useMealPlan] = createContextHook(() => {
     totalSavings,
     totalCartCost,
     checkedCount,
-    isLoggedIn,
-    hasAccount,
-    savedEmail,
-    signUp,
-    signIn,
-    signOut,
-  }), [profile, updateProfile, todayPlan, weekPlans, shoppingList, toggleShoppingItem, generateNewPlan, hasOnboarded, completeOnboarding, isLoading, totalSavings, totalCartCost, checkedCount, isLoggedIn, hasAccount, savedEmail, signUp, signIn, signOut]);
+  }), [profile, updateProfile, todayPlan, weekPlans, shoppingList, toggleShoppingItem, generateNewPlan, hasOnboarded, completeOnboarding, isLoading, totalSavings, totalCartCost, checkedCount]);
 });

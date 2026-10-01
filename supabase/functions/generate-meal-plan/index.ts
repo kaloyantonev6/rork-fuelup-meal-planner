@@ -176,6 +176,8 @@ Deno.serve(async (req) => {
     const items = mealPlan.days.flatMap((day) =>
       day.meals.map((meal) => ({
         meal_plan_id: plan.id,
+        // lib/database.ts checkOffMeal() filters items by user_id
+        user_id: user.id,
         day_number: day.day,
         meal_slot: meal.slot,
         meal_name: meal.name,

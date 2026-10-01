@@ -1,12 +1,13 @@
 /**
- * In-app notification feed storage (AsyncStorage, `@fuelify_notifications`).
+ * In-app notification feed storage (`@fuelify_notifications`). Synced to
+ * Supabase via the per-user app_data store; AsyncStorage is the offline cache.
  *
  * Distinct from the push-notification scheduling in NotificationProvider —
  * this is the persisted feed shown on the Notifications screen and badged on
  * the home bell.
  */
 
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { kvGet, kvSet } from "@/lib/database";
 
 const NOTIFICATIONS_KEY = "@fuelify_notifications";
 const MAX_NOTIFICATIONS = 100;
@@ -51,9 +52,7 @@ function toLocalDateKey(d: Date): string {
 
 async function readAll(): Promise<AppNotification[]> {
   try {
-    const raw = await AsyncStorage.getItem(NOTIFICATIONS_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as AppNotification[];
+    const parsed = await kvGet<AppNotification[]>(NOTIFICATIONS_KEY);
     return Array.isArray(parsed) ? parsed : [];
   } catch (e) {
     console.log("[NotificationFeed] read error:", e);
@@ -63,7 +62,7 @@ async function readAll(): Promise<AppNotification[]> {
 
 async function writeAll(list: AppNotification[]): Promise<void> {
   try {
-    await AsyncStorage.setItem(NOTIFICATIONS_KEY, JSON.stringify(list));
+    await kvSet(NOTIFICATIONS_KEY, list);
   } catch (e) {
     console.log("[NotificationFeed] write error:", e);
   }

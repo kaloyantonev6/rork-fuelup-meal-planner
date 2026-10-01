@@ -1,0 +1,158 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+function escapeHtml(str: string): string {
+  return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
+function buildMealPlanHtml(plan: any, items: any[]) {
+  const days = new Map<number, any[]>()
+  for (const item of items) {
+    if (!days.has(item.day_number)) days.set(item.day_number, [])
+    days.get(item.day_number)!.push(item)
+  }
+
+  const slotOrder = ['breakfast', 'lunch', 'dinner']
+  let daysHtml = ''
+  const sortedDays = Array.from(days.entries()).sort((a, b) => a[0] - b[0])
+
+  for (const [dayNum, meals] of sortedDays) {
+    const sortedMeals = meals.sort((a: any, b: any) => slotOrder.indexOf(a.meal_slot) - slotOrder.indexOf(b.meal_slot))
+    let mealsHtml = ''
+    for (const meal of sortedMeals) {
+      const ingredients = (meal.ingredients || []).map((i: any) => `<li>${escapeHtml(i.name)} — ${i.quantity}${i.unit}</li>`).join('')
+      mealsHtml += `
+        <div style="background:#f8faf8;border-radius:10px;padding:18px;margin-bottom:14px;border-left:4px solid #2dd4a8;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <span style="text-transform:uppercase;font-size:11px;color:#888;font-weight:600;letter-spacing:1px;">${escapeHtml(meal.meal_slot)}</span>
+            <span style="font-size:12px;color:#2dd4a8;font-weight:600;">${meal.calories} kcal</span>
+          </div>
+          <h3 style="margin:0 0 8px 0;font-size:17px;color:#1a1a2e;">${escapeHtml(meal.meal_name)}</h3>
+          <div style="display:flex;gap:16px;font-size:12px;color:#666;margin-bottom:10px;">
+            <span>🥩 ${meal.protein_g}g protein</span>
+            <span>🌾 ${meal.carbs_g}g carbs</span>
+            <span>🧈 ${meal.fats_g}g fat</span>
+          </div>
+          <div style="font-size:13px;color:#444;"><strong>Ingredients:</strong><ul style="margin:4px 0;padding-left:18px;">${ingredients}</ul></div>
+          <div style="font-size:13px;color:#444;margin-top:8px;"><strong>Instructions:</strong> ${escapeHtml(meal.instructions || '')}</div>
+        </div>`
+    }
+
+    const dayLabel = plan.duration_days === 7 ? ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'][dayNum-1] || 'Day '+dayNum : 'Today'
+    daysHtml += `
+      <div style="margin-bottom:28px;">
+        <div style="background:#2dd4a8;color:white;padding:10px 18px;border-radius:8px;font-size:15px;font-weight:700;margin-bottom:14px;">Day ${dayNum} — ${dayLabel}</div>
+        ${mealsHtml}
+      </div>`
+  }
+
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>*{box-sizing:border-box;font-family:Helvetica,Arial,sans-serif;}body{margin:0;padding:0;color:#1a1a2e;}</style></head><body>
+    <div style="max-width:700px;margin:0 auto;padding:30px 24px;">
+      <div style="background:linear-gradient(135deg,#2dd4a8,#1bae8a);padding:24px;border-radius:12px;color:white;margin-bottom:24px;text-align:center;">
+        <h1 style="margin:0;font-size:28px;">🍽️ FuelUp</h1>
+        <p style="margin:4px 0 0;font-size:14px;opacity:0.9;">Your Personalized Meal Plan</p>
+      </div>
+      <h2 style="font-size:20px;margin-bottom:4px;">${escapeHtml(plan.title)}</h2>
+      <p style="color:#888;font-size:13px;margin-bottom:16px;">Generated ${new Date(plan.created_at).toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'})}</p>
+      <div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:120px;background:#f0fdf4;border-radius:10px;padding:14px;text-align:center;"><div style="font-size:11px;color:#888;">CALORIES</div><div style="font-size:22px;font-weight:700;color:#f97316;">${plan.target_calories}</div><div style="font-size:11px;color:#aaa;">kcal/day</div></div>
+        <div style="flex:1;min-width:120px;background:#fef2f2;border-radius:10px;padding:14px;text-align:center;"><div style="font-size:11px;color:#888;">PROTEIN</div><div style="font-size:22px;font-weight:700;color:#ef4444;">${plan.target_protein_g}g</div></div>
+        <div style="flex:1;min-width:120px;background:#eff6ff;border-radius:10px;padding:14px;text-align:center;"><div style="font-size:11px;color:#888;">CARBS</div><div style="font-size:22px;font-weight:700;color:#3b82f6;">${plan.target_carbs_g}g</div></div>
+        <div style="flex:1;min-width:120px;background:#fefce8;border-radius:10px;padding:14px;text-align:center;"><div style="font-size:11px;color:#888;">FATS</div><div style="font-size:22px;font-weight:700;color:#eab308;">${plan.target_fats_g}g</div></div>
+      </div>
+      ${daysHtml}
+      <div style="text-align:center;padding:20px;color:#aaa;font-size:11px;border-top:1px solid #eee;margin-top:20px;">Generated by FuelUp • Your AI Meal Planner</div>
+    </div>
+  </body></html>`
+}
+
+function buildShoppingListHtml(plan: any, items: any[]) {
+  const grouped = new Map<string, any[]>()
+  for (const item of items) {
+    const cat = item.category || 'Other'
+    if (!grouped.has(cat)) grouped.set(cat, [])
+    grouped.get(cat)!.push(item)
+  }
+
+  const catIcons: Record<string, string> = { Proteins:'🥩', Vegetables:'🥬', Fruits:'🍎', Dairy:'🧀', Grains:'🌾', Pantry:'🫙', Other:'📦' }
+  let listHtml = ''
+  for (const [category, catItems] of grouped.entries()) {
+    const itemsHtml = catItems.map((i: any) => `
+      <div style="display:flex;align-items:center;padding:8px 0;border-bottom:1px solid #f0f0f0;">
+        <div style="width:20px;height:20px;border:2px solid #ccc;border-radius:4px;margin-right:12px;flex-shrink:0;"></div>
+        <div style="flex:1;font-size:14px;color:#333;">${escapeHtml(i.ingredient_name)}</div>
+        <div style="font-size:13px;color:#888;font-weight:500;">${i.quantity || ''}${i.unit ? ' ' + i.unit : ''}</div>
+        ${i.estimated_price_eur ? `<div style="font-size:13px;color:#2dd4a8;font-weight:600;margin-left:12px;">€${i.estimated_price_eur}</div>` : ''}
+      </div>
+    `).join('')
+
+    listHtml += `
+      <div style="margin-bottom:20px;">
+        <div style="font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:8px;">${catIcons[category] || '📦'} ${category}</div>
+        ${itemsHtml}
+      </div>`
+  }
+
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>*{box-sizing:border-box;font-family:Helvetica,Arial,sans-serif;}body{margin:0;padding:0;color:#1a1a2e;}</style></head><body>
+    <div style="max-width:700px;margin:0 auto;padding:30px 24px;">
+      <div style="background:linear-gradient(135deg,#2dd4a8,#1bae8a);padding:24px;border-radius:12px;color:white;margin-bottom:24px;text-align:center;">
+        <h1 style="margin:0;font-size:28px;">🛒 FuelUp</h1>
+        <p style="margin:4px 0 0;font-size:14px;opacity:0.9;">Grocery Shopping List</p>
+      </div>
+      <h2 style="font-size:18px;margin-bottom:4px;">Shopping List for: ${escapeHtml(plan.title)}</h2>
+      <p style="color:#888;font-size:13px;margin-bottom:20px;">${items.length} items • Generated ${new Date().toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'})}</p>
+      ${listHtml}
+      <div style="text-align:center;padding:20px;color:#aaa;font-size:11px;border-top:1px solid #eee;margin-top:20px;">Generated by FuelUp • Your AI Meal Planner</div>
+    </div>
+  </body></html>`
+}
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+
+  try {
+    const authHeader = req.headers.get('Authorization')!
+    const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: authHeader } } })
+    const svc = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+
+    // Check premium
+    const { data: sub } = await svc.from('subscriptions').select('plan,status').eq('user_id', user.id).single()
+    if (!sub || sub.plan !== 'premium' || !['active','trialing'].includes(sub.status)) {
+      return new Response(JSON.stringify({ error: 'Premium required for PDF export' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+
+    const { meal_plan_id, type } = await req.json()
+    if (!meal_plan_id || !type) return new Response(JSON.stringify({ error: 'meal_plan_id and type required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+
+    // Get meal plan
+    const { data: plan } = await svc.from('meal_plans').select('*').eq('id', meal_plan_id).eq('user_id', user.id).single()
+    if (!plan) return new Response(JSON.stringify({ error: 'Plan not found' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+
+    let html = ''
+    if (type === 'meal_plan') {
+      const { data: items } = await svc.from('meal_plan_items').select('*').eq('meal_plan_id', meal_plan_id).order('day_number').order('meal_slot')
+      html = buildMealPlanHtml(plan, items || [])
+    } else if (type === 'shopping_list') {
+      const { data: shopList } = await svc.from('shopping_lists').select('id').eq('meal_plan_id', meal_plan_id).single()
+      if (!shopList) return new Response(JSON.stringify({ error: 'Shopping list not found' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      const { data: items } = await svc.from('shopping_list_items').select('*').eq('shopping_list_id', shopList.id).order('category').order('sort_order')
+      html = buildShoppingListHtml(plan, items || [])
+    }
+
+    // Return HTML that the frontend can convert to PDF using browser print or a library
+    return new Response(JSON.stringify({
+      html,
+      filename: type === 'meal_plan' ? `FuelUp_MealPlan_${plan.title.replace(/\s+/g, '_')}.pdf` : `FuelUp_GroceryList_${plan.title.replace(/\s+/g, '_')}.pdf`,
+    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+  } catch (err: any) {
+    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+  }
+})
