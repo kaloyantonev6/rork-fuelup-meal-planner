@@ -8,12 +8,15 @@ import {
 } from "@/providers/MealTrackingProvider";
 import {
   getMealWindows,
+  isMealLocked,
   mealStatus,
   minutesNow,
+  minutesUntilUnlock,
   MEAL_CATEGORY_META,
 } from "@/constants/mealTimes";
 import type { MealCategory } from "@/constants/mealTimes";
 import MealCheckoffCard from "@/components/MealCheckoffCard";
+import MealLockedModal from "@/components/MealLockedModal";
 import MealTimeline from "@/components/MealTimeline";
 import MealProgressHeader from "@/components/MealProgressHeader";
 import WeeklyHistoryStrip from "@/components/WeeklyHistoryStrip";
@@ -38,6 +41,12 @@ export default function TodayMealsSection() {
   } = useMealTracking();
 
   const [nowMin, setNowMin] = useState<number>(() => minutesNow());
+  // Anti-cheat popup — which locked meal the user just tried to log
+  const [lockedAttempt, setLockedAttempt] = useState<{
+    title: string;
+    unlockTime: string;
+    minutes: number;
+  } | null>(null);
 
   // Keep the due/missed states honest while the app is open
   useEffect(() => {
@@ -104,6 +113,15 @@ export default function TodayMealsSection() {
           status={mealStatus(meal, windows, nowMin)}
           highlighted={highlightMealId === meal.mealId}
           index={index}
+          locked={isMealLocked(meal, windows, nowMin)}
+          onLockedAttempt={() =>
+            setLockedAttempt({
+              title: meal.mealTitle,
+              unlockTime:
+                windows[meal.category as MealCategory]?.start ?? meal.scheduledTime,
+              minutes: minutesUntilUnlock(meal, windows, nowMin),
+            })
+          }
           onCheckoff={() => checkoffMeal(meal.mealId)}
           onSkip={() => skipMeal(meal.mealId)}
           onUndo={() => undoMeal(meal.mealId)}
@@ -111,6 +129,15 @@ export default function TodayMealsSection() {
       ))}
 
       <WeeklyHistoryStrip history={history} today={tracking} />
+
+      {/* Anti-cheat — fired when tapping a meal before its window opens */}
+      <MealLockedModal
+        visible={lockedAttempt !== null}
+        mealTitle={lockedAttempt?.title ?? ""}
+        unlockTime={lockedAttempt?.unlockTime ?? ""}
+        minutesUntil={lockedAttempt?.minutes ?? 0}
+        onClose={() => setLockedAttempt(null)}
+      />
     </View>
   );
 }

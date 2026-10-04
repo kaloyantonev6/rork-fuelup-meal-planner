@@ -158,6 +158,24 @@ export function mealStatus(meal: MealCheckoff, windows: MealWindows, nowMin: num
   return "pending";
 }
 
+/**
+ * Anti-cheat lock: a meal can't be checked off (or skipped) until its window opens.
+ * Completed/skipped meals and meals without a window are never locked.
+ */
+export function isMealLocked(meal: MealCheckoff, windows: MealWindows, nowMin: number): boolean {
+  if (meal.completedAt || meal.skipped) return false;
+  const w = windows[meal.category];
+  if (!w) return false;
+  return nowMin < parseTimeToMinutes(w.start);
+}
+
+/** Minutes remaining until the meal's window opens (0 when already unlocked). */
+export function minutesUntilUnlock(meal: MealCheckoff, windows: MealWindows, nowMin: number): number {
+  const w = windows[meal.category];
+  if (!w) return 0;
+  return Math.max(0, parseTimeToMinutes(w.start) - nowMin);
+}
+
 /** A Date today at the given HH:mm plus `addMinutes`, or null when the time is invalid. */
 export function timeToDate(hhmm: string, addMinutes = 0): Date | null {
   const [h, m] = hhmm.split(":").map(Number);

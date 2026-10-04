@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
   Animated,
+  AppState,
   Easing,
   Modal,
   PanResponder,
@@ -24,6 +25,7 @@ import {
   ChevronRight,
   Crown,
   Heart,
+  Lock,
   RefreshCw,
   Zap,
 } from "lucide-react-native";
@@ -44,10 +46,11 @@ import {
 } from "@/utils/mealGenerator";
 import { prefetchMealPlanImages } from "@/lib/pexelsApi";
 import { DAY_LETTERS, DAY_TYPE_META, DEFAULT_WEEKLY_SCHEDULE, getMondayIndex } from "@/constants/dayTypes";
-import { getMealWindows, MEAL_CATEGORY_META } from "@/constants/mealTimes";
+import { getMealWindows, isMealLocked, MEAL_CATEGORY_META, minutesNow, minutesUntilUnlock } from "@/constants/mealTimes";
 import type { MealCategory } from "@/constants/mealTimes";
 import type { GeneratedMeal } from "@/utils/mealGenerator";
 import MealResults from "@/components/MealResults";
+import MealLockedModal from "@/components/MealLockedModal";
 import WeeklyHistoryStrip from "@/components/WeeklyHistoryStrip";
 import Skeleton from "@/components/ui/Skeleton";
 
@@ -85,10 +88,13 @@ interface SwipeableMealRowProps {
   fats: number;
   isCompleted: boolean;
   isSkipped: boolean;
+  /** Anti-cheat: window hasn't opened yet — checkoff routes to the "too early" popup */
+  locked: boolean;
   onAte: () => void;
   onSkip: () => void;
   onUndo: () => void;
   onOpen: () => void;
+  onLockedAttempt: () => void;
 }
 
 /**
@@ -106,10 +112,12 @@ function SwipeableMealRow({
   fats,
   isCompleted,
   isSkipped,
+  locked,
   onAte,
   onSkip,
   onUndo,
   onOpen,
+  onLockedAttempt,
 }: SwipeableMealRowProps) {
   const meta = MEAL_CATEGORY_META[category as keyof typeof MEAL_CATEGORY_META] ?? {
     icon: "🍽️",
@@ -158,6 +166,10 @@ function SwipeableMealRow({
           onPress={() => {
             void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             close();
+            if (locked) {
+              onLockedAttempt();
+              return;
+            }
             onUndo();
           }}
           style={styles.revealBtn}
@@ -172,6 +184,10 @@ function SwipeableMealRow({
           onPress={() => {
             void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             close();
+            if (locked) {
+              onLockedAttempt();
+              return;
+            }
             onSkip();
           }}
           style={styles.revealBtn}
@@ -189,7 +205,9 @@ function SwipeableMealRow({
               return;
             }
             void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            if (isCompleted) {
+            if (locked) {
+              onLockedAttempt();
+            } else if (isCompleted) {
               onUndo();
             } else {
               onAte();
@@ -205,6 +223,10 @@ function SwipeableMealRow({
           ) : isSkipped ? (
             <View style={styles.checkSkipped}>
               <Text style={styles.checkSkippedText}>–</Text>
+            </View>
+          ) : locked ? (
+            <View style={styles.checkEmpty}>
+              <Lock size={11} color={Colors.textTertiary} />
             </View>
           ) : (
             <View style={styles.checkEmpty} />
@@ -291,6 +313,26 @@ export default function PlanScreen() {
   const [showNudge, setShowNudge] = useState(false);
   const nudgeAnim = useRef(new Animated.Value(0)).current;
   const nudgeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── Anti-cheat meal lock — keeps nowMin fresh so meals unlock live ──
+  const [nowMin, setNowMin] = useState<number>(() => minutesNow());
+  const [lockedAttempt, setLockedAttempt] = useState<{
+    title: string;
+    unlockTime: string;
+    minutes: number;
+  } | null>(null);
+
+  useEffect(() => {
+    const tick = () => setNowMin(minutesNow());
+    const interval = setInterval(tick, 30000);
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") tick();
+    });
+    return () => {
+      clearInterval(interval);
+      sub.remove();
+    };
+  }, []);
 
   useEffect(() => {
     if (profile.isPremium) {
@@ -629,6 +671,15 @@ export default function PlanScreen() {
                 fats={meal.fats}
                 isCompleted={!!meal.completedAt}
                 isSkipped={meal.skipped}
+                locked={isMealLocked(meal, windows, nowMin)}
+                onLockedAttempt={() =>
+                  setLockedAttempt({
+                    title: meal.mealTitle,
+                    unlockTime:
+                      windows[meal.category as MealCategory]?.start ?? meal.scheduledTime,
+                    minutes: minutesUntilUnlock(meal, windows, nowMin),
+                  })
+                }
                 onAte={() => checkoffMeal(meal.mealId)}
                 onSkip={() => skipMeal(meal.mealId)}
                 onUndo={() => undoMeal(meal.mealId)}
@@ -767,6 +818,15 @@ export default function PlanScreen() {
           </Animated.View>
         </View>
       </Modal>
+
+      {/* Anti-cheat — fired when tapping a locked meal's checkoff before its window opens */}
+      <MealLockedModal
+        visible={lockedAttempt !== null}
+        mealTitle={lockedAttempt?.title ?? ""}
+        unlockTime={lockedAttempt?.unlockTime ?? ""}
+        minutesUntil={lockedAttempt?.minutes ?? 0}
+        onClose={() => setLockedAttempt(null)}
+      />
 
     </View>
   );

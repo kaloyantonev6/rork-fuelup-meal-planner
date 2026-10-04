@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from "react-native";
 import * as Haptics from "expo-haptics";
-import { AlertCircle, Check, Minus } from "lucide-react-native";
+import { AlertCircle, Check, Lock, Minus } from "lucide-react-native";
 import Colors from "@/constants/colors";
 import { MEAL_CATEGORY_META } from "@/constants/mealTimes";
 import type { MealCheckoff, MealStatus, MealWindow } from "@/constants/mealTimes";
@@ -17,6 +17,10 @@ interface MealCheckoffCardProps {
   onCheckoff: () => void;
   onSkip: () => void;
   onUndo: () => void;
+  /** Anti-cheat: window hasn't opened yet — actions show a locked pill until the scheduled time */
+  locked?: boolean;
+  /** Fired when the user taps a locked meal's controls (parent shows the "too early" popup) */
+  onLockedAttempt?: () => void;
 }
 
 const UNDO_WINDOW_MS = 10000;
@@ -36,6 +40,8 @@ export default function MealCheckoffCard({
   onCheckoff,
   onSkip,
   onUndo,
+  locked = false,
+  onLockedAttempt,
 }: MealCheckoffCardProps) {
   const entrance = useRef(new Animated.Value(0)).current;
   const fill = useRef(new Animated.Value(0)).current;
@@ -179,6 +185,11 @@ export default function MealCheckoffCard({
     onUndo();
   };
 
+  const handleLockedAttempt = () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
+    onLockedAttempt?.();
+  };
+
   const meta = MEAL_CATEGORY_META[meal.category];
   const windowLabel = window ? `${window.start}–${window.end}` : meal.scheduledTime;
 
@@ -236,6 +247,8 @@ export default function MealCheckoffCard({
               </Animated.View>
             ) : status === "missed" ? (
               <AlertCircle size={15} color="#EF4444" strokeWidth={2.5} />
+            ) : locked ? (
+              <Lock size={12} color={Colors.textTertiary} strokeWidth={2.5} />
             ) : null}
           </View>
         </Animated.View>
@@ -243,6 +256,12 @@ export default function MealCheckoffCard({
           {meta.label.toUpperCase()} · {windowLabel}
         </Text>
         {status === "missed" ? <Text style={styles.missedTag}>Missed</Text> : null}
+        {locked && status !== "completed" && status !== "skipped" ? (
+          <View style={styles.lockTag}>
+            <Lock size={9} color={Colors.textTertiary} />
+            <Text style={styles.lockTagText}>Locked</Text>
+          </View>
+        ) : null}
       </View>
 
       <View style={styles.divider} />
@@ -269,6 +288,16 @@ export default function MealCheckoffCard({
               </Animated.View>
             ) : null}
           </View>
+        ) : locked ? (
+          <Pressable
+            onPress={handleLockedAttempt}
+            style={({ pressed }) => [styles.lockedPill, pressed && styles.btnPressed]}
+          >
+            <Lock size={13} color={Colors.textTertiary} />
+            <Text style={styles.lockedPillText}>
+              Unlocks at {window ? window.start : meal.scheduledTime}
+            </Text>
+          </Pressable>
         ) : (
           <>
             <Pressable
@@ -358,6 +387,37 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700" as const,
     color: "#EF4444",
+  },
+  lockTag: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: Colors.bg4,
+    borderRadius: 8,
+    paddingHorizontal: 7,
+    paddingVertical: 4,
+  },
+  lockTagText: {
+    fontSize: 10,
+    fontWeight: "700" as const,
+    color: Colors.textTertiary,
+    letterSpacing: 0.4,
+  },
+  lockedPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    minHeight: 44,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: Colors.bg3,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  lockedPillText: {
+    fontSize: 13,
+    fontWeight: "600" as const,
+    color: Colors.textTertiary,
   },
   divider: {
     height: 1,
