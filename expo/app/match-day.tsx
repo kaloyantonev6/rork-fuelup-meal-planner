@@ -7,6 +7,7 @@ import {
   Pressable,
   Modal,
   Platform,
+  AppState,
   Animated,
   Easing,
 } from "react-native";
@@ -25,12 +26,14 @@ import {
   Droplet,
   Check,
   ChevronRight,
+  Lock,
 } from "lucide-react-native";
 import { useRouter, useLocalSearchParams, useSegments } from "expo-router";
 import * as Haptics from "expo-haptics";
 
 import Colors from "@/constants/colors";
 import { useMealPlan } from "@/providers/MealPlanProvider";
+import MealLockedModal from "@/components/MealLockedModal";
 import { calculateDayTargets } from "@/utils/dailyTargets";
 import { getDayTypeFromSchedule } from "@/utils/mealGenerator";
 import {
@@ -140,7 +143,7 @@ const DAY_PLAN_CONFIG: Record<DayType, { title: string; icon: React.ReactNode; s
   },
 };
 
-function AnimatedCheckbox({ checked }: { checked: boolean }) {
+function AnimatedCheckbox({ checked, locked }: { checked: boolean; locked?: boolean }) {
   const scale = React.useRef(new Animated.Value(checked ? 1 : 0)).current;
   const opacity = React.useRef(new Animated.Value(checked ? 1 : 0)).current;
 
@@ -186,7 +189,7 @@ function AnimatedCheckbox({ checked }: { checked: boolean }) {
       ]}
     >
       <Animated.View style={[{ transform: [{ scale }] }, { opacity }]}>
-        <Check size={13} color={Colors.background} />
+        {locked ? <Lock size={11} color={Colors.textTertiary} strokeWidth={2.5} /> : <Check size={13} color={Colors.background} />}
       </Animated.View>
     </Animated.View>
   );
@@ -225,6 +228,32 @@ export default function MatchDayScreen() {
   const [completedIndices, setCompletedIndices] = useState<number[]>([]);
   const [celebration, setCelebration] = useState<null | { title: string; body: string }>(null);
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
+
+  // ── Anti-cheat meal lock — keeps nowMin fresh so fuel sessions unlock live ──
+  const [nowMin, setNowMin] = useState<number>(() => {
+    const d = new Date();
+    return d.getHours() * 60 + d.getMinutes();
+  });
+  const [lockedAttempt, setLockedAttempt] = useState<{
+    title: string;
+    unlockTime: string;
+    minutes: number;
+  } | null>(null);
+
+  useEffect(() => {
+    const tick = () => {
+      const d = new Date();
+      setNowMin(d.getHours() * 60 + d.getMinutes());
+    };
+    const interval = setInterval(tick, 30000);
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") tick();
+    });
+    return () => {
+      clearInterval(interval);
+      sub.remove();
+    };
+  }, []);
 
   useEffect(() => {
     const loadSessionTime = async () => {
@@ -464,6 +493,15 @@ export default function MatchDayScreen() {
             const icon = SLOT_ICONS[entry.mealSlot];
             const isCompleted = completedIndices.includes(idx);
 
+            // Anti-cheat: locked until the entry's scheduled time (completed entries never lock)
+            const entryDate = entryTimeToDate(entry, sessionTime, template, idx);
+            const entryMinutes = entryDate
+              ? entryDate.getHours() * 60 + entryDate.getMinutes()
+              : null;
+            const isLocked =
+              !isCompleted && entryMinutes !== null && nowMin < entryMinutes;
+            const minutesUntil = entryMinutes !== null ? Math.max(0, entryMinutes - nowMin) : 0;
+
             return (
               <View key={idx} style={styles.timelineItem}>
                 {/* Timeline line and node */}
@@ -505,12 +543,26 @@ export default function MatchDayScreen() {
 
                 {/* Content card */}
                 <Pressable
-                  onPress={() => void toggleCompleted(idx)}
+                  onPress={() => {
+                    if (isLocked) {
+                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                      setLockedAttempt({
+                        title: entry.label,
+                        unlockTime: entryDate
+                          ? `${String(entryDate.getHours()).padStart(2, "0")}:${String(entryDate.getMinutes()).padStart(2, "0")}`
+                          : entry.timeLabel,
+                        minutes: minutesUntil,
+                      });
+                      return;
+                    }
+                    void toggleCompleted(idx);
+                  }}
                   style={({ pressed }) => [
                     styles.entryCard,
                     isActive && styles.entryCardActive,
                     isPast && styles.entryCardPast,
                     isCompleted && styles.entryCardCompleted,
+                    isLocked && styles.entryCardLocked,
                     pressed && { opacity: 0.92 },
                   ]}
                 >
@@ -530,8 +582,9 @@ export default function MatchDayScreen() {
                       <Text style={styles.entryOffset}>{entry.offsetLabel}</Text>
                     </View>
                     <View style={styles.entryHeaderRight}>
+                      {isLocked && <Text style={styles.entryLockedTag}>Locked</Text>}
                       <Text style={styles.entryIcon}>{icon}</Text>
-                      <AnimatedCheckbox checked={isCompleted} />
+                      <AnimatedCheckbox checked={isCompleted} locked={isLocked} />
                     </View>
                   </View>
 
@@ -608,6 +661,15 @@ export default function MatchDayScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Anti-cheat — fired when tapping a locked fuel session before its scheduled time */}
+      <MealLockedModal
+        visible={lockedAttempt !== null}
+        mealTitle={lockedAttempt?.title ?? ""}
+        unlockTime={lockedAttempt?.unlockTime ?? ""}
+        minutesUntil={lockedAttempt?.minutes ?? 0}
+        onClose={() => setLockedAttempt(null)}
+      />
 
       {/* Celebration popup after completing a meal */}
       <Modal
@@ -994,6 +1056,21 @@ const styles = StyleSheet.create({
   entryCardCompleted: {
     borderColor: Colors.primary + "60",
     backgroundColor: Colors.primary + "10",
+  },
+  entryCardLocked: {
+    opacity: 0.72,
+  },
+  entryLockedTag: {
+    fontSize: 10,
+    fontWeight: "700" as const,
+    color: Colors.textTertiary,
+    letterSpacing: 0.4,
+    textTransform: "uppercase" as const,
+    backgroundColor: Colors.surfaceElevated,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 7,
+    overflow: "hidden" as const,
   },
   entryHeader: {
     flexDirection: "row",
