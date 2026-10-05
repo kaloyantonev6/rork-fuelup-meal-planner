@@ -116,20 +116,33 @@ interface FuelProgressRingProps {
   children?: React.ReactNode;
 }
 
-/** Circular SVG progress ring — fill animates from 0 to the target percentage on mount. */
+/** Circular SVG progress ring — sweeps up from 0 on app open, springs to new values on meal logs. */
 function FuelProgressRing({ percentage, size, strokeWidth, children }: FuelProgressRingProps) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const clampedPct = Math.min(100, Math.max(0, percentage));
   const progress = useRef(new Animated.Value(0)).current;
+  // First pass = app open (cinematic 0→value sweep); later passes = meal logged (spring)
+  const isFirstRun = useRef(true);
 
   useEffect(() => {
-    Animated.timing(progress, {
-      toValue: clampedPct,
-      duration: 800,
-      easing: Easing.out(Easing.ease),
-      useNativeDriver: false, // strokeDashoffset is an SVG prop — not native-drivable
-    }).start();
+    if (isFirstRun.current) {
+      isFirstRun.current = false;
+      Animated.timing(progress, {
+        toValue: clampedPct,
+        delay: 200, // let the hero card fade-in land first
+        duration: 1100,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false, // strokeDashoffset is an SVG prop — not native-drivable
+      }).start();
+    } else {
+      Animated.spring(progress, {
+        toValue: clampedPct,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: false,
+      }).start();
+    }
   }, [clampedPct, progress]);
 
   const strokeDashoffset = progress.interpolate({
