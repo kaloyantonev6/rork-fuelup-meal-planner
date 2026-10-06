@@ -68,8 +68,8 @@ function profileToSupabaseRow(p: UserProfile): Record<string, unknown> {
   // WHOLE row, so send null instead and keep the real value in `preferences`.
   const age = typeof p.age === "number" && p.age >= 13 && p.age <= 120 ? p.age : null;
   return {
+    // profiles.full_name is GENERATED ALWAYS from display_name - never send it.
     display_name: p.name,
-    full_name: p.name,
     age,
     gender: p.gender,
     weight_kg: p.weight,
