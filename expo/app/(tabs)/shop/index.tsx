@@ -1,82 +1,46 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback } from "react";
 import { Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { ChevronRight, Wallet } from "lucide-react-native";
+import { ShoppingBag } from "lucide-react-native";
 
 import Colors from "@/constants/colors";
 import { useMealPlan } from "@/providers/MealPlanProvider";
-import { useBudget } from "@/providers/BudgetProvider";
 import { useSavedPlans } from "@/providers/SavedPlansProvider";
 import SmartShoppingList from "@/components/SmartShoppingList";
 import EmptyState from "@/components/ui/EmptyState";
 
-/**
- * Shop tab — shopping list from the latest saved plan plus the weekly budget
- * summary (the full budget tracker remains at /budget).
- */
+/** Shopping essentials grouped by aisle, from the latest saved meal plan. */
 export default function ShopScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { profile } = useMealPlan();
-  const { weeklyBudget, totalSpent, remaining } = useBudget();
   const { savedPlans } = useSavedPlans();
-
   const latestPlan = savedPlans[0] ?? null;
-
-  const spentPct = weeklyBudget > 0 ? Math.min(Math.round((totalSpent / weeklyBudget) * 100), 100) : 0;
 
   const handleExport = useCallback(() => {
     if (!latestPlan) return;
-    const lines = latestPlan.plans
-      .flatMap((p) => p.meals.map((m) => `• ${m.name}`))
-      .join("\n");
+    const lines = latestPlan.plans.flatMap((p) => p.meals.map((m) => `• ${m.name}`)).join("\n");
     void Share.share({ message: `Fuelify — ${latestPlan.title}\n\n${lines}` }).catch(() => undefined);
   }, [latestPlan]);
-
-  const budgetAccent = useMemo(() => {
-    if (spentPct >= 90) return Colors.error;
-    if (spentPct >= 70) return Colors.warning;
-    return Colors.primary;
-  }, [spentPct]);
 
   return (
     <View style={styles.container}>
       <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[
-          styles.content,
-          { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24 },
-        ]}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24 }]}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.headerTitle}>Shop</Text>
-
-        {/* Budget summary — full tracker at /budget */}
-        <Pressable
-          onPress={() => {
-            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.push("/(tabs)/budget" as never);
-          }}
-          style={({ pressed }) => [styles.budgetCard, pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] }]}
-        >
-          <View style={styles.budgetIconWrap}>
-            <Wallet size={20} color={budgetAccent} />
+        <View style={styles.heading}>
+          <View style={styles.headingText}>
+            <Text style={styles.eyebrow}>YOUR WEEK, SORTED</Text>
+            <Text style={styles.headerTitle}>Shop essentials</Text>
+            <Text style={styles.subtitle}>Less scrolling. More time for your game.</Text>
           </View>
-          <View style={styles.budgetText}>
-            <Text style={styles.budgetTitle}>Weekly Budget</Text>
-            <Text style={styles.budgetValue}>
-              €{remaining.toFixed(0)} left of €{weeklyBudget.toFixed(0)}
-            </Text>
-            <View style={styles.budgetTrack}>
-              <View style={[styles.budgetFill, { width: `${spentPct}%`, backgroundColor: budgetAccent }]} />
-            </View>
-          </View>
-          <ChevronRight size={18} color={Colors.textTertiary} />
-        </Pressable>
-
-        {/* Shopping list */}
+          <Pressable accessibilityRole="button" accessibilityLabel="Open meal plan" onPress={() => router.push("/(tabs)/plan" as never)} style={styles.bag}>
+            <ShoppingBag size={24} color={Colors.primary} />
+          </Pressable>
+        </View>
         {latestPlan ? (
           <SmartShoppingList
             plans={latestPlan.plans}
@@ -89,9 +53,9 @@ export default function ShopScreen() {
         ) : (
           <View style={styles.emptyWrap}>
             <EmptyState
-              icon={<Text style={{ fontSize: 48 }}>🛒</Text>}
+              icon={<ShoppingBag size={48} color={Colors.primary} />}
               title="No shopping list yet"
-              subtitle="Generate a meal plan and your smart shopping list will appear here — with prices for your country."
+              subtitle="Generate a meal plan to see your ingredients organised by category, with local price estimates."
               actionLabel="Go to Plan"
               onAction={() => {
                 void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -106,68 +70,13 @@ export default function ShopScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.bg0,
-  },
-  scroll: {
-    flex: 1,
-  },
-  content: {
-    paddingHorizontal: 16,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: "800" as const,
-    color: Colors.text,
-    letterSpacing: -0.3,
-    marginBottom: 14,
-  },
-  budgetCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    backgroundColor: Colors.bg2,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    padding: 14,
-    marginBottom: 14,
-  },
-  budgetIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.bg3,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  budgetText: {
-    flex: 1,
-  },
-  budgetTitle: {
-    fontSize: 12,
-    fontWeight: "600" as const,
-    color: Colors.textSecondary,
-  },
-  budgetValue: {
-    fontSize: 15,
-    fontWeight: "700" as const,
-    color: Colors.text,
-    marginTop: 2,
-    marginBottom: 6,
-  },
-  budgetTrack: {
-    height: 5,
-    backgroundColor: Colors.bg4,
-    borderRadius: 3,
-    overflow: "hidden",
-  },
-  budgetFill: {
-    height: 5,
-    borderRadius: 3,
-  },
-  emptyWrap: {
-    paddingTop: 40,
-  },
+  container: { flex: 1, backgroundColor: Colors.bg0 },
+  content: { paddingHorizontal: 16 },
+  heading: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 22 },
+  headingText: { flex: 1 },
+  eyebrow: { fontSize: 10, fontWeight: "700", letterSpacing: 1.8, color: Colors.primary, marginBottom: 7 },
+  headerTitle: { fontSize: 28, fontWeight: "800", color: Colors.text, letterSpacing: -0.8 },
+  subtitle: { fontSize: 13, lineHeight: 19, color: Colors.textSecondary, marginTop: 5 },
+  bag: { width: 48, height: 48, borderRadius: 16, backgroundColor: Colors.primaryLight, alignItems: "center", justifyContent: "center" },
+  emptyWrap: { paddingTop: 40 },
 });

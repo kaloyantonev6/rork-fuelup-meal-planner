@@ -7,10 +7,8 @@ import {
   Animated,
   Modal,
   Switch,
-  RefreshControl,
-  ScrollView,
 } from "react-native";
-import { Crown, Check, MapPin, Sparkles, Trophy, Tag, TrendingDown, Users, ShoppingBag, User } from "lucide-react-native";
+import { Crown, Check, MapPin, Sparkles, Trophy, Tag, TrendingDown, Users, ShoppingBag, User, RefreshCw } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 import {
@@ -26,6 +24,7 @@ import {
 } from "@/utils/shoppingListUtils";
 import { GeneratedPlan, ShoppingIngredient } from "@/utils/mealGenerator";
 import PriceComparisonModal from "@/components/PriceComparisonModal";
+import ShoppingCategoryGroup from "@/components/ShoppingCategoryGroup";
 import { isSharedItem, calculateSplitCosts, countryNameToCode } from "@/lib/priceEngine";
 
 interface SmartShoppingListProps {
@@ -70,6 +69,18 @@ export default function SmartShoppingList({
     }
     return map;
   }, [items]);
+
+  const categoryRows = useMemo(() => {
+    const available = CATEGORY_CONFIGS.filter((config) => (grouped.get(config.key)?.length ?? 0) > 0);
+    return Array.from({ length: Math.ceil(available.length / 2) }, (_, index) => available.slice(index * 2, index * 2 + 2));
+  }, [grouped]);
+
+  useEffect(() => {
+    setItems((previous) => {
+      const checkedIds = new Set(previous.filter((item) => item.checked).map((item) => item.id));
+      return compileSmartShoppingList(plans, country).map((item) => ({ ...item, checked: checkedIds.has(item.id) }));
+    });
+  }, [plans, country]);
 
   const retailerTotals = useMemo<RetailerTotal[]>(() => {
     if (!showPrices) return [];
@@ -155,7 +166,7 @@ export default function SmartShoppingList({
     <View style={styles.wrapper}>
       <View style={styles.header}>
         <View style={styles.headerTop}>
-          <Text style={styles.headerTitle}>🛒 Smart Shopping List</Text>
+          <Text style={styles.headerTitle}>Smart Shopping List</Text>
           <View style={styles.aiBadge}>
             <Sparkles size={10} color={Colors.primary} />
             <Text style={styles.aiBadgeText}>Fuelify AI</Text>
@@ -163,7 +174,7 @@ export default function SmartShoppingList({
         </View>
         <View style={styles.locationRow}>
           <MapPin size={12} color={Colors.textTertiary} />
-          <Text style={styles.locationText}>{flag} {country || "Not set"}</Text>
+          <Text style={styles.locationText}>{flag} {country || "Not set"} · {totalItems} ingredients</Text>
         </View>
       </View>
 
@@ -190,27 +201,30 @@ export default function SmartShoppingList({
         />
       )}
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.primary} />
-        }
-        style={styles.listScroll}
-      >
-        {CATEGORY_CONFIGS.map((config) => {
-          const catItems = grouped.get(config.key);
-          if (!catItems || catItems.length === 0) return null;
-          return (
-            <CategorySection
-              key={config.key}
-              config={config}
-              items={catItems}
-              showPrices={showPrices && isPremium}
-              isPremium={isPremium}
-              onToggleCheck={handleToggleCheck}
-            />
-          );
-        })}
+      <View>
+        <View style={styles.aisleHeading}>
+          <Text style={styles.aisleTitle}>Browse by category</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel="Refresh shopping list" disabled={refreshing} onPress={() => void handleRefresh()} style={styles.refreshButton}>
+            <RefreshCw size={15} color={Colors.primary} />
+            <Text style={styles.refreshText}>{refreshing ? "Refreshing…" : "Refresh"}</Text>
+          </Pressable>
+        </View>
+        {categoryRows.map((categories) => (
+          <ShoppingCategoryGroup
+            key={categories[0].key}
+            categories={categories}
+            grouped={grouped}
+            renderItems={(config) => (
+              <CategorySection
+                config={config}
+                items={grouped.get(config.key) ?? []}
+                showPrices={showPrices && isPremium}
+                isPremium={isPremium}
+                onToggleCheck={handleToggleCheck}
+              />
+            )}
+          />
+        ))}
 
         {isPremium && showPrices && retailerTotals.length > 0 && (
           <PriceComparisonCard
@@ -238,7 +252,7 @@ export default function SmartShoppingList({
 
         <Text style={styles.disclaimer}>Prices are estimated based on average market data</Text>
         <View style={{ height: 20 }} />
-      </ScrollView>
+      </View>
 
       <PriceComparisonModal
         visible={showPriceComparison}
@@ -257,7 +271,7 @@ export default function SmartShoppingList({
             </View>
             <Text style={styles.upgradeTitle}>Premium Feature</Text>
             <Text style={styles.upgradeMessage}>
-              Price comparison, checkboxes, and smart budget tracking are available with Fuelify Premium.
+              Price comparison, checkboxes, and basket estimates are available with Fuelify Premium.
             </Text>
             <Pressable
               onPress={() => {
@@ -310,7 +324,7 @@ function BudgetTracker({
   return (
     <View style={styles.budgetCard}>
       <View style={styles.budgetHeader}>
-        <Text style={styles.budgetTitle}>Budget Tracker</Text>
+        <Text style={styles.budgetTitle}>Basket estimate</Text>
         <Text style={styles.budgetCount}>{checkedCount}/{totalItems} items</Text>
       </View>
       <View style={styles.budgetAmountRow}>
@@ -356,11 +370,9 @@ function CategorySection({
 }) {
   return (
     <View style={styles.categorySection}>
-      <View style={[styles.categoryHeader, { borderLeftColor: config.color }]}>
-        <Text style={styles.categoryTitle}>{config.emoji} {config.key}</Text>
-        <View style={[styles.categoryCountBadge, { backgroundColor: config.color + "18" }]}>
-          <Text style={[styles.categoryCount, { color: config.color }]}>{items.length}</Text>
-        </View>
+      <View style={styles.drawerHeader}>
+        <Text style={styles.categoryTitle}>{config.key}</Text>
+        <Text style={styles.drawerCount}>{items.filter((item) => item.checked).length}/{items.length} collected</Text>
       </View>
       {items.map((item) => {
         const isShared = manualSplitOverrides?.[item.id] !== undefined
@@ -373,7 +385,7 @@ function CategorySection({
             showPrices={showPrices}
             isPremium={isPremium}
             onToggle={() => onToggleCheck(item.id)}
-            accentColor={config.color}
+            accentColor={Colors.primary}
             splitEnabled={splitEnabled}
             isShared={isShared}
             onToggleShared={onToggleShared ? () => onToggleShared(item.id, isShared) : undefined}
@@ -480,7 +492,7 @@ function IngredientRow({
         <View style={styles.ingredientInfo}>
           <Text
             style={[styles.ingredientName, item.checked && styles.ingredientNameChecked]}
-            numberOfLines={1}
+            numberOfLines={2}
           >
             {item.name}
           </Text>
@@ -634,8 +646,10 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   headerTitle: {
-    fontSize: 17,
+    flex: 1,
+    fontSize: 16,
     fontWeight: "700" as const,
+    letterSpacing: -0.3,
     color: Colors.text,
   },
   aiBadge: {
@@ -687,8 +701,14 @@ const styles = StyleSheet.create({
   listScroll: {
     flex: 1,
   },
+  aisleHeading: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 4, marginBottom: 8 },
+  aisleTitle: { fontSize: 12, fontWeight: "600", color: Colors.textSecondary, letterSpacing: 0.2 },
+  refreshButton: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: 6, paddingLeft: 10 },
+  refreshText: { fontSize: 11, fontWeight: "600", color: Colors.primary },
+  drawerHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 4, paddingTop: 4, paddingBottom: 12 },
+  drawerCount: { fontSize: 11, color: Colors.textSecondary },
   categorySection: {
-    marginBottom: 14,
+    marginBottom: 0,
   },
   categoryHeader: {
     flexDirection: "row",
@@ -749,15 +769,15 @@ const styles = StyleSheet.create({
   },
   ingredientInfo: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: 4,
   },
   ingredientName: {
     fontSize: 14,
-    fontWeight: "500" as const,
+    fontWeight: "600" as const,
     color: Colors.text,
-    flex: 1,
+    letterSpacing: -0.1,
   },
   ingredientNameChecked: {
     textDecorationLine: "line-through" as const,

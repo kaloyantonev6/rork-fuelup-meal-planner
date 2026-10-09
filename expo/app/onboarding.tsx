@@ -65,7 +65,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 // 12 Weekly schedule
 // 13 Weekly budget
 // 14 Country
-const TOTAL_STEPS = 15;
+const TOTAL_STEPS = 14;
 
 interface OnboardingData {
   gender: Gender | null;
@@ -257,8 +257,7 @@ export default function OnboardingScreen() {
       case 10: return data.allergies.length > 0;
       case 11: return true; // Cooking skill has a default, never blocks
       case 12: return data.weeklySchedule.length === 7;
-      case 13: return true; // Budget has a default, never blocks
-      case 14: return data.country.length > 0;
+      case 13: return data.country.length > 0;
       default: return false;
     }
   }, [step, data]);
@@ -548,54 +547,8 @@ export default function OnboardingScreen() {
     </View>
   );
 
-  // Step 13 — Weekly Budget
+  // Step 13 — Country
   const renderStep13 = () => {
-    const dailyBudget = (data.weeklyBudget / 7).toFixed(2);
-    return (
-      <View style={styles.stepContent}>
-        <Text style={styles.stepTitle}>What's your weekly grocery budget?</Text>
-        <Text style={styles.stepSubtitle}>For price comparison and local retailers</Text>
-        <View style={styles.inputGroup}>
-          <View style={styles.budgetCard}>
-            <Text style={styles.budgetAmount}>€{data.weeklyBudget}/week</Text>
-            <Text style={styles.budgetDaily}>That's about €{dailyBudget}/day</Text>
-            <View style={styles.budgetStepperRow}>
-              <Pressable
-                onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setData((p) => ({ ...p, weeklyBudget: Math.max(15, p.weeklyBudget - 5) }));
-                }}
-                style={({ pressed }) => [styles.stepperBtn, pressed && { opacity: 0.7 }]}
-              >
-                <Text style={styles.stepperBtnText}>−</Text>
-              </Pressable>
-              <View style={styles.budgetBarWrap}>
-                <View style={styles.budgetBarTrack}>
-                  <View style={[styles.budgetBarFill, { width: `${((data.weeklyBudget - 15) / 65) * 100}%` }]} />
-                </View>
-              </View>
-              <Pressable
-                onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setData((p) => ({ ...p, weeklyBudget: Math.min(80, p.weeklyBudget + 5) }));
-                }}
-                style={({ pressed }) => [styles.stepperBtn, pressed && { opacity: 0.7 }]}
-              >
-                <Text style={styles.stepperBtnText}>+</Text>
-              </Pressable>
-            </View>
-            <View style={styles.sliderLabels}>
-              <Text style={styles.sliderLabel}>€15</Text>
-              <Text style={styles.sliderLabel}>€80</Text>
-            </View>
-          </View>
-        </View>
-      </View>
-    );
-  };
-
-  // Step 14 — Country
-  const renderStep14 = () => {
     const selectedCountry = EU_COUNTRIES_WITH_FLAGS.find((c) => c.name === data.country);
     return (
       <View style={styles.stepContent}>
@@ -642,7 +595,7 @@ export default function OnboardingScreen() {
   const steps = [
     renderStep0, renderStep1, renderStep2, renderStep3, renderStep4,
     renderStep5, renderStep6, renderStep7, renderStep8, renderStep9,
-    renderStep10, renderStep11, renderStep12, renderStep13, renderStep14,
+    renderStep10, renderStep11, renderStep12, renderStep13,
   ];
   const isLastStep = step === TOTAL_STEPS - 1;
 

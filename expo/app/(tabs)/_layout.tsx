@@ -71,7 +71,7 @@ export default function TabLayout() {
           ),
         }}
       />
-      {/* Budget remains a reachable route (pushed from the Shop tab) but is not a tab */}
+      {/* Legacy budget links redirect to Shop. */}
       <Tabs.Screen name="budget" options={{ href: null }} />
     </Tabs>
   );

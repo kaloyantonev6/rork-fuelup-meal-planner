@@ -10,7 +10,6 @@ import { TodayProvider } from "@/providers/TodayProvider";
 import { MealTrackingProvider } from "@/providers/MealTrackingProvider";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { SavedPlansProvider } from "@/providers/SavedPlansProvider";
-import { BudgetProvider } from "@/providers/BudgetProvider";
 import { NotificationProvider } from "@/providers/NotificationProvider";
 import { NotificationFeedProvider } from "@/providers/NotificationFeedProvider";
 
@@ -60,13 +59,11 @@ export default function RootLayout() {
           <TodayProvider>
           <MealTrackingProvider>
           <SavedPlansProvider>
-            <BudgetProvider>
               <NotificationProvider>
                 <NotificationFeedProvider>
                   <RootLayoutNav />
                 </NotificationFeedProvider>
               </NotificationProvider>
-            </BudgetProvider>
           </SavedPlansProvider>
           </MealTrackingProvider>
           </TodayProvider>
