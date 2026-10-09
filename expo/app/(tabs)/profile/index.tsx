@@ -52,6 +52,7 @@ import {
   DayType,
 } from "@/types";
 import WeeklyProgramEditor from "@/components/WeeklyProgramEditor";
+import BedtimeReminderSettings from "@/components/BedtimeReminderSettings";
 import Toast from "@/components/ui/Toast";
 import { useToday } from "@/providers/TodayProvider";
 import {
@@ -267,6 +268,16 @@ export default function ProfileScreen() {
           </View>
           <ChevronRight size={18} color={Colors.textTertiary} />
         </Pressable>
+      </View>
+
+      {/* Sleep — bedtime reminder is a setting; its result lives in Reminders */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Sleep</Text>
+        <View style={styles.sectionCard}>
+          <View style={styles.sleepSettingsWrap}>
+            <BedtimeReminderSettings />
+          </View>
+        </View>
       </View>
 
       {/* Player Profile — compact summary; full editing lives on the detail page */}
@@ -667,6 +678,9 @@ const styles = StyleSheet.create({
     fontWeight: "700" as const,
     color: Colors.text,
     marginBottom: 10,
+  },
+  sleepSettingsWrap: {
+    padding: 16,
   },
   folderCard: {
     flexDirection: "row",

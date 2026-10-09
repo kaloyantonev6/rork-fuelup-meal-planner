@@ -42,7 +42,7 @@ interface SleepTrendChartProps {
   log: SleepLog;
   /** Age-based minimum target in hours — drawn as a dashed reference line. */
   targetMin: number;
-  /** Number of nights to plot (7 → day labels, 28 → week labels). */
+  /** Number of nights to plot (7 → day labels, 30 → monthly date labels). */
   days: number;
 }
 
@@ -150,7 +150,8 @@ export default function SleepTrendChart({ log, targetMin, days }: SleepTrendChar
           </Svg>
           <View style={styles.labelRow}>
             {chart.series.map((p, i) => {
-              const showLabel = days <= 7 || i % 7 === days - 1 || i === chart.series.length - 1;
+              // Weekly ticks for long ranges, every day for the 1-week view.
+              const showLabel = days <= 7 || i % 7 === 0 || i === chart.series.length - 1;
               return (
                 <View key={p.dateKey} style={styles.labelSlot}>
                   {showLabel ? <Text style={styles.label}>{days <= 7 ? p.label : dateLabel(p.dateKey)}</Text> : null}

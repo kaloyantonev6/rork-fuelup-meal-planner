@@ -30,6 +30,7 @@ import {
 import Colors from "@/constants/colors";
 import type { AppNotification, NotificationTab } from "@/lib/notificationFeed";
 import { useNotificationFeed } from "@/providers/NotificationFeedProvider";
+import BedtimeReminderSummary from "@/components/BedtimeReminderSummary";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const CARD_WIDTH = SCREEN_WIDTH - 32; // 16px margins each side
@@ -339,6 +340,7 @@ export default function NotificationsScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
+        {activeTab === "reminders" ? <BedtimeReminderSummary /> : null}
         {isEmpty ? (
           <View style={styles.emptyWrap}>
             <BellOff size={48} color={Colors.textTertiary} />
