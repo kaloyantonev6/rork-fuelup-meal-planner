@@ -119,18 +119,44 @@ const MINUTE_OPTIONS = Array.from({ length: 12 }, (_, i) => `${String(i * 5).pad
 export default function SleepWheelPicker({ hours, minutes, onHoursChange, onMinutesChange }: SleepWheelPickerProps) {
   return (
     <View style={styles.row}>
-      <WheelColumn
-        options={HOUR_OPTIONS}
-        index={hours}
-        onIndexChange={onHoursChange}
-        width={110}
-      />
-      <WheelColumn
-        options={MINUTE_OPTIONS}
-        index={minutes}
-        onIndexChange={onMinutesChange}
-        width={110}
-      />
+      <WheelColumn options={HOUR_OPTIONS} index={hours} onIndexChange={onHoursChange} width={110} />
+      <WheelColumn options={MINUTE_OPTIONS} index={minutes} onIndexChange={onMinutesChange} width={110} />
+    </View>
+  );
+}
+
+const WAKE_HOUR_OPTIONS = ["04", "05", "06", "07", "08", "09", "10", "11"];
+const WAKE_MINUTE_OPTIONS = ["00", "15", "30", "45"];
+
+interface TimeWheelPickerProps {
+  /** "HH:MM" 24-hour value. */
+  value: string;
+  onChange: (value: string) => void;
+}
+
+/** Compact hour + minute wheels for picking a clock time (wake time). */
+export function TimeWheelPicker({ value, onChange }: TimeWheelPickerProps) {
+  const [h, m] = value.split(":").map(Number);
+  const hourIndex = Math.max(0, Math.min(WAKE_HOUR_OPTIONS.length - 1, (h ?? 7) - 4));
+  const minuteIndex = Math.max(0, Math.min(WAKE_MINUTE_OPTIONS.length - 1, Math.round((m ?? 0) / 15)));
+
+  const handleHour = useCallback(
+    (index: number) => {
+      onChange(`${WAKE_HOUR_OPTIONS[index]}:${String(WAKE_MINUTE_OPTIONS[minuteIndex]).slice(0, 2)}`);
+    },
+    [minuteIndex, onChange],
+  );
+  const handleMinute = useCallback(
+    (index: number) => {
+      onChange(`${WAKE_HOUR_OPTIONS[hourIndex]}:${WAKE_MINUTE_OPTIONS[index]}`);
+    },
+    [hourIndex, onChange],
+  );
+
+  return (
+    <View style={styles.row}>
+      <WheelColumn options={WAKE_HOUR_OPTIONS} index={hourIndex} onIndexChange={handleHour} width={88} />
+      <WheelColumn options={WAKE_MINUTE_OPTIONS} index={minuteIndex} onIndexChange={handleMinute} width={88} />
     </View>
   );
 }

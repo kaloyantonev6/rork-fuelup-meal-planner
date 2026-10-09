@@ -1,21 +1,23 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Stack, useRouter } from "expo-router";
-import { ArrowDownRight, ArrowLeft, ArrowUpRight, BatteryCharging, Check, Moon, Sparkles, TrendingDown, Zap } from "lucide-react-native";
+import { ArrowDownRight, ArrowLeft, ArrowUpRight, BatteryCharging, Check, Moon, MoonStar, Sparkles, TrendingDown, Zap } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 import { getLocalDateString } from "@/constants/dayTypes";
-import SleepWheelPicker from "@/components/SleepWheelPicker";
+import SleepWheelPicker, { TimeWheelPicker } from "@/components/SleepWheelPicker";
 import SleepTrendChart from "@/components/SleepTrendChart";
 import { useMealPlan } from "@/providers/MealPlanProvider";
 import { useToday } from "@/providers/TodayProvider";
+import { useNotifications } from "@/providers/NotificationProvider";
 import {
   getSleepTarget,
   averageForRange,
   loadSleepLog,
   saveSleepHours,
   sleepDiagnosis,
+  suggestWindDown,
   SLEEP_MATCH_EVE_TEXT,
   type SleepDiagnosisLevel,
   type SleepLog,
@@ -40,6 +42,8 @@ export default function SleepScreen() {
   const { todayData } = useToday();
 
   const isMatchEve = todayData?.tomorrow.dayType === "match";
+  const { bedtime, setBedtimeReminder, requestPermissions } = useNotifications();
+  const [permissionDenied, setPermissionDenied] = useState(false);
   const target = getSleepTarget(profile.age || 20);
 
   const [log, setLog] = useState<SleepLog>({});
@@ -67,6 +71,9 @@ export default function SleepScreen() {
   const weekAvg = useMemo(() => averageForRange(log, 0, 7), [log]);
   const prevAvg = useMemo(() => averageForRange(log, 7, 7), [log]);
   const diagnosis = useMemo(() => sleepDiagnosis(log, profile.age || 20), [log, profile.age]);
+  const age = profile.age || 20;
+  const wakeTime = bedtime?.wakeTime ?? "07:00";
+  const suggestion = useMemo(() => suggestWindDown(weekAvg, age, wakeTime), [weekAvg, age, wakeTime]);
   const DeltaIcon = weekAvg !== null && prevAvg !== null && weekAvg < prevAvg ? ArrowDownRight : ArrowUpRight;
   const delta = weekAvg !== null && prevAvg !== null ? Math.round((weekAvg - prevAvg) * 10) / 10 : null;
   const deltaPositive = delta !== null && delta >= 0;
@@ -80,6 +87,26 @@ export default function SleepScreen() {
     setJustLogged(true);
     setTimeout(() => setJustLogged(false), 1600);
   }, [hours, minutes]);
+
+  const toggleReminder = useCallback(
+    async (enabled: boolean) => {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      if (enabled) {
+        const ok = await requestPermissions();
+        setPermissionDenied(!ok);
+      }
+      await setBedtimeReminder({ enabled, wakeTime });
+    },
+    [requestPermissions, setBedtimeReminder, wakeTime],
+  );
+
+  const changeWakeTime = useCallback(
+    async (value: string) => {
+      void Haptics.selectionAsync().catch(() => undefined);
+      await setBedtimeReminder({ enabled: bedtime?.enabled ?? false, wakeTime: value });
+    },
+    [bedtime?.enabled, setBedtimeReminder],
+  );
 
   return (
     <View style={styles.container}>
@@ -135,6 +162,55 @@ export default function SleepScreen() {
           <Text style={styles.targetText}>
             Your target: {target.min}–{target.max}h, age-adjusted
           </Text>
+        </View>
+
+        {/* ── Bedtime reminder: wake-time wheel + derived wind-down ── */}
+        <View style={styles.card}>
+          <View style={styles.reminderHeader}>
+            <View style={styles.reminderIconWrap}>
+              <MoonStar size={17} color={Colors.primary} strokeWidth={2.2} />
+            </View>
+            <View style={styles.reminderHeaderText}>
+              <Text style={styles.reminderTitle}>Bedtime reminder</Text>
+              <Text style={styles.reminderSubtitle}>A daily nudge to start winding down</Text>
+            </View>
+            <Switch
+              value={bedtime?.enabled ?? false}
+              onValueChange={(value) => void toggleReminder(value)}
+              trackColor={{ false: Colors.bg4, true: Colors.primary }}
+              thumbColor="#FFFFFF"
+              ios_backgroundColor={Colors.bg4}
+              accessibilityLabel="Enable bedtime reminder"
+            />
+          </View>
+
+          {bedtime?.enabled ? (
+            <>
+              <Text style={styles.wakeLabel}>I usually wake at</Text>
+              <TimeWheelPicker value={wakeTime} onChange={(value) => void changeWakeTime(value)} />
+              <View style={styles.suggestionRow}>
+                <View style={styles.suggestionBlock}>
+                  <Text style={styles.suggestionTime}>{suggestion.bedTime}</Text>
+                  <Text style={styles.suggestionLabel}>Lights out</Text>
+                </View>
+                <View style={styles.suggestionDivider} />
+                <View style={styles.suggestionBlock}>
+                  <Text style={[styles.suggestionTime, { color: Colors.primary }]}>{suggestion.windDownTime}</Text>
+                  <Text style={styles.suggestionLabel}>Wind-down</Text>
+                </View>
+              </View>
+              <Text style={styles.suggestionNote}>
+                {suggestion.usedTargetFallback
+                  ? `Based on your age target of ${suggestion.durationUsed}h — log a few nights to refine it.`
+                  : `Based on your ${suggestion.durationUsed}h nightly average and a ${wakeTime} wake-up. Updates as your routine changes.`}
+              </Text>
+              {permissionDenied ? (
+                <Text style={styles.permissionHint}>
+                  Notifications are turned off — enable them in Settings to get reminded.
+                </Text>
+              ) : null}
+            </>
+          ) : null}
         </View>
 
         {/* ── Trend card: headline + chart + range pills ── */}
@@ -300,6 +376,85 @@ const styles = StyleSheet.create({
     color: Colors.textTertiary,
     textAlign: "center",
     marginTop: 12,
+  },
+  reminderHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  reminderIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: Colors.primaryLight,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  reminderHeaderText: {
+    flex: 1,
+  },
+  reminderTitle: {
+    fontSize: 17,
+    fontWeight: "600",
+    color: Colors.text,
+    letterSpacing: -0.4,
+  },
+  reminderSubtitle: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    marginTop: 1,
+  },
+  wakeLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: Colors.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    textAlign: "center",
+    marginTop: 16,
+    marginBottom: 10,
+  },
+  suggestionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 28,
+    marginTop: 16,
+  },
+  suggestionBlock: {
+    alignItems: "center",
+  },
+  suggestionTime: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: Colors.text,
+    letterSpacing: 0.3,
+    fontVariant: ["tabular-nums"],
+  },
+  suggestionLabel: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: Colors.textSecondary,
+    marginTop: 3,
+  },
+  suggestionDivider: {
+    width: 1,
+    height: 36,
+    backgroundColor: Colors.borderLight,
+  },
+  suggestionNote: {
+    fontSize: 12,
+    lineHeight: 17,
+    color: Colors.textTertiary,
+    textAlign: "center",
+    marginTop: 14,
+  },
+  permissionHint: {
+    fontSize: 12,
+    lineHeight: 17,
+    color: Colors.warning,
+    textAlign: "center",
+    marginTop: 10,
   },
   chartEyebrow: {
     fontSize: 13,

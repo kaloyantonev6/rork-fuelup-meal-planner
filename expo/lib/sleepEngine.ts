@@ -7,6 +7,68 @@ import { kvGet, kvSet } from "@/lib/database";
 
 const SLEEP_LOG_KEY = "fuelify_sleep_log";
 
+/** Bedtime reminder settings (wake time drives the wind-down suggestion). */
+export interface BedtimeSettings {
+  enabled: boolean;
+  /** "HH:MM" — the user's typical wake time. */
+  wakeTime: string;
+}
+
+export const BEDTIME_SETTINGS_KEY = "fuelify_bedtime_reminder";
+export const DEFAULT_BEDTIME_SETTINGS: BedtimeSettings = { enabled: false, wakeTime: "07:00" };
+
+export async function loadBedtimeSettings(): Promise<BedtimeSettings> {
+  try {
+    return { ...DEFAULT_BEDTIME_SETTINGS, ...((await kvGet<BedtimeSettings>(BEDTIME_SETTINGS_KEY)) ?? {}) };
+  } catch {
+    return DEFAULT_BEDTIME_SETTINGS;
+  }
+}
+
+export async function saveBedtimeSettings(settings: BedtimeSettings): Promise<void> {
+  try {
+    await kvSet(BEDTIME_SETTINGS_KEY, settings);
+  } catch {
+    // best-effort
+  }
+}
+
+export interface WindDownSuggestion {
+  /** "HH:MM" — lights-out time derived from wake time minus sleep duration. */
+  bedTime: string;
+  /** "HH:MM" — 30 minutes before bed, when the reminder fires. */
+  windDownTime: string;
+  /** Sleep duration (h) the suggestion was derived from. */
+  durationUsed: number;
+  /** True when no log data existed and the age-based target was used. */
+  usedTargetFallback: boolean;
+}
+
+function minutesToHHMM(totalMinutes: number): string {
+  const wrapped = ((totalMinutes % 1440) + 1440) % 1440;
+  return `${String(Math.floor(wrapped / 60)).padStart(2, "0")}:${String(wrapped % 60).padStart(2, "0")}`;
+}
+
+/**
+ * Optimal wind-down suggestion: wake time minus the user's average sleep
+ * duration (falls back to the age-based target midpoint), minus a 30-minute
+ * wind-down buffer.
+ */
+export function suggestWindDown(avgDuration: number | null, age: number, wakeTime: string): WindDownSuggestion {
+  const target = getSleepTarget(age);
+  const durationUsed = avgDuration ?? (target.min + target.max) / 2;
+  const [wh, wm] = wakeTime.split(":").map(Number);
+  const wakeMinutes = (wh ?? 7) * 60 + (wm ?? 0);
+  const bedMinutes = wakeMinutes - Math.round(durationUsed * 60);
+  const windDownMinutes = bedMinutes - 30;
+  return {
+    bedTime: minutesToHHMM(bedMinutes),
+    windDownTime: minutesToHHMM(windDownMinutes),
+    durationUsed,
+    usedTargetFallback: avgDuration === null,
+  };
+}
+
 /** Sleep target by age (Walsh 2021 consensus). */
 export function getSleepTarget(age: number): { min: number; max: number; unit: string } {
   if (age < 14) return { min: 9, max: 11, unit: "hours" };
