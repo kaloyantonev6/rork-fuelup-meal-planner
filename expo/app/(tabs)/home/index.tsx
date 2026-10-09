@@ -49,7 +49,8 @@ import {
   NOTIFICATION_PERMISSION_KEY,
 } from "@/constants/mealTimes";
 import { loadTodayHydration } from "@/lib/hydrationStore";
-import { getSleepTarget, loadSleepLog, weeklyAverage } from "@/lib/sleepEngine";
+import { getSleepTarget, loadSleepLog, weeklyAverage, type SleepLog } from "@/lib/sleepEngine";
+import TomorrowOverview from "@/components/TomorrowOverview";
 import Toast from "@/components/ui/Toast";
 
 interface ActionBoxProps {
@@ -250,11 +251,13 @@ export default function HomeScreen() {
   // ── Hydration + sleep mini-card data ──
   const [hydrationMl, setHydrationMl] = useState(0);
   const [sleepHours, setSleepHours] = useState<number | null>(null);
+  const [sleepLogData, setSleepLogData] = useState<SleepLog>({});
   useFocusEffect(
     useCallback(() => {
       void loadTodayHydration().then(setHydrationMl);
       void (async () => {
         const log = await loadSleepLog();
+        setSleepLogData(log);
         const d = new Date();
         const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
         const today = typeof log[key] === "number" ? log[key] : null;
@@ -633,6 +636,9 @@ export default function HomeScreen() {
             }}
           />
         </View>
+
+        {/* Tomorrow overview — planned meals + bedtime wind-down */}
+        <TomorrowOverview sleepLog={sleepLogData} />
 
         {/* ROW 2 — Hydration + Sleep side by side */}
       </ScrollView>
