@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   Alert,
   Modal,
@@ -11,12 +11,12 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Stack, useFocusEffect, useRouter } from "expo-router";
-import { ArrowLeft } from "lucide-react-native";
+import { ArrowLeft, Clock3, Droplets, GlassWater, Info, Sunrise } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 
 import Colors from "@/constants/colors";
-import ProgressRing from "@/components/ui/ProgressRing";
 import SweatTestCard from "@/components/SweatTestCard";
+import { MetricLegend, MetricRow, RingHero, metricLevel } from "@/components/PerformanceScorecard";
 import { useToday } from "@/providers/TodayProvider";
 import {
   addWater,
@@ -26,10 +26,16 @@ import {
 } from "@/lib/hydrationStore";
 import { getHydrationWarnings } from "@/lib/hydrationEngine";
 
+// Ice-blue accent shared with the sleep hero ring.
+const RING_ACCENT = "#8FB8DC";
+
+const SIP_GOAL = 8; // drinks per day — a 250ml glass each
+
 /**
- * Hydration detail screen — circular ring, quick-add buttons, timestamped log,
- * NATA 2017 warnings and the sweat test. The home dashboard shows only a
- * compact mini card that pushes into this screen.
+ * Hydration performance screen — the same scorecard language as Sleep, but
+ * tracking stays manual: tap-to-log glasses and bottles, a timestamped log,
+ * NATA 2017 warnings and the sweat test. The ring and metrics update live
+ * with every entry.
  */
 export default function HydrationScreen() {
   const insets = useSafeAreaInsets();
@@ -40,6 +46,7 @@ export default function HydrationScreen() {
   const [log, setLog] = useState<HydrationLogEntry[]>([]);
   const [showCustom, setShowCustom] = useState(false);
   const [customMl, setCustomMl] = useState("");
+  const [infoOpen, setInfoOpen] = useState(false);
 
   const targetMl = Math.round((todayData?.hydrationTarget ?? 3) * 1000);
 
@@ -76,6 +83,32 @@ export default function HydrationScreen() {
     handleAdd(ml);
   }, [customMl, handleAdd]);
 
+  // ── Metrics (all derived from today's manual entries) ──
+  const metrics = useMemo(() => {
+    const intakePct = targetMl > 0 ? Math.round((hydrationMl / targetMl) * 100) : 0;
+
+    const beforeNoon = log
+      .filter((e) => {
+        const [h] = e.time.split(":").map(Number);
+        return (h ?? 12) < 12;
+      })
+      .reduce((sum, e) => sum + e.ml, 0);
+    const morningGoal = targetMl * 0.3;
+    const morningPct = morningGoal > 0 ? Math.round(Math.min(beforeNoon / morningGoal, 1) * 100) : 0;
+
+    const sipsPct = Math.round(Math.min(log.length / SIP_GOAL, 1) * 100);
+
+    const now = new Date();
+    const wakeMin = 7 * 60;
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+    const dayFraction = Math.min(Math.max((nowMin - wakeMin) / (23 * 60 - wakeMin), 0), 1);
+    const expectedPct = dayFraction * 100;
+    const actualPct = targetMl > 0 ? Math.min((hydrationMl / targetMl) * 100, 130) : 0;
+    const pacePct = Math.round(Math.min(Math.max(50 + (actualPct - expectedPct) * 2, 0), 100));
+
+    return { intakePct, morningPct, sipsPct, pacePct };
+  }, [hydrationMl, log, targetMl]);
+
   const progress = targetMl > 0 ? Math.min(hydrationMl / targetMl, 1) : 0;
   const warnings = getHydrationWarnings(hydrationMl / 1000, todayData?.dayType ?? "training");
 
@@ -89,11 +122,23 @@ export default function HydrationScreen() {
             router.back();
           }}
           style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}
+          accessibilityRole="button"
+          accessibilityLabel="Back"
         >
           <ArrowLeft size={22} color={Colors.text} />
         </Pressable>
-        <Text style={styles.headerTitle}>Hydration</Text>
-        <View style={styles.backBtn} />
+        <Text style={styles.headerTitle}>TODAY</Text>
+        <Pressable
+          onPress={() => {
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setInfoOpen(true);
+          }}
+          style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}
+          accessibilityRole="button"
+          accessibilityLabel="How this is measured"
+        >
+          <Info size={20} color="rgba(241,245,249,0.5)" />
+        </Pressable>
       </View>
 
       <ScrollView
@@ -101,49 +146,77 @@ export default function HydrationScreen() {
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 24 }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Ring */}
-        <View style={styles.ringWrap}>
-          <ProgressRing
-            progress={progress}
-            size={170}
-            strokeWidth={10}
-            color={Colors.primary}
-            trackColor={Colors.bg4}
-          >
-            <View style={styles.ringCenter}>
-              <Text style={styles.ringValue}>{(hydrationMl / 1000).toFixed(2)}L</Text>
-              <Text style={styles.ringUnit}>/ {(targetMl / 1000).toFixed(1)}L</Text>
-            </View>
-          </ProgressRing>
-          <Text style={styles.ringHint}>
-            {progress >= 1 ? "Target hit — nicely done 💧" : `${Math.round(progress * 100)}% of today's target`}
-          </Text>
+        {/* ── Hero ring ── */}
+        <RingHero
+          brand="FUELIFY"
+          percent={Math.round(metrics.intakePct)}
+          label={"HYDRATION"}
+          level={metricLevel(metrics.intakePct)}
+          subText={`${(hydrationMl / 1000).toFixed(2)}L of ${(targetMl / 1000).toFixed(1)}L target`}
+        />
+
+        {/* ── Metric breakdown ── */}
+        <View style={styles.card}>
+          <MetricRow
+            icon={Droplets}
+            label="INTAKE VS. TARGET"
+            value={`${metrics.intakePct}%`}
+            level={metricLevel(metrics.intakePct)}
+          />
+          <MetricRow
+            icon={Sunrise}
+            label="MORNING START"
+            value={`${metrics.morningPct}%`}
+            level={metricLevel(metrics.morningPct)}
+          />
+          <MetricRow
+            icon={GlassWater}
+            label="DRINKS LOGGED"
+            value={`${log.length}/${SIP_GOAL}`}
+            level={metricLevel(metrics.sipsPct)}
+          />
+          <MetricRow
+            icon={Clock3}
+            label="PACE VS. CLOCK"
+            value={`${metrics.pacePct}%`}
+            level={metricLevel(metrics.pacePct)}
+            last
+          />
+          <MetricLegend />
         </View>
 
-        {/* Quick add */}
+        {/* ── Quick add ── */}
         <View style={styles.quickRow}>
           <Pressable
             onPress={() => handleAdd(250)}
             style={({ pressed }) => [styles.quickBtn, pressed && { opacity: 0.7, transform: [{ scale: 0.96 }] }]}
+            accessibilityRole="button"
+            accessibilityLabel="Add a glass, 250 millilitres"
           >
-            <Text style={styles.quickBtnText}>+250ml</Text>
+            <GlassWater size={18} color={RING_ACCENT} />
+            <Text style={styles.quickBtnText}>Glass · 250ml</Text>
           </Pressable>
           <Pressable
             onPress={() => handleAdd(500)}
             style={({ pressed }) => [styles.quickBtn, pressed && { opacity: 0.7, transform: [{ scale: 0.96 }] }]}
+            accessibilityRole="button"
+            accessibilityLabel="Add a bottle, 500 millilitres"
           >
-            <Text style={styles.quickBtnText}>+500ml</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => {
-              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setShowCustom(true);
-            }}
-            style={({ pressed }) => [styles.quickBtnGhost, pressed && { opacity: 0.7 }]}
-          >
-            <Text style={styles.quickBtnGhostText}>Custom</Text>
+            <Droplets size={18} color={RING_ACCENT} />
+            <Text style={styles.quickBtnText}>Bottle · 500ml</Text>
           </Pressable>
         </View>
+        <Pressable
+          onPress={() => {
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setShowCustom(true);
+          }}
+          style={({ pressed }) => [styles.customBtn, pressed && { opacity: 0.7 }]}
+          accessibilityRole="button"
+          accessibilityLabel="Add a custom amount"
+        >
+          <Text style={styles.customBtnText}>Custom amount</Text>
+        </Pressable>
 
         {/* Warnings (NATA 2017) */}
         {warnings.map((w, i) => (
@@ -157,14 +230,17 @@ export default function HydrationScreen() {
 
         {/* Today's log */}
         <View style={styles.logCard}>
-          <Text style={styles.logTitle}>Today&apos;s log</Text>
+          <View style={styles.logHeader}>
+            <Text style={styles.logTitle}>Today&apos;s log</Text>
+            <Text style={styles.logCount}>{log.length} {log.length === 1 ? "entry" : "entries"}</Text>
+          </View>
           {log.length === 0 ? (
-            <Text style={styles.logEmpty}>No drinks logged yet — tap +250ml to start.</Text>
+            <Text style={styles.logEmpty}>No drinks logged yet — tap a glass to start.</Text>
           ) : (
             [...log].reverse().map((entry, i) => (
               <View key={`${entry.time}-${i}`} style={styles.logRow}>
                 <Text style={styles.logTime}>{entry.time}</Text>
-                <Text style={styles.logMl}>{entry.ml}ml</Text>
+                <Text style={styles.logMl}>+{entry.ml}ml</Text>
               </View>
             ))
           )}
@@ -200,6 +276,33 @@ export default function HydrationScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      {/* Info modal */}
+      <Modal visible={infoOpen} transparent animationType="fade">
+        <Pressable style={styles.modalOverlay} onPress={() => setInfoOpen(false)}>
+          <Pressable style={styles.modalCard} onPress={() => undefined}>
+            <Text style={styles.modalTitle}>How this is measured</Text>
+            <Text style={styles.infoText}>
+              <Text style={styles.infoBold}>Intake vs. target</Text> — today&apos;s logged drinks
+              against your personal daily target.{"\n\n"}
+              <Text style={styles.infoBold}>Morning start</Text> — how much you drank before noon
+              against 30% of the target; front-loading helps performance.{"\n\n"}
+              <Text style={styles.infoBold}>Drinks logged</Text> — sips today against a steady
+              {` ${SIP_GOAL}`}-drink rhythm.{"\n\n"}
+              <Text style={styles.infoBold}>Pace vs. clock</Text> — whether you&apos;re ahead of or
+              behind where you should be at this hour.{"\n\n"}
+              Hydration isn&apos;t auto-tracked — log each drink as you have it and the ring and
+              metrics update instantly.
+            </Text>
+            <Pressable
+              onPress={() => setInfoOpen(false)}
+              style={({ pressed }) => [styles.modalSave, pressed && { opacity: 0.9 }]}
+            >
+              <Text style={styles.modalSaveText}>Got it</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -207,14 +310,14 @@ export default function HydrationScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.bg1,
+    backgroundColor: Colors.bg0,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingBottom: 10,
+    paddingBottom: 6,
   },
   backBtn: {
     width: 40,
@@ -224,9 +327,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   headerTitle: {
-    fontSize: 17,
-    fontWeight: "700" as const,
-    color: Colors.text,
+    fontSize: 13,
+    fontWeight: "700",
+    color: "rgba(241,245,249,0.85)",
+    letterSpacing: 2,
   },
   scroll: {
     flex: 1,
@@ -234,140 +338,146 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 16,
   },
-  ringWrap: {
-    alignItems: "center",
-    paddingVertical: 20,
-  },
-  ringCenter: {
-    position: "absolute",
-    alignItems: "center",
-  },
-  ringValue: {
-    fontSize: 30,
-    fontWeight: "800" as const,
-    color: Colors.text,
-  },
-  ringUnit: {
-    fontSize: 14,
-    fontWeight: "600" as const,
-    color: Colors.textSecondary,
-    marginTop: 2,
-  },
-  ringHint: {
-    fontSize: 12,
-    color: Colors.textSecondary,
+  card: {
+    backgroundColor: Colors.bg2,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(241,245,249,0.06)",
+    padding: 16,
     marginTop: 12,
   },
+
   quickRow: {
     flexDirection: "row",
     gap: 10,
-    marginBottom: 14,
+    marginTop: 14,
   },
   quickBtn: {
     flex: 1,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: Colors.bg3,
     borderWidth: 1,
-    borderColor: Colors.accentLight,
+    borderColor: "rgba(241,245,249,0.1)",
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: "center",
+    gap: 6,
   },
   quickBtnText: {
-    fontSize: 14,
-    fontWeight: "700" as const,
-    color: Colors.primary,
+    fontSize: 13,
+    fontWeight: "700",
+    color: Colors.text,
+    letterSpacing: 0.2,
   },
-  quickBtnGhost: {
-    flex: 1,
-    backgroundColor: Colors.surface,
+  customBtn: {
+    backgroundColor: "transparent",
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: "rgba(241,245,249,0.12)",
     borderRadius: 14,
-    paddingVertical: 14,
+    paddingVertical: 12,
     alignItems: "center",
+    marginTop: 10,
   },
-  quickBtnGhostText: {
-    fontSize: 14,
-    fontWeight: "600" as const,
+  customBtnText: {
+    fontSize: 13,
+    fontWeight: "600",
     color: Colors.textSecondary,
+    letterSpacing: 0.4,
   },
+
   warningCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.bg2,
     borderLeftWidth: 3,
     borderLeftColor: Colors.primary,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
+    borderColor: "rgba(241,245,249,0.06)",
     padding: 12,
-    marginBottom: 10,
+    marginTop: 12,
   },
   warningAmber: {
-    borderLeftColor: "#F59E0B",
+    borderLeftColor: "#F5A623",
   },
   warningText: {
     fontSize: 12,
     lineHeight: 18,
     color: Colors.text,
   },
+
   logCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 14,
+    backgroundColor: Colors.bg2,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
-    padding: 14,
-    marginBottom: 14,
+    borderColor: "rgba(241,245,249,0.06)",
+    padding: 16,
+    marginTop: 12,
+  },
+  logHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 6,
   },
   logTitle: {
-    fontSize: 13,
-    fontWeight: "700" as const,
+    fontSize: 15,
+    fontWeight: "700",
     color: Colors.text,
-    marginBottom: 8,
+    letterSpacing: -0.2,
+  },
+  logCount: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: Colors.textTertiary,
   },
   logEmpty: {
     fontSize: 12,
     color: Colors.textTertiary,
+    paddingVertical: 8,
   },
   logRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingVertical: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    paddingVertical: 9,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "rgba(241,245,249,0.08)",
   },
   logTime: {
     fontSize: 13,
     color: Colors.textSecondary,
+    fontVariant: ["tabular-nums"],
   },
   logMl: {
     fontSize: 13,
-    fontWeight: "600" as const,
-    color: Colors.primary,
+    fontWeight: "700",
+    color: RING_ACCENT,
+    fontVariant: ["tabular-nums"],
   },
+
   sourceTag: {
     fontSize: 10,
     color: Colors.textTertiary,
     fontStyle: "italic",
-    marginTop: 8,
+    marginTop: 16,
     textAlign: "center",
   },
+
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
+    backgroundColor: "rgba(0,0,0,0.7)",
     alignItems: "center",
     justifyContent: "center",
     padding: 24,
   },
   modalCard: {
     backgroundColor: Colors.bg2,
-    borderRadius: 16,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: "rgba(241,245,249,0.08)",
     padding: 20,
     width: "100%",
   },
   modalTitle: {
     fontSize: 15,
-    fontWeight: "700" as const,
+    fontWeight: "700",
     color: Colors.text,
     marginBottom: 12,
     textAlign: "center",
@@ -375,7 +485,7 @@ const styles = StyleSheet.create({
   modalInput: {
     backgroundColor: Colors.bg3,
     borderWidth: 1,
-    borderColor: Colors.borderLight,
+    borderColor: "rgba(241,245,249,0.12)",
     borderRadius: 10,
     color: Colors.text,
     fontSize: 18,
@@ -392,7 +502,16 @@ const styles = StyleSheet.create({
   },
   modalSaveText: {
     fontSize: 14,
-    fontWeight: "700" as const,
+    fontWeight: "700",
     color: Colors.textInverse,
+  },
+  infoText: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: Colors.textSecondary,
+  },
+  infoBold: {
+    fontWeight: "700",
+    color: Colors.text,
   },
 });

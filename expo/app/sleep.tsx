@@ -1,13 +1,28 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Stack, useRouter } from "expo-router";
-import { ArrowDownRight, ArrowLeft, ArrowUpRight, BatteryCharging, Check, CheckCircle2, Moon, Sparkles, TrendingDown, Zap } from "lucide-react-native";
+import {
+  ArrowDownRight,
+  ArrowLeft,
+  ArrowUpRight,
+  BatteryCharging,
+  CalendarCheck2,
+  Gauge,
+  Info,
+  Moon,
+  Pencil,
+  Sparkles,
+  TrendingDown,
+  Watch,
+  Zap,
+} from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 import { getLocalDateString } from "@/constants/dayTypes";
 import SleepWheelPicker from "@/components/SleepWheelPicker";
 import SleepTrendChart from "@/components/SleepTrendChart";
+import { MetricLegend, MetricRow, RingHero, rangeLabel, metricLevel } from "@/components/PerformanceScorecard";
 import { useMealPlan } from "@/providers/MealPlanProvider";
 import { useToday } from "@/providers/TodayProvider";
 import {
@@ -20,6 +35,7 @@ import {
   type SleepDiagnosisLevel,
   type SleepLog,
 } from "@/lib/sleepEngine";
+import { sleepPerformance } from "@/lib/sleepPerformance";
 
 const DIAGNOSIS_STYLES: Record<SleepDiagnosisLevel, { color: string; icon: typeof Zap }> = {
   optimal: { color: Colors.primary, icon: Sparkles },
@@ -29,26 +45,27 @@ const DIAGNOSIS_STYLES: Record<SleepDiagnosisLevel, { color: string; icon: typeo
 };
 
 /**
- * Sleep detail screen — wheel-based nightly log, a weekly trend chart with
- * range pills, and a performance & recovery diagnosis. The home dashboard
- * keeps a compact mini card that pushes into this screen.
+ * Sleep performance screen — WHOOP-style hero ring with a metric breakdown
+ * (hours vs. needed, consistency, efficiency, sleep stress), last night's
+ * sleep with inline editing, the weekly trend chart and a recovery diagnosis.
+ * Built as the landing surface for automatic wristband tracking; logging is
+ * manual via the edit sheet until a device is connected.
  */
 export default function SleepScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { profile } = useMealPlan();
   const { todayData } = useToday();
-
-  const isMatchEve = todayData?.tomorrow.dayType === "match";
   const target = getSleepTarget(profile.age || 20);
 
   const [log, setLog] = useState<SleepLog>({});
   const [hours, setHours] = useState(7);
   const [minutes, setMinutes] = useState(30);
   const [range, setRange] = useState<7 | 30>(7);
-  const [justLogged, setJustLogged] = useState(false);
-  // Today's date key — rolls over at midnight so the "logged" check resets.
+  // Today's date key — rolls over at midnight so the log state resets.
   const [dateKey, setDateKey] = useState(() => getLocalDateString());
+  const [editOpen, setEditOpen] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -82,23 +99,35 @@ export default function SleepScreen() {
   const weekAvg = useMemo(() => averageForRange(log, 0, 7), [log]);
   const prevAvg = useMemo(() => averageForRange(log, 7, 7), [log]);
   const diagnosis = useMemo(() => sleepDiagnosis(log, profile.age || 20), [log, profile.age]);
+  const perf = useMemo(() => sleepPerformance(log, profile.age || 20), [log, profile.age]);
+
   const DeltaIcon = weekAvg !== null && prevAvg !== null && weekAvg < prevAvg ? ArrowDownRight : ArrowUpRight;
   const delta = weekAvg !== null && prevAvg !== null ? Math.round((weekAvg - prevAvg) * 10) / 10 : null;
   const deltaPositive = delta !== null && delta >= 0;
 
-  // Done-check for today — back to "awaiting" automatically at midnight.
-  const todayHours = log[dateKey];
-  const loggedToday = typeof todayHours === "number" && todayHours > 0;
+  const loggedToday = perf.lastNightHours !== null;
 
-  const handleLog = useCallback(async () => {
+  const openEdit = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setEditOpen(true);
+  }, []);
+
+  const saveEdit = useCallback(async () => {
     const total = hours + minutes / 60;
     if (total <= 0 || total > 24) return;
-    await saveSleepHours(getLocalDateString(), total);
+    await saveSleepHours(dateKey, total);
     setLog(await loadSleepLog());
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
-    setJustLogged(true);
-    setTimeout(() => setJustLogged(false), 1600);
+    setEditOpen(false);
   }, [hours, minutes, dateKey]);
+
+  const formatHours = (h: number | null) => {
+    if (h === null) return "–";
+    const hh = Math.floor(h);
+    const mm = Math.round((h - hh) * 60);
+    if (mm === 0) return `${hh}h`;
+    return `${hh}h ${String(mm).padStart(2, "0")}m`;
+  };
 
   return (
     <View style={styles.container}>
@@ -115,8 +144,18 @@ export default function SleepScreen() {
         >
           <ArrowLeft size={22} color={Colors.text} />
         </Pressable>
-        <Text style={styles.headerTitle}>Sleep</Text>
-        <View style={styles.backBtn} />
+        <Text style={styles.headerTitle}>{rangeLabel(6)}</Text>
+        <Pressable
+          onPress={() => {
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setInfoOpen(true);
+          }}
+          style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}
+          accessibilityRole="button"
+          accessibilityLabel="How these metrics are calculated"
+        >
+          <Info size={20} color="rgba(241,245,249,0.5)" />
+        </Pressable>
       </View>
 
       <ScrollView
@@ -124,50 +163,95 @@ export default function SleepScreen() {
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Large title, iOS style */}
-        <Text style={styles.largeTitle}>Sleep</Text>
-        <Text style={styles.largeSubtitle}>
-          Log last night, watch your week, and see how it fuels recovery.
-        </Text>
+        {/* ── Hero: sleep performance ring ── */}
+        <RingHero
+          brand="FUELIFY"
+          percent={perf.performance}
+          label={"SLEEP\nPERFORMANCE"}
+          level={perf.performance !== null ? metricLevel(perf.performance) : null}
+          subText={
+            loggedToday
+              ? `Last night: ${formatHours(perf.lastNightHours)} against a ${perf.neededHours}h need`
+              : "Awaiting tonight's log — open Last Night's Sleep below"
+          }
+        />
 
-        {/* ── Log card: wheel picker + done-check ── */}
+        {/* ── Metric breakdown ── */}
         <View style={styles.card}>
-          <View style={styles.logHeaderRow}>
-            <Text style={styles.cardLabel}>Last night</Text>
-            {loggedToday ? (
-              <View style={styles.loggedPill}>
-                <CheckCircle2 size={13} color={Colors.primary} strokeWidth={2.4} />
-                <Text style={styles.loggedPillText}>Logged for today</Text>
-              </View>
-            ) : null}
-          </View>
-          <SleepWheelPicker
-            hours={hours}
-            minutes={minutes}
-            onHoursChange={setHours}
-            onMinutesChange={setMinutes}
+          <MetricRow
+            icon={Moon}
+            label="HOURS VS. NEEDED"
+            value={perf.hoursVsNeeded !== null ? `${perf.hoursVsNeeded}%` : "–"}
+            level={perf.hoursVsNeeded !== null ? metricLevel(perf.hoursVsNeeded) : null}
           />
-          <Pressable
-            onPress={() => void handleLog()}
-            style={({ pressed }) => [
-              styles.logButton,
-              loggedToday && !justLogged && styles.logButtonDone,
-              pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel={loggedToday ? "Sleep logged — tap to adjust" : "Log sleep"}
-          >
-            {justLogged ? (
-              <Check size={18} color={Colors.textInverse} strokeWidth={3} />
-            ) : (
-              <Text style={styles.logButtonText}>{loggedToday ? "Adjust tonight's log" : "Log sleep"}</Text>
-            )}
-          </Pressable>
-          <Text style={styles.targetText}>
-            {loggedToday
-              ? `Logged ${todayHours}h · resets tonight at midnight`
-              : `Your target: ${target.min}–${target.max}h, age-adjusted`}
-          </Text>
+          <MetricRow
+            icon={CalendarCheck2}
+            label="SLEEP CONSISTENCY"
+            value={perf.consistency !== null ? `${perf.consistency}%` : "–"}
+            level={perf.consistency !== null ? metricLevel(perf.consistency) : null}
+          />
+          <MetricRow
+            icon={Gauge}
+            label="SLEEP EFFICIENCY"
+            value={perf.efficiency !== null ? `${perf.efficiency}%` : "–"}
+            level={perf.efficiency !== null ? metricLevel(perf.efficiency) : null}
+          />
+          <MetricRow
+            icon={Zap}
+            label="HIGH SLEEP STRESS"
+            value={perf.sleepStress !== null ? `${perf.sleepStress}%` : "–"}
+            level={perf.sleepStress !== null ? metricLevel(perf.sleepStress, true) : null}
+            last
+          />
+          <MetricLegend />
+        </View>
+
+        {/* ── Last night's sleep ── */}
+        <View style={styles.card}>
+          <View style={styles.lastNightHeader}>
+            <Text style={styles.lastNightTitle}>Last Night&apos;s Sleep</Text>
+            <Pressable
+              onPress={openEdit}
+              style={({ pressed }) => [styles.editBtn, pressed && { opacity: 0.6 }]}
+              accessibilityRole="button"
+              accessibilityLabel="Edit last night's sleep"
+            >
+              <Text style={styles.editText}>EDIT</Text>
+              <Pencil size={13} color={Colors.primary} />
+            </Pressable>
+          </View>
+
+          <View style={styles.lastNightRow}>
+            <Text style={styles.lastNightLabel}>HOURS OF SLEEP</Text>
+            <Text style={styles.lastNightValue}>{formatHours(loggedToday ? perf.lastNightHours : null)}</Text>
+          </View>
+          <View style={[styles.lastNightRow, styles.lastNightRowLast]}>
+            <Text style={styles.lastNightLabel}>VS NEEDED</Text>
+            <Text
+              style={[
+                styles.lastNightValue,
+                {
+                  color:
+                    perf.lastNightHours === null
+                      ? Colors.text
+                      : perf.lastNightHours >= perf.neededHours
+                        ? Colors.success
+                        : Colors.warning,
+                },
+              ]}
+            >
+              {perf.lastNightHours === null
+                ? "–"
+                : `${perf.lastNightHours >= perf.neededHours ? "+" : ""}${(perf.lastNightHours - perf.neededHours).toFixed(1)}h`}
+            </Text>
+          </View>
+
+          <View style={styles.deviceRow}>
+            <Watch size={13} color="rgba(241,245,249,0.45)" />
+            <Text style={styles.deviceText}>
+              {loggedToday ? "Logged manually" : "No sleep logged yet"} · wristband auto-tracking coming soon
+            </Text>
+          </View>
         </View>
 
         {/* ── Trend card: headline + chart + range pills ── */}
@@ -238,7 +322,7 @@ export default function SleepScreen() {
           <Text style={styles.diagnosisTag}>Performance &amp; recovery impact</Text>
         </View>
 
-        {isMatchEve ? (
+        {todayData?.tomorrow.dayType === "match" ? (
           <View style={styles.noteCard}>
             <Text style={styles.noteTitle}>Match eve protocol</Text>
             <Text style={styles.noteBody}>{SLEEP_MATCH_EVE_TEXT}</Text>
@@ -249,6 +333,60 @@ export default function SleepScreen() {
           Source: Walsh et al. 2021 — sleep targets 9–11h (under 14), 8–10h (under 18), 7–9h (adults)
         </Text>
       </ScrollView>
+
+      {/* ── Edit sheet: wheel picker ── */}
+      <Modal visible={editOpen} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Last night&apos;s sleep</Text>
+            <SleepWheelPicker hours={hours} minutes={minutes} onHoursChange={setHours} onMinutesChange={setMinutes} />
+            <View style={styles.modalBtnRow}>
+              <Pressable
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setEditOpen(false);
+                }}
+                style={({ pressed }) => [styles.modalCancel, pressed && { opacity: 0.7 }]}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => void saveEdit()}
+                style={({ pressed }) => [styles.modalSave, pressed && { opacity: 0.85 }]}
+              >
+                <Text style={styles.modalSaveText}>Save</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── Info sheet: how metrics work ── */}
+      <Modal visible={infoOpen} transparent animationType="fade">
+        <Pressable style={styles.modalOverlay} onPress={() => setInfoOpen(false)}>
+          <Pressable style={styles.modalCard} onPress={() => undefined}>
+            <Text style={styles.modalTitle}>How this is measured</Text>
+            <Text style={styles.infoText}>
+              <Text style={styles.infoBold}>Hours vs. needed</Text> — last night against your age-based
+              sleep need ({perf.neededHours}h).{"\n\n"}
+              <Text style={styles.infoBold}>Sleep consistency</Text> — how many of your logged nights
+              this week reached your target minimum.{"\n\n"}
+              <Text style={styles.infoBold}>Sleep efficiency</Text> — your weekly average against the
+              target midpoint.{"\n\n"}
+              <Text style={styles.infoBold}>High sleep stress</Text> — the opposite: 0% means your
+              routine fully covers recovery, higher means a larger shortfall.{"\n\n"}
+              Until your Fuelify wristband is connected, nights are logged manually — every value
+              updates the moment you save.
+            </Text>
+            <Pressable
+              onPress={() => setInfoOpen(false)}
+              style={({ pressed }) => [styles.modalSave, pressed && { opacity: 0.85 }]}
+            >
+              <Text style={styles.modalSaveText}>Got it</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -256,14 +394,14 @@ export default function SleepScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.bg1,
+    backgroundColor: Colors.bg0,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingBottom: 10,
+    paddingBottom: 6,
   },
   backBtn: {
     width: 40,
@@ -273,10 +411,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   headerTitle: {
-    fontSize: 17,
-    fontWeight: "600",
-    color: Colors.text,
-    letterSpacing: -0.2,
+    fontSize: 13,
+    fontWeight: "700",
+    color: "rgba(241,245,249,0.85)",
+    letterSpacing: 2,
   },
   scroll: {
     flex: 1,
@@ -284,79 +422,77 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 16,
   },
-  largeTitle: {
-    fontSize: 34,
-    fontWeight: "700",
-    color: Colors.text,
-    letterSpacing: 0.37,
-    marginTop: 8,
-  },
-  largeSubtitle: {
-    fontSize: 15,
-    lineHeight: 21,
-    color: Colors.textSecondary,
-    marginTop: 6,
-    marginBottom: 20,
-  },
   card: {
-    backgroundColor: Colors.surface,
-    borderRadius: 20,
+    backgroundColor: Colors.bg2,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
-    padding: 18,
-    marginBottom: 14,
+    borderColor: "rgba(241,245,249,0.06)",
+    padding: 16,
+    marginTop: 12,
   },
-  cardLabel: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: Colors.textSecondary,
-    marginBottom: 14,
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
-  },
-  logHeaderRow: {
+
+  lastNightHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 14,
+    marginBottom: 6,
   },
-  loggedPill: {
+  lastNightTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: Colors.text,
+    letterSpacing: -0.4,
+  },
+  editBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
-    backgroundColor: Colors.primaryLight,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    minHeight: 32,
   },
-  loggedPillText: {
+  editText: {
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "700",
     color: Colors.primary,
+    letterSpacing: 1.2,
   },
-  logButton: {
-    backgroundColor: Colors.primary,
-    borderRadius: 14,
-    minHeight: 50,
+  lastNightRow: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    marginTop: 16,
+    justifyContent: "space-between",
+    paddingVertical: 13,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "rgba(241,245,249,0.08)",
   },
-  logButtonDone: {
-    backgroundColor: Colors.bg4,
+  lastNightRowLast: {
+    borderBottomWidth: 0,
   },
-  logButtonText: {
-    fontSize: 17,
-    fontWeight: "600",
-    color: Colors.textInverse,
-    letterSpacing: -0.2,
+  lastNightLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "rgba(241,245,249,0.5)",
+    letterSpacing: 1.4,
   },
-  targetText: {
-    fontSize: 13,
-    color: Colors.textTertiary,
-    textAlign: "center",
-    marginTop: 12,
+  lastNightValue: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: Colors.text,
+    fontVariant: ["tabular-nums"],
   },
+  deviceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "rgba(241,245,249,0.08)",
+  },
+  deviceText: {
+    flex: 1,
+    fontSize: 11,
+    color: "rgba(241,245,249,0.45)",
+  },
+
   chartEyebrow: {
     fontSize: 13,
     fontWeight: "600",
@@ -403,6 +539,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     padding: 3,
     gap: 2,
+    marginTop: 12,
   },
   rangePill: {
     minHeight: 34,
@@ -423,6 +560,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontWeight: "600",
   },
+
   diagnosisHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -457,13 +595,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
   },
   noteCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.bg2,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
+    borderColor: "rgba(241,245,249,0.06)",
     padding: 16,
-    marginTop: 4,
-    marginBottom: 14,
+    marginTop: 12,
   },
   noteTitle: {
     fontSize: 15,
@@ -482,6 +619,69 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     color: Colors.textTertiary,
     textAlign: "center",
-    marginTop: 4,
+    marginTop: 16,
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+  },
+  modalCard: {
+    backgroundColor: Colors.bg2,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(241,245,249,0.08)",
+    padding: 20,
+    width: "100%",
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: Colors.text,
+    textAlign: "center",
+    marginBottom: 10,
+  },
+  modalBtnRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 16,
+  },
+  modalCancel: {
+    flex: 1,
+    backgroundColor: Colors.bg4,
+    borderRadius: 14,
+    minHeight: 48,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalCancelText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: Colors.textSecondary,
+  },
+  modalSave: {
+    flex: 1,
+    backgroundColor: Colors.primary,
+    borderRadius: 14,
+    minHeight: 48,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalSaveText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: Colors.textInverse,
+  },
+  infoText: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: Colors.textSecondary,
+  },
+  infoBold: {
+    fontWeight: "700",
+    color: Colors.text,
   },
 });
