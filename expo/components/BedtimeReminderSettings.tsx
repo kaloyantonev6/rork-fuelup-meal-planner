@@ -4,6 +4,7 @@ import { useFocusEffect } from "expo-router";
 import { MoonStar } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
+import { fonts } from "@/constants/design";
 import { TimeWheelPicker } from "@/components/SleepWheelPicker";
 import { useMealPlan } from "@/providers/MealPlanProvider";
 import { useNotifications } from "@/providers/NotificationProvider";
@@ -140,7 +141,7 @@ const styles = StyleSheet.create({
   },
   wakeLabel: {
     fontSize: 13,
-    fontWeight: "600",
+    fontFamily: fonts.display,
     color: Colors.textSecondary,
     textTransform: "uppercase",
     letterSpacing: 0.6,
@@ -160,7 +161,7 @@ const styles = StyleSheet.create({
   },
   suggestionTime: {
     fontSize: 28,
-    fontWeight: "700",
+    fontFamily: fonts.display,
     color: Colors.text,
     letterSpacing: 0.3,
     fontVariant: ["tabular-nums"],

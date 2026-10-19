@@ -14,6 +14,7 @@ import {
 import * as Haptics from "expo-haptics";
 import { Check } from "lucide-react-native";
 import Colors from "@/constants/colors";
+import { fonts } from "@/constants/design";
 import type { DayType } from "@/types";
 import {
   DAY_ABBREVIATIONS,
@@ -429,7 +430,7 @@ const styles = StyleSheet.create({
   },
   presetsTitle: {
     fontSize: 12,
-    fontWeight: "700" as const,
+    fontFamily: fonts.display,
     color: Colors.textSecondary,
     letterSpacing: 0.5,
     textTransform: "uppercase" as const,

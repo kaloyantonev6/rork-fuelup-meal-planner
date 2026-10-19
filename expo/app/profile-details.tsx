@@ -28,6 +28,7 @@ import {
 import * as Haptics from "expo-haptics";
 
 import Colors from "@/constants/colors";
+import ScreenBackground from "@/components/ui/ScreenBackground";
 import { useMealPlan } from "@/providers/MealPlanProvider";
 import {
   FOOTBALL_POSITIONS,
@@ -291,6 +292,7 @@ export default function ProfileDetailsScreen() {
 
   return (
     <View style={styles.container}>
+      <ScreenBackground />
       <Stack.Screen options={{ headerShown: false }} />
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <Pressable

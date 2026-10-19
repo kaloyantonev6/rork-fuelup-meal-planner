@@ -4,6 +4,7 @@ import { StyleSheet, Text } from "react-native";
 import React from "react";
 
 import Colors from "@/constants/colors";
+import { fonts } from "@/constants/design";
 import AnimatedTabIcon from "@/components/ui/AnimatedTabIcon";
 
 export default function TabLayout() {
@@ -11,11 +12,13 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors.tint,
-        tabBarInactiveTintColor: Colors.textSecondary,
+        tabBarInactiveTintColor: Colors.tabIconDefault,
         tabBarStyle: {
-          backgroundColor: Colors.bg2,
-          borderTopColor: Colors.border,
+          backgroundColor: Colors.tabBar,
+          borderTopColor: "rgba(255,255,255,0.06)",
+          borderTopWidth: StyleSheet.hairlineWidth,
         },
+        sceneStyle: { backgroundColor: Colors.bg0 },
         headerShown: false,
         lazy: false,
         animation: "shift",
@@ -79,9 +82,9 @@ export default function TabLayout() {
 
 const tabStyles = StyleSheet.create({
   label: {
-    fontSize: 10,
-    fontWeight: "600" as const,
-    letterSpacing: 0.5,
+    fontFamily: fonts.label,
+    fontSize: 11,
+    letterSpacing: 0.6,
     marginTop: 2,
   },
 });

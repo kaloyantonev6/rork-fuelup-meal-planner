@@ -17,6 +17,7 @@ import {
 import * as Haptics from "expo-haptics";
 
 import Colors from "@/constants/colors";
+import ScreenBackground from "@/components/ui/ScreenBackground";
 import { useMealPlan } from "@/providers/MealPlanProvider";
 import {
   DIET_TYPES,
@@ -206,6 +207,7 @@ export default function NutritionDetailsScreen() {
 
   return (
     <View style={styles.container}>
+      <ScreenBackground />
       <Stack.Screen options={{ headerShown: false }} />
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <Pressable

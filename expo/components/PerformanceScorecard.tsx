@@ -2,6 +2,7 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import type { LucideIcon } from "lucide-react-native";
 import Colors from "@/constants/colors";
+import { fonts } from "@/constants/design";
 import ProgressRing from "@/components/ui/ProgressRing";
 import { metricLevel } from "@/lib/sleepPerformance";
 
@@ -11,8 +12,8 @@ import { metricLevel } from "@/lib/sleepPerformance";
  * three-dash level bar, and the Poor / Sufficient / Optimal legend.
  */
 
-export const LEVEL_COLORS = ["#F5A623", "#8A93A6", "#34D399"] as const; // poor, sufficient, optimal
-export const RING_ACCENT = "#8FB8DC"; // desaturated ice blue — the hero arc
+export const LEVEL_COLORS = ["#F5A623", "#8A949C", "#2EE6B0"] as const; // poor, sufficient, optimal
+export const RING_ACCENT = Colors.metricSleep; // desaturated ice blue — the hero arc
 
 // ── Hero ring ────────────────────────────────────────────────────────────────
 
@@ -49,7 +50,7 @@ export function RingHero({
         size={size}
         strokeWidth={strokeWidth}
         color={ringColor}
-        trackColor={Colors.bg4}
+        trackColor={Colors.metricTrack}
       >
         <View style={hero.center}>
           {brand ? <Text style={hero.brand}>{brand}</Text> : null}
@@ -68,7 +69,7 @@ export function RingHero({
                 key={i}
                 style={[
                   hero.dash,
-                  { backgroundColor: level !== null && i === level ? LEVEL_COLORS[level] : "#3A4149" },
+                  { backgroundColor: level !== null && i === level ? LEVEL_COLORS[level] : "#3A444C" },
                 ]}
               />
             ))}
@@ -91,30 +92,30 @@ const hero = StyleSheet.create({
     width: "100%",
   },
   brand: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "rgba(241,245,249,0.45)",
-    letterSpacing: 4,
+    fontFamily: fonts.medium,
+    fontSize: 14,
+    color: "rgba(255,255,255,0.5)",
+    letterSpacing: 6,
     marginBottom: 6,
   },
   value: {
-    fontSize: 60,
-    fontWeight: "800",
+    fontFamily: fonts.display,
+    fontSize: 66,
     color: Colors.text,
     letterSpacing: -1,
     fontVariant: ["tabular-nums"],
-    lineHeight: 66,
+    lineHeight: 72,
   },
   unit: {
-    fontSize: 26,
-    fontWeight: "700",
-    color: "rgba(241,245,249,0.55)",
+    fontFamily: fonts.label,
+    fontSize: 32,
+    color: Colors.text,
   },
   label: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "rgba(241,245,249,0.75)",
-    letterSpacing: 2.5,
+    fontFamily: fonts.display,
+    fontSize: 14,
+    color: Colors.text,
+    letterSpacing: 2.2,
     marginTop: 4,
     textAlign: "center",
   },
@@ -161,7 +162,7 @@ export function MetricRow({ icon: Icon, label, value, level, last = false }: Met
               row.barDash,
               {
                 backgroundColor:
-                  level !== null && i === level ? LEVEL_COLORS[level] : "#2A313B",
+                  level !== null && i === level ? LEVEL_COLORS[level] : "#323B42",
               },
             ]}
           />
@@ -185,10 +186,10 @@ const row = StyleSheet.create({
   },
   label: {
     flex: 1,
-    fontSize: 12,
-    fontWeight: "700",
-    color: "rgba(241,245,249,0.85)",
-    letterSpacing: 1.4,
+    fontFamily: fonts.display,
+    fontSize: 13,
+    color: Colors.text,
+    letterSpacing: 1.6,
   },
   bar: {
     flexDirection: "row",
@@ -200,8 +201,8 @@ const row = StyleSheet.create({
     borderRadius: 2,
   },
   value: {
-    fontSize: 18,
-    fontWeight: "800",
+    fontFamily: fonts.display,
+    fontSize: 20,
     color: Colors.text,
     minWidth: 58,
     textAlign: "right",
@@ -228,7 +229,7 @@ const legend = StyleSheet.create({
   wrap: {
     flexDirection: "row",
     gap: 18,
-    backgroundColor: Colors.bg1,
+    backgroundColor: "rgba(0,0,0,0.35)",
     borderRadius: 10,
     paddingVertical: 9,
     paddingHorizontal: 14,
@@ -248,7 +249,7 @@ const legend = StyleSheet.create({
   text: {
     fontSize: 12,
     fontWeight: "500",
-    color: "rgba(241,245,249,0.7)",
+    color: "rgba(255,255,255,0.75)",
   },
 });
 

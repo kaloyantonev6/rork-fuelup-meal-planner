@@ -26,6 +26,35 @@ export const radius = {
   full: 999,
 } as const;
 
+/**
+ * Display families (Barlow — a DIN-style grotesk loaded at startup in the
+ * root layout). Used for big tabular numerals and tracked uppercase labels;
+ * body copy stays on the system font for an iOS-native reading feel.
+ */
+export const fonts = {
+  displayHeavy: "Barlow_800ExtraBold",
+  display: "Barlow_700Bold",
+  label: "Barlow_600SemiBold",
+  medium: "Barlow_500Medium",
+} as const;
+
+/** Tracked uppercase label — section headers, metric names, dial captions. */
+export const capsLabel = {
+  fontFamily: fonts.label,
+  fontSize: 12,
+  letterSpacing: 1.6,
+  textTransform: "uppercase" as const,
+  color: Colors.text,
+} as const;
+
+/** Large tabular numeral — dial values, hero stats. */
+export const displayNumber = {
+  fontFamily: fonts.display,
+  fontVariant: ["tabular-nums" as const],
+  color: Colors.text,
+  letterSpacing: -0.5,
+} as const;
+
 const bold = "700" as const;
 const semibold = "600" as const;
 const medium = "500" as const;
@@ -113,7 +142,7 @@ export const elevatedCardStyle = {
 
 /** Glass card — overlays, modals, premium upsell. */
 export const glassCardStyle = {
-  backgroundColor: "rgba(22, 26, 32, 0.85)",
+  backgroundColor: "rgba(28, 35, 40, 0.88)",
   borderRadius: radius.xl,
   padding: spacing.xl,
   borderWidth: 1,

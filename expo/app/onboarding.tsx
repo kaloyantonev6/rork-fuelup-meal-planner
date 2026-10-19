@@ -19,6 +19,7 @@ import { ArrowLeft, ArrowRight, Check, ChevronDown, Sparkles, Search } from "luc
 import * as Haptics from "expo-haptics";
 
 import Colors from "@/constants/colors";
+import { fonts } from "@/constants/design";
 import { BrandLogo } from "@/components/BrandLogo";
 import { useMealPlan } from "@/providers/MealPlanProvider";
 import {
@@ -957,7 +958,7 @@ const styles = StyleSheet.create({
   },
   budgetAmount: {
     fontSize: 32,
-    fontWeight: "800" as const,
+    fontFamily: fonts.display,
     color: Colors.text,
   },
   budgetDaily: {
@@ -1097,7 +1098,7 @@ const styles = StyleSheet.create({
   },
   legendTitle: {
     fontSize: 12,
-    fontWeight: "700" as const,
+    fontFamily: fonts.display,
     color: Colors.textSecondary,
     textTransform: "uppercase" as const,
     letterSpacing: 0.5,

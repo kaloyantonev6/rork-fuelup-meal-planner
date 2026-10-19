@@ -37,6 +37,8 @@ import { loadCycleSettings, saveCycleSettings, CYCLE_SOURCE_TAG, type CycleSetti
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
+import { fonts } from "@/constants/design";
+import ScreenBackground from "@/components/ui/ScreenBackground";
 import { useMealPlan } from "@/providers/MealPlanProvider";
 import { useAuth } from "@/providers/AuthProvider";
 import { useNotifications } from "@/providers/NotificationProvider";
@@ -153,7 +155,8 @@ export default function ProfileScreen() {
   const mealTimesSummary = mealRemindersEnabled ? "Reminders on" : "Reminders off";
 
   return (
-    <>
+    <View style={styles.screen}>
+      <ScreenBackground />
     <ScrollView
       style={[styles.container, { paddingTop: insets.top }]}
       contentContainerStyle={styles.content}
@@ -555,7 +558,7 @@ export default function ProfileScreen() {
       icon="⚽"
       onHide={() => setProgramToastVisible(false)}
     />
-    </>
+    </View>
   );
 }
 
@@ -588,9 +591,12 @@ function PrefRow({
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: Colors.bg0,
+  },
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
   },
   content: {
     paddingBottom: 20,
@@ -629,9 +635,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   name: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: "700" as const,
     color: Colors.text,
+    letterSpacing: -0.3,
   },
   goalText: {
     fontSize: 14,
@@ -674,9 +681,11 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: "700" as const,
-    color: Colors.text,
+    fontFamily: fonts.display,
+    fontSize: 13,
+    letterSpacing: 1.6,
+    textTransform: "uppercase" as const,
+    color: Colors.textSecondary,
     marginBottom: 10,
   },
   sleepSettingsWrap: {
@@ -689,7 +698,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.card,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
+    borderColor: "rgba(255,255,255,0.05)",
     padding: 14,
     marginBottom: 10,
   },
@@ -702,7 +711,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: "rgba(255,255,255,0.07)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -723,7 +732,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.card,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
+    borderColor: "rgba(255,255,255,0.05)",
     overflow: "hidden",
   },
   playerCard: {
@@ -736,7 +745,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: "rgba(255,255,255,0.07)",
     justifyContent: "center",
     alignItems: "center",
   },

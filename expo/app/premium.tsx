@@ -19,6 +19,8 @@ import {
   Gift,
 } from "lucide-react-native";
 import Colors from "@/constants/colors";
+import { fonts } from "@/constants/design";
+import ScreenBackground from "@/components/ui/ScreenBackground";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -69,6 +71,7 @@ export default function PremiumScreen() {
 
   return (
     <View style={styles.container}>
+      <ScreenBackground />
       <LinearGradient
         colors={["#134A2D", "#1B5E3A", "#2D8B56"]}
         style={[styles.headerBg, { paddingTop: insets.top + 8 }]}
@@ -350,7 +353,7 @@ const styles = StyleSheet.create({
   },
   freePrice: {
     fontSize: 32,
-    fontWeight: "800" as const,
+    fontFamily: fonts.display,
     color: Colors.text,
     marginBottom: 6,
   },
@@ -443,7 +446,7 @@ const styles = StyleSheet.create({
   },
   proPrice: {
     fontSize: 32,
-    fontWeight: "800" as const,
+    fontFamily: fonts.display,
     color: Colors.text,
     marginBottom: 2,
   },

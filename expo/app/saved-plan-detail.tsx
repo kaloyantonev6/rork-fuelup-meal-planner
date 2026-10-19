@@ -20,6 +20,7 @@ import {
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
+import { fonts } from "@/constants/design";
 import { GeneratedPlan, GeneratedMeal, compileShoppingList, ShoppingIngredient } from "@/utils/mealGenerator";
 import { useSavedPlans } from "@/providers/SavedPlansProvider";
 import { useMealPlan } from "@/providers/MealPlanProvider";
@@ -491,7 +492,7 @@ const styles = StyleSheet.create({
   },
   mealTypeText: {
     fontSize: 11,
-    fontWeight: "700" as const,
+    fontFamily: fonts.display,
     color: "#fff",
     textTransform: "uppercase" as const,
     letterSpacing: 0.5,

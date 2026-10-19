@@ -1,25 +1,25 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Alert,
   Animated,
   Easing,
+  Image,
   Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
   useWindowDimensions,
 } from "react-native";
-import Svg, { Circle } from "react-native-svg";
+import { LinearGradient } from "expo-linear-gradient";
 import { kvGet, kvSet } from "@/lib/database";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { Bell, Bot, ChevronDown, ChevronUp, Crown, ShoppingCart, Trophy, User, Zap } from "lucide-react-native";
+import { Bell, Bot, Check, ChevronRight, Crown, ShoppingCart, Trophy, User } from "lucide-react-native";
 
 import Colors from "@/constants/colors";
+import { fonts } from "@/constants/design";
 import { useMealPlan } from "@/providers/MealPlanProvider";
 import { useToday } from "@/providers/TodayProvider";
 import { useMealTracking } from "@/providers/MealTrackingProvider";
@@ -49,141 +49,14 @@ import {
   NOTIFICATION_PERMISSION_KEY,
 } from "@/constants/mealTimes";
 import { loadTodayHydration } from "@/lib/hydrationStore";
-import { getSleepTarget, loadSleepLog, weeklyAverage, type SleepLog } from "@/lib/sleepEngine";
+import { loadSleepLog, type SleepLog } from "@/lib/sleepEngine";
+import { sleepPerformance } from "@/lib/sleepPerformance";
 import TomorrowOverview from "@/components/TomorrowOverview";
 import Toast from "@/components/ui/Toast";
+import ScreenBackground from "@/components/ui/ScreenBackground";
+import { InsightCard, MetricDial, MonitorTile, SectionHeader, TopPill } from "@/components/ui/Dashboard";
 
-interface ActionBoxProps {
-  icon: React.ReactNode;
-  title: string;
-  subtitle: string;
-  buttonLabel: string;
-  onPress: () => void;
-  highlight?: boolean;
-}
-
-/** Bottom action card with a pill push button — spring press scale for tactile feedback. */
-function ActionBox({ icon, title, subtitle, buttonLabel, onPress, highlight = false }: ActionBoxProps) {
-  const scale = useRef(new Animated.Value(1)).current;
-
-  return (
-    <Pressable
-      style={[styles.actionBox, highlight && styles.actionBoxHighlight]}
-      onPress={onPress}
-      onPressIn={() => {
-        Animated.spring(scale, {
-          toValue: 0.96,
-          useNativeDriver: true,
-          speed: 50,
-          bounciness: 0,
-        }).start();
-      }}
-      onPressOut={() => {
-        Animated.spring(scale, {
-          toValue: 1,
-          useNativeDriver: true,
-          speed: 30,
-          bounciness: 4,
-        }).start();
-      }}
-    >
-      <Animated.View
-        style={{
-          transform: [{ scale }],
-          flex: 1,
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-        }}
-      >
-        <View style={styles.actionBoxTop}>
-          {icon}
-          <Text style={styles.actionBoxTitle}>{title}</Text>
-          <Text style={styles.actionBoxSubtitle}>{subtitle}</Text>
-        </View>
-        <View style={styles.actionBoxButton}>
-          <Text style={styles.actionBoxButtonText}>{buttonLabel}</Text>
-        </View>
-      </Animated.View>
-    </Pressable>
-  );
-}
-
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-
-interface FuelProgressRingProps {
-  percentage: number;
-  size: number;
-  strokeWidth: number;
-  children?: React.ReactNode;
-}
-
-/** Circular SVG progress ring — sweeps up from 0 on app open, springs to new values on meal logs. */
-function FuelProgressRing({ percentage, size, strokeWidth, children }: FuelProgressRingProps) {
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const clampedPct = Math.min(100, Math.max(0, percentage));
-  const progress = useRef(new Animated.Value(0)).current;
-  // First pass = app open (cinematic 0→value sweep); later passes = meal logged (spring)
-  const isFirstRun = useRef(true);
-
-  useEffect(() => {
-    if (isFirstRun.current) {
-      isFirstRun.current = false;
-      Animated.timing(progress, {
-        toValue: clampedPct,
-        delay: 200, // let the hero card fade-in land first
-        duration: 1100,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: false, // strokeDashoffset is an SVG prop — not native-drivable
-      }).start();
-    } else {
-      Animated.spring(progress, {
-        toValue: clampedPct,
-        friction: 8,
-        tension: 40,
-        useNativeDriver: false,
-      }).start();
-    }
-  }, [clampedPct, progress]);
-
-  const strokeDashoffset = progress.interpolate({
-    inputRange: [0, 100],
-    outputRange: [circumference, 0],
-    extrapolate: "clamp",
-  });
-
-  return (
-    <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
-      <Svg width={size} height={size} style={{ transform: [{ rotate: "-90deg" }] }}>
-        {/* Track ring */}
-        <Circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="rgba(45,212,168,0.2)"
-          strokeWidth={strokeWidth}
-          fill="none"
-        />
-        {/* Progress arc */}
-        <AnimatedCircle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke={Colors.primary}
-          strokeWidth={strokeWidth}
-          fill="none"
-          strokeDasharray={circumference}
-          strokeDashoffset={strokeDashoffset}
-          strokeLinecap="round"
-        />
-      </Svg>
-      {/* Center content (label, value, goal line) */}
-      <View style={{ position: "absolute", alignItems: "center", justifyContent: "center" }}>
-        {children}
-      </View>
-    </View>
-  );
-}
+const tap = () => void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
@@ -250,7 +123,6 @@ export default function HomeScreen() {
 
   // ── Hydration + sleep mini-card data ──
   const [hydrationMl, setHydrationMl] = useState(0);
-  const [sleepHours, setSleepHours] = useState<number | null>(null);
   const [sleepLogData, setSleepLogData] = useState<SleepLog>({});
   useFocusEffect(
     useCallback(() => {
@@ -258,26 +130,20 @@ export default function HomeScreen() {
       void (async () => {
         const log = await loadSleepLog();
         setSleepLogData(log);
-        const d = new Date();
-        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-        const today = typeof log[key] === "number" ? log[key] : null;
-        const avg = weeklyAverage(log);
-        setSleepHours(today ?? avg);
       })();
     }, [refreshCount]),
   );
 
   const hydrationTargetMl = Math.round((todayData?.hydrationTarget ?? 3) * 1000);
-  const sleepTarget = getSleepTarget(age);
 
   // ── Today's Fuel hero card data (from the meal-tracking store) ──
   const calorieTarget = todayData?.calorieTarget ?? 0;
   const fuelPct =
     calorieTarget > 0 ? Math.min(Math.round((stats.caloriesConsumed / calorieTarget) * 100), 100) : 0;
 
-  // Dial sized to the screen — thick ring like a hero gauge
+  // Three dials share the row — sized to the screen width
   const { width: screenWidth } = useWindowDimensions();
-  const ringSize = Math.min(screenWidth - 72, 300);
+  const dialSize = Math.min(Math.floor((screenWidth - 32 - 36) / 3), 104);
 
   // Hero card entry animation — opacity 0→1, translateY 15→0
   const heroEntry = useRef(new Animated.Value(0)).current;
@@ -359,116 +225,292 @@ export default function HomeScreen() {
 
   const { unreadCount: feedUnread } = useNotificationFeed();
 
+  // ── Dial values (all computed from logged data — never estimated) ──
+  const sleepPerf = useMemo(() => sleepPerformance(sleepLogData, age), [sleepLogData, age]);
+  const hydrationPct =
+    hydrationTargetMl > 0 ? Math.min(Math.round((hydrationMl / hydrationTargetMl) * 100), 100) : 0;
+  const allMealsDone = stats.totalMeals > 0 && stats.completedCount >= stats.totalMeals;
+  const mealsLeft = Math.max(stats.totalMeals - stats.completedCount, 0);
+
+  let nextMatchIn: number | null = null;
+  for (let k = 0; k < 7; k++) {
+    if (weeklySchedule[(todayIndex + k) % 7] === "match") {
+      nextMatchIn = k;
+      break;
+    }
+  }
+
+  const insightTitle = dayType === "match" ? "Match Day Fuel" : `${meta.label} Day Fuel`;
+  const insightBody =
+    calorieTarget <= 0
+      ? "Generate your meal plan to set today's fuel target."
+      : allMealsDone
+        ? `Every meal logged — ${stats.caloriesConsumed.toLocaleString()} kcal against your ${calorieTarget.toLocaleString()} kcal target. Your body has what it needs today.`
+        : stats.completedCount === 0
+          ? `Your ${calorieTarget.toLocaleString()} kcal target is set for today's ${dayType === "match" ? "match" : meta.label.toLowerCase()} load. Log your first meal to start filling the Fuel dial.`
+          : `${stats.caloriesConsumed.toLocaleString()} of ${calorieTarget.toLocaleString()} kcal fueled. ${mealsLeft} meal${mealsLeft === 1 ? "" : "s"} left to hit today's target.`;
+
+  const tipTitle = nutrientCard ? `${nutrientCard.nutrient} Watch` : tip?.title ?? "";
+  const tipBody = nutrientCard ? nutrientCard.why : tip?.body ?? "";
+
   return (
     <View style={styles.container}>
+      <ScreenBackground />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[
           styles.content,
-          { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 16 },
+          { paddingTop: insets.top + 6, paddingBottom: insets.bottom + 24 },
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* HEADER — compact, one line */}
-        <View style={styles.header}>
-          <View style={styles.headerText}>
-            <Text style={styles.greeting}>Fuel Your Game, {firstName} ⚽</Text>
-            <Text style={styles.subGreeting}>
-              {todayData?.dayName ?? "Today"} · {meta.label} {meta.icon}
-            </Text>
-          </View>
-          <View style={styles.headerActions}>
+        {/* TOP BAR — profile, today pill, alerts */}
+        <View style={styles.topBar}>
+          <View style={styles.topLeft}>
+            <Pressable
+              onPress={() => {
+                tap();
+                router.push("/(tabs)/profile" as never);
+              }}
+              style={({ pressed }) => [styles.avatar, pressed && { opacity: 0.7 }]}
+              accessibilityRole="button"
+              accessibilityLabel="Profile"
+            >
+              {profile.profileImage ? (
+                <Image source={{ uri: profile.profileImage }} style={styles.avatarImage} />
+              ) : (
+                <User size={18} color={Colors.text} />
+              )}
+            </Pressable>
             {!profile.isPremium && (
               <Pressable
                 onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  tap();
                   router.push("/premium");
                 }}
                 style={({ pressed }) => [styles.proBadge, pressed && { opacity: 0.8 }]}
+                accessibilityRole="button"
+                accessibilityLabel="Upgrade to Pro"
               >
-                <Crown size={13} color={Colors.premiumGold} />
+                <Crown size={12} color={Colors.premiumGold} />
                 <Text style={styles.proBadgeText}>PRO</Text>
               </Pressable>
             )}
+          </View>
+
+          <TopPill style={styles.todayPill}>
+            <View style={[styles.todayDot, { backgroundColor: meta.color }]} />
+            <Text style={styles.todayText}>TODAY</Text>
+          </TopPill>
+
+          <View style={styles.topRight}>
             <Pressable
               onPress={() => {
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                tap();
                 router.push("/notifications");
               }}
               style={({ pressed }) => [styles.bellBtn, pressed && { opacity: 0.7 }]}
+              accessibilityRole="button"
+              accessibilityLabel={feedUnread > 0 ? `Notifications, ${feedUnread} unread` : "Notifications"}
             >
-              <View>
-                <Bell size={24} color={Colors.textSecondary} />
-                {feedUnread > 0 ? <View style={styles.bellDot} /> : null}
-              </View>
-            </Pressable>
-            <Pressable
-              onPress={() => {
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                router.push("/(tabs)/profile" as never);
-              }}
-              style={({ pressed }) => [styles.profileBtn, pressed && { opacity: 0.7 }]}
-            >
-              <User size={26} color={Colors.textSecondary} />
+              <Bell size={21} color={Colors.text} />
+              {feedUnread > 0 ? <View style={styles.bellDot} /> : null}
             </Pressable>
           </View>
         </View>
 
-        {/* HERO DIAL — full-width fuel ring, taps through to the Plan tab */}
+        {/* WORDMARK + greeting */}
+        <Text style={styles.wordmark}>FUELIFY</Text>
+        <Text style={styles.greeting}>
+          {todayData?.dayName ?? "Today"} · {meta.label} · {firstName}
+        </Text>
+
+        {/* THREE DIALS — Sleep · Fuel · Hydration */}
         <Animated.View
-          style={{
-            opacity: heroEntry,
-            transform: [
-              {
-                translateY: heroEntry.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [15, 0],
-                }),
-              },
-            ],
-          }}
+          style={[
+            styles.dialRow,
+            {
+              opacity: heroEntry,
+              transform: [
+                {
+                  translateY: heroEntry.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [15, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
         >
-          <TouchableOpacity
-            activeOpacity={0.92}
-            onPress={() => {
-              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.push("/(tabs)/plan" as never);
-            }}
-            style={styles.heroTouch}
-          >
-            <FuelProgressRing percentage={fuelPct} size={ringSize} strokeWidth={20}>
-              <Text style={styles.heroLabel}>⚽ Fuel today</Text>
-              <Text style={styles.heroValue}>{stats.caloriesConsumed}</Text>
-              <Text style={styles.heroUnit}>kcal consumed</Text>
-              <Text style={styles.heroSub}>
-                {stats.completedCount > 0 && stats.completedCount >= stats.totalMeals
-                  ? "All meals done — great job!"
-                  : fuelPct >= 100
-                    ? "Goal achieved"
-                    : `Goal: ${calorieTarget} kcal`}
-              </Text>
-              <Text style={styles.heroMeals}>
-                {stats.completedCount}/{stats.totalMeals} meals logged
-              </Text>
-            </FuelProgressRing>
-            {/* Floating boost chip — anchored at the bottom of the dial */}
-            <View style={styles.heroBoostRow} pointerEvents="none">
-              <View style={styles.heroBoost}>
-                <Zap size={22} color={Colors.primary} fill={Colors.primary} />
-              </View>
-            </View>
-          </TouchableOpacity>
+          <MetricDial
+            label="SLEEP"
+            percent={sleepPerf.performance}
+            color={Colors.metricSleep}
+            size={dialSize}
+            onPress={() => router.push("/sleep" as never)}
+          />
+          <MetricDial
+            label="FUEL"
+            percent={calorieTarget > 0 ? fuelPct : null}
+            color={Colors.metricFuel}
+            size={dialSize}
+            onPress={() => router.push("/(tabs)/plan" as never)}
+          />
+          <MetricDial
+            label="HYDRATION"
+            percent={hydrationPct}
+            color={Colors.metricHydration}
+            size={dialSize}
+            onPress={() => router.push("/hydration" as never)}
+          />
         </Animated.View>
 
-        {/* DAY STRIP — real dates for the week, colour-coded by day type */}
+        {/* TODAY'S FUEL INSIGHT — headline + numbers, taps through to the plan */}
+        <InsightCard
+          gradient={false}
+          title={insightTitle}
+          body={insightBody}
+          onPress={() => router.push("/(tabs)/plan" as never)}
+          badge={
+            <View style={[styles.checkBadge, allMealsDone && styles.checkBadgeDone]}>
+              <Check size={14} color={allMealsDone ? Colors.textInverse : Colors.text} strokeWidth={3} />
+              <Text style={[styles.checkBadgeText, allMealsDone && { color: Colors.textInverse }]}>
+                {stats.completedCount}
+              </Text>
+            </View>
+          }
+          actionLabel="VIEW TODAY'S PLAN"
+        >
+          <View style={styles.statRow}>
+            <View style={styles.statCell}>
+              <Text style={styles.statValue}>{stats.caloriesConsumed.toLocaleString()}</Text>
+              <Text style={styles.statLabel}>KCAL IN</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statCell}>
+              <Text style={styles.statValue}>{calorieTarget > 0 ? calorieTarget.toLocaleString() : "–"}</Text>
+              <Text style={styles.statLabel}>TARGET</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statCell}>
+              <Text style={styles.statValue}>
+                {stats.completedCount}
+                <Text style={styles.statValueMuted}>/{stats.totalMeals}</Text>
+              </Text>
+              <Text style={styles.statLabel}>MEALS</Text>
+            </View>
+          </View>
+        </InsightCard>
+
+        {/* MONITOR TILES — Match Day + Shop List */}
+        <View style={styles.tileRow}>
+          <MonitorTile
+            title="MATCH DAY"
+            icon={<Trophy size={15} color={nextMatchIn === 0 ? Colors.match : Colors.primary} strokeWidth={2.4} />}
+            status={
+              nextMatchIn === 0
+                ? "TODAY"
+                : nextMatchIn === null
+                  ? "NONE SET"
+                  : nextMatchIn === 1
+                    ? "TOMORROW"
+                    : `IN ${nextMatchIn} DAYS`
+            }
+            statusColor={nextMatchIn === 0 ? Colors.match : Colors.primary}
+            detail={nextMatchIn === 0 ? "Fuel up right" : "Match prep plan"}
+            onPress={() => router.push("/(tabs)/match" as never)}
+          />
+          <MonitorTile
+            title="SHOP LIST"
+            icon={<ShoppingCart size={15} color={Colors.metricHydration} strokeWidth={2.4} />}
+            status="THIS WEEK"
+            statusColor={Colors.metricHydration}
+            detail="Groceries, sorted"
+            onPress={() => router.push("/(tabs)/shop" as never)}
+          />
+        </View>
+
+        {/* MY DAY */}
+        <SectionHeader title="My Day" />
+
+        {/* AI Coach — outlook-style row */}
         <Pressable
           onPress={() => {
-            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            tap();
+            router.push("/coach" as never);
+          }}
+          style={({ pressed }) => [pressed && { opacity: 0.85, transform: [{ scale: 0.99 }] }]}
+          accessibilityRole="button"
+          accessibilityLabel="Ask your AI Coach"
+        >
+          <LinearGradient
+            colors={["#2C3943", "#1C2328"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.outlookRow}
+          >
+            <View style={styles.outlookIcon}>
+              <Bot size={17} color={Colors.text} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.outlookTitle}>AI Coach</Text>
+              <Text style={styles.outlookSub}>Nutrition answers, anytime</Text>
+            </View>
+            <ChevronRight size={18} color={Colors.text} />
+          </LinearGradient>
+        </Pressable>
+
+        {/* Education tip — gradient insight card, expands inline */}
+        {tip || nutrientCard ? (
+          <View style={{ marginTop: 10 }}>
+            <InsightCard
+              title={tipTitle}
+              body={tipBody}
+              bodyLines={tipExpanded ? undefined : 2}
+              onPress={() => setTipExpanded((p) => !p)}
+              actionLabel={tipExpanded ? "SHOW LESS" : "READ MORE"}
+            >
+              {tipExpanded ? (
+                <View style={{ gap: 10 }}>
+                  {nutrientCard ? (
+                    <View style={styles.tipFoods}>
+                      {nutrientCard.foods.slice(0, 3).map((f) => (
+                        <View key={f} style={styles.tipFoodPill}>
+                          <Text style={styles.tipFoodText}>{f}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
+                  <View style={styles.tipFooter}>
+                    <Text style={styles.tipSource}>
+                      Source: {nutrientCard ? nutrientCard.source : tip?.source ?? ""}
+                    </Text>
+                    {tip && !nutrientCard ? (
+                      <Pressable onPress={handleDismissTip} hitSlop={8}>
+                        <Text style={styles.tipDismiss}>GOT IT</Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
+                </View>
+              ) : null}
+            </InsightCard>
+          </View>
+        ) : null}
+
+        {/* MY WEEK — real dates, colour-coded by day type */}
+        <SectionHeader
+          title="My Week"
+          action={<Text style={styles.sectionMeta}>{weekMonthLabel.toUpperCase()}</Text>}
+        />
+        <Pressable
+          onPress={() => {
+            tap();
             router.push("/(tabs)/profile" as never);
           }}
           style={({ pressed }) => [styles.dayStripCard, pressed && { opacity: 0.9 }]}
+          accessibilityRole="button"
+          accessibilityLabel="Edit weekly schedule"
         >
-          <Text style={styles.dayStripMonth}>{weekMonthLabel}</Text>
           <View style={styles.dayStripRow}>
             {weeklySchedule.map((type, i) => {
               const dayMeta = DAY_TYPE_META[type] ?? DAY_TYPE_META.rest;
@@ -476,171 +518,29 @@ export default function HomeScreen() {
               const date = weekDates[i];
               return (
                 <View key={`day-${i}`} style={styles.dayStripItem}>
-                  <Text style={styles.dayStripLabel}>{DAY_ABBREVIATIONS[i]}</Text>
+                  <Text style={[styles.dayStripLabel, isToday && { color: Colors.text }]}>
+                    {DAY_ABBREVIATIONS[i].toUpperCase()}
+                  </Text>
                   <View
                     style={[
                       styles.dayStripBubble,
-                      { backgroundColor: isToday ? dayMeta.color : dayMeta.bgColor },
-                      isToday && styles.dayStripBubbleActive,
+                      isToday ? { backgroundColor: Colors.text } : { borderColor: dayMeta.color },
                     ]}
                   >
                     <Text style={[styles.dayStripDate, isToday && styles.dayStripDateActive]}>
                       {date.getDate()}
                     </Text>
                   </View>
+                  <View style={[styles.dayStripDot, { backgroundColor: dayMeta.color }]} />
                 </View>
               );
             })}
           </View>
         </Pressable>
 
-        {/* ROW 2 — Hydration + Sleep side by side */}
-        <View style={styles.dualRow}>
-          <Pressable
-            style={({ pressed }) => [styles.halfCard, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
-            onPress={() => {
-              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.push("/hydration" as never);
-            }}
-          >
-            <View style={styles.halfCardHeader}>
-              <Text style={styles.halfCardIcon}>💧</Text>
-              <Text style={styles.halfCardValue}>
-                {(hydrationMl / 1000).toFixed(1)}/{(hydrationTargetMl / 1000).toFixed(0)}L
-              </Text>
-            </View>
-            <View style={styles.miniTrack}>
-              <View
-                style={[
-                  styles.miniFill,
-                  {
-                    width: `${Math.min((hydrationMl / Math.max(hydrationTargetMl, 1)) * 100, 100)}%`,
-                    backgroundColor: "#60A5FA",
-                  },
-                ]}
-              />
-            </View>
-          </Pressable>
-
-          <Pressable
-            style={({ pressed }) => [styles.halfCard, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
-            onPress={() => {
-              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.push("/sleep" as never);
-            }}
-          >
-            <View style={styles.halfCardHeader}>
-              <Text style={styles.halfCardIcon}>😴</Text>
-              <Text style={styles.halfCardValue}>
-                {sleepHours !== null ? `${sleepHours}h` : "–"}
-              </Text>
-            </View>
-            <View style={styles.miniTrack}>
-              <View
-                style={[
-                  styles.miniFill,
-                  {
-                    width: `${Math.min(((sleepHours ?? 0) / sleepTarget.max) * 100, 100)}%`,
-                    backgroundColor: "#A78BFA",
-                  },
-                ]}
-              />
-            </View>
-          </Pressable>
-        </View>
-
-        {/* ROW 3 — Education tip (tap to expand inline) */}
-        {tip || nutrientCard ? (
-          <View style={styles.tipCard}>
-            <Pressable
-              onPress={() => {
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setTipExpanded((p) => !p);
-              }}
-              style={styles.tipHeader}
-            >
-              <Text style={styles.tipIcon}>📚</Text>
-              <Text style={styles.tipTitle} numberOfLines={1}>
-                {nutrientCard
-                  ? `${nutrientCard.icon} ${nutrientCard.nutrient} Watch`
-                  : tip?.title ?? ""}
-              </Text>
-              {tipExpanded ? (
-                <ChevronUp size={16} color={Colors.textTertiary} />
-              ) : (
-                <ChevronDown size={16} color={Colors.textTertiary} />
-              )}
-            </Pressable>
-            {tipExpanded ? (
-              <View style={styles.tipBody}>
-                <Text style={styles.tipText}>
-                  {nutrientCard ? nutrientCard.why : tip?.body ?? ""}
-                </Text>
-                {nutrientCard ? (
-                  <View style={styles.tipFoods}>
-                    {nutrientCard.foods.slice(0, 3).map((f) => (
-                      <View key={f} style={styles.tipFoodPill}>
-                        <Text style={styles.tipFoodText}>{f}</Text>
-                      </View>
-                    ))}
-                  </View>
-                ) : null}
-                <View style={styles.tipFooter}>
-                  <Text style={styles.tipSource}>
-                    📚 {nutrientCard ? nutrientCard.source : tip?.source ?? ""}
-                  </Text>
-                  {tip ? (
-                    <Pressable onPress={handleDismissTip} hitSlop={8}>
-                      <Text style={styles.tipDismiss}>Got it</Text>
-                    </Pressable>
-                  ) : null}
-                </View>
-              </View>
-            ) : null}
-          </View>
-        ) : null}
-
-        {/* ACTION BOXES — Shop List, Match Day, AI Coach with pill push buttons */}
-        <View style={styles.actionRow}>
-          <ActionBox
-            icon={<ShoppingCart size={22} color={Colors.primary} />}
-            title="Shop List"
-            subtitle="This week's groceries, sorted"
-            buttonLabel="Open"
-            onPress={() => {
-              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.push("/(tabs)/shop" as never);
-            }}
-          />
-          <ActionBox
-            icon={<Trophy size={22} color={dayType === "match" ? Colors.match : Colors.text} />}
-            title="Match Day"
-            subtitle={
-              dayType === "match" ? "It's match day — fuel up right" : `Your ${meta.label.toLowerCase()} schedule`
-            }
-            buttonLabel="View"
-            highlight={dayType === "match"}
-            onPress={() => {
-              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.push("/(tabs)/match" as never);
-            }}
-          />
-          <ActionBox
-            icon={<Bot size={22} color={Colors.primary} />}
-            title="AI Coach"
-            subtitle="Nutrition answers, anytime"
-            buttonLabel="Ask"
-            onPress={() => {
-              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.push("/coach" as never);
-            }}
-          />
-        </View>
-
-        {/* Tomorrow overview — planned meals + bedtime wind-down */}
+        {/* TOMORROW — planned meals + bedtime wind-down */}
+        <SectionHeader title="Tomorrow" />
         <TomorrowOverview sleepLog={sleepLogData} />
-
-        {/* ROW 2 — Hydration + Sleep side by side */}
       </ScrollView>
 
       {/* RED-S health check — periodic popup modal */}
@@ -718,33 +618,67 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
 
-  // Header
-  header: {
+  // Top bar
+  topBar: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    paddingTop: 8,
-    paddingBottom: 14,
+    justifyContent: "space-between",
+    height: 44,
   },
-  headerText: {
+  topLeft: {
     flex: 1,
-  },
-  greeting: {
-    fontSize: 22,
-    fontWeight: "800" as const,
-    color: Colors.text,
-    letterSpacing: -0.3,
-  },
-  subGreeting: {
-    fontSize: 13,
-    fontWeight: "600" as const,
-    color: Colors.textSecondary,
-    marginTop: 3,
-  },
-  headerActions: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+  },
+  topRight: {
+    flex: 1,
+    alignItems: "flex-end",
+  },
+  avatar: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.14)",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  avatarImage: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+  },
+  proBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(255,255,255,0.07)",
+    paddingHorizontal: 10,
+    height: 30,
+    borderRadius: 15,
+  },
+  proBadgeText: {
+    fontFamily: fonts.display,
+    fontSize: 12,
+    letterSpacing: 1.2,
+    color: Colors.premiumGoldLight,
+  },
+  todayPill: {
+    paddingHorizontal: 16,
+  },
+  todayDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+  },
+  todayText: {
+    fontFamily: fonts.display,
+    fontSize: 12,
+    letterSpacing: 1.6,
+    color: Colors.text,
   },
   bellBtn: {
     width: 40,
@@ -754,53 +688,182 @@ const styles = StyleSheet.create({
   },
   bellDot: {
     position: "absolute",
-    top: -2,
-    right: -2,
+    top: 8,
+    right: 9,
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: Colors.primary,
+    borderWidth: 1.5,
+    borderColor: Colors.canvasTop,
   },
-  proBadge: {
+
+  // Wordmark
+  wordmark: {
+    fontFamily: fonts.medium,
+    fontSize: 15,
+    letterSpacing: 7,
+    color: "rgba(255,255,255,0.92)",
+    textAlign: "center",
+    marginTop: 18,
+  },
+  greeting: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    textAlign: "center",
+    marginTop: 6,
+  },
+
+  // Dials
+  dialRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 6,
+    marginTop: 22,
+    marginBottom: 24,
+  },
+
+  // Insight card
+  checkBadge: {
+    alignSelf: "flex-start",
+    alignItems: "center",
+    gap: 2,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderRadius: 8,
+    paddingHorizontal: 7,
+    paddingVertical: 6,
+    minWidth: 30,
+  },
+  checkBadgeDone: {
+    backgroundColor: Colors.primary,
+  },
+  checkBadgeText: {
+    fontFamily: fonts.display,
+    fontSize: 13,
+    color: Colors.text,
+  },
+  statRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    backgroundColor: "rgba(212,164,76,0.12)",
-    paddingHorizontal: 9,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "rgba(212,164,76,0.35)",
+    backgroundColor: "rgba(0,0,0,0.22)",
+    borderRadius: 10,
+    paddingVertical: 10,
   },
-  proBadgeText: {
+  statCell: {
+    flex: 1,
+    alignItems: "center",
+  },
+  statDivider: {
+    width: StyleSheet.hairlineWidth,
+    height: 28,
+    backgroundColor: "rgba(255,255,255,0.12)",
+  },
+  statValue: {
+    fontFamily: fonts.display,
+    fontSize: 20,
+    color: Colors.text,
+    fontVariant: ["tabular-nums"],
+  },
+  statValueMuted: {
+    color: Colors.textSecondary,
+    fontSize: 15,
+  },
+  statLabel: {
+    fontFamily: fonts.label,
+    fontSize: 10,
+    letterSpacing: 1.4,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+
+  // Tiles
+  tileRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 10,
+  },
+
+  // Section meta
+  sectionMeta: {
+    fontFamily: fonts.label,
     fontSize: 11,
-    fontWeight: "700" as const,
-    color: Colors.premiumGoldLight,
+    letterSpacing: 1.4,
+    color: Colors.textSecondary,
   },
-  profileBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+
+  // Outlook row (AI Coach)
+  outlookRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.06)",
+  },
+  outlookIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 9,
+    backgroundColor: "rgba(255,255,255,0.08)",
     alignItems: "center",
     justifyContent: "center",
+  },
+  outlookTitle: {
+    fontSize: 16,
+    fontWeight: "600" as const,
+    color: Colors.text,
+  },
+  outlookSub: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginTop: 1,
+  },
+
+  // Tip extras
+  tipFoods: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  tipFoodPill: {
+    backgroundColor: "rgba(255,255,255,0.07)",
+    borderRadius: 8,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+  },
+  tipFoodText: {
+    fontSize: 11,
+    fontWeight: "600" as const,
+    color: Colors.text,
+  },
+  tipFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
+  },
+  tipSource: {
+    fontSize: 11,
+    color: Colors.textTertiary,
+    flex: 1,
+  },
+  tipDismiss: {
+    fontFamily: fonts.display,
+    fontSize: 12,
+    letterSpacing: 1.4,
+    color: Colors.primary,
   },
 
   // Day strip
   dayStripCard: {
     backgroundColor: Colors.bg2,
     borderRadius: 16,
-    padding: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
-    marginBottom: 10,
-  },
-  dayStripMonth: {
-    fontSize: 11,
-    fontWeight: "700" as const,
-    color: Colors.textSecondary,
-    marginBottom: 10,
-    textTransform: "uppercase" as const,
-    letterSpacing: 0.6,
+    borderColor: "rgba(255,255,255,0.05)",
   },
   dayStripRow: {
     flexDirection: "row",
@@ -808,240 +871,36 @@ const styles = StyleSheet.create({
   },
   dayStripItem: {
     alignItems: "center",
-    gap: 6,
+    gap: 7,
   },
   dayStripLabel: {
-    fontSize: 10,
-    fontWeight: "600" as const,
+    fontFamily: fonts.label,
+    fontSize: 11,
+    letterSpacing: 1.2,
     color: Colors.textTertiary,
   },
   dayStripBubble: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     alignItems: "center",
     justifyContent: "center",
-  },
-  dayStripBubbleActive: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: "transparent",
   },
   dayStripDate: {
-    fontSize: 13,
-    fontWeight: "700" as const,
+    fontFamily: fonts.display,
+    fontSize: 15,
     color: Colors.text,
+    fontVariant: ["tabular-nums"],
   },
   dayStripDateActive: {
     color: Colors.textInverse,
   },
-
-  // Hero dial
-  heroTouch: {
-    alignSelf: "center",
-    marginTop: 4,
-    marginBottom: 12,
-  },
-  heroLabel: {
-    fontSize: 13,
-    fontWeight: "600" as const,
-    color: Colors.textSecondary,
-    marginBottom: 4,
-  },
-  heroValue: {
-    fontSize: 52,
-    fontWeight: "800" as const,
-    color: Colors.text,
-    letterSpacing: -1.5,
-  },
-  heroUnit: {
-    fontSize: 14,
-    fontWeight: "600" as const,
-    color: Colors.textSecondary,
-    marginTop: -2,
-  },
-  heroSub: {
-    fontSize: 14,
-    fontWeight: "700" as const,
-    color: Colors.text,
-    marginTop: 10,
-  },
-  heroMeals: {
-    fontSize: 12,
-    fontWeight: "600" as const,
-    color: Colors.textSecondary,
-    marginTop: 4,
-  },
-  heroBoostRow: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 2,
-    alignItems: "center",
-  },
-  heroBoost: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: Colors.bg3,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  // Dual row
-  dualRow: {
-    flexDirection: "row",
-    gap: 10,
-    marginBottom: 10,
-  },
-  halfCard: {
-    flex: 1,
-    backgroundColor: Colors.bg2,
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  halfCardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 8,
-  },
-  halfCardIcon: {
-    fontSize: 18,
-  },
-  halfCardValue: {
-    fontSize: 16,
-    fontWeight: "700" as const,
-    color: Colors.text,
-  },
-  miniTrack: {
-    height: 4,
-    backgroundColor: Colors.bg4,
-    borderRadius: 2,
-    overflow: "hidden",
-  },
-  miniFill: {
+  dayStripDot: {
+    width: 4,
     height: 4,
     borderRadius: 2,
-  },
-
-  // Tip card
-  tipCard: {
-    backgroundColor: Colors.bg2,
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.primary,
-    marginBottom: 10,
-  },
-  tipHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  tipIcon: {
-    fontSize: 14,
-  },
-  tipTitle: {
-    flex: 1,
-    fontSize: 13,
-    fontWeight: "600" as const,
-    color: Colors.text,
-  },
-  tipBody: {
-    marginTop: 10,
-  },
-  tipText: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-    lineHeight: 18,
-  },
-  tipFoods: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
-    marginTop: 8,
-  },
-  tipFoodPill: {
-    backgroundColor: Colors.primaryLight,
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  tipFoodText: {
-    fontSize: 10,
-    fontWeight: "600" as const,
-    color: Colors.primary,
-  },
-  tipFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 8,
-  },
-  tipSource: {
-    fontSize: 10,
-    color: Colors.textTertiary,
-    fontStyle: "italic",
-    flex: 1,
-  },
-  tipDismiss: {
-    fontSize: 11,
-    fontWeight: "700" as const,
-    color: Colors.primary,
-  },
-
-  // Action boxes
-  actionRow: {
-    flexDirection: "row",
-    gap: 10,
-    marginBottom: 12,
-  },
-  actionBox: {
-    flex: 1,
-    backgroundColor: Colors.bg2,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    minHeight: 150,
-    padding: 14,
-  },
-  actionBoxHighlight: {
-    backgroundColor: Colors.primaryLight,
-    borderColor: Colors.accentLight,
-  },
-  actionBoxTop: {
-    gap: 6,
-  },
-  actionBoxTitle: {
-    fontSize: 15,
-    fontWeight: "800" as const,
-    color: Colors.text,
-  },
-  actionBoxSubtitle: {
-    fontSize: 11,
-    fontWeight: "500" as const,
-    color: Colors.textSecondary,
-    lineHeight: 15,
-  },
-  actionBoxButton: {
-    backgroundColor: Colors.primary,
-    borderRadius: 16,
-    paddingVertical: 8,
-    alignItems: "center",
-    alignSelf: "stretch",
-    marginTop: 12,
-  },
-  actionBoxButtonText: {
-    fontSize: 12,
-    fontWeight: "700" as const,
-    color: Colors.bg0,
   },
 
   // Modals
@@ -1061,25 +920,27 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   modalCard: {
-    backgroundColor: Colors.bg1,
+    backgroundColor: Colors.bg2,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: "rgba(255,255,255,0.06)",
     padding: 16,
     width: "100%",
     maxHeight: "80%",
   },
   modalClose: {
-    backgroundColor: Colors.bg3,
+    backgroundColor: Colors.text,
     borderRadius: 12,
-    paddingVertical: 12,
+    paddingVertical: 13,
     alignItems: "center",
     marginTop: 8,
   },
   modalCloseText: {
+    fontFamily: fonts.display,
     fontSize: 14,
-    fontWeight: "700" as const,
-    color: Colors.text,
+    letterSpacing: 1.4,
+    color: Colors.textInverse,
+    textTransform: "uppercase",
   },
   youthTitle: {
     fontSize: 17,

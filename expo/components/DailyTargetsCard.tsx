@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import Colors from "@/constants/colors";
+import { fonts } from "@/constants/design";
 import { useCountUp } from "@/hooks/useCountUp";
 import { UserProfile } from "@/types";
 import { calculateDailyTargets, DailyTargets } from "@/utils/dailyTargets";
@@ -216,7 +217,7 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 10,
-    fontWeight: "600" as const,
+    fontFamily: fonts.display,
     color: Colors.textSecondary,
     marginTop: 2,
     textTransform: "uppercase" as const,
@@ -264,7 +265,7 @@ const styles = StyleSheet.create({
   },
   notesTitle: {
     fontSize: 12,
-    fontWeight: "700" as const,
+    fontFamily: fonts.display,
     color: Colors.textSecondary,
     textTransform: "uppercase" as const,
     letterSpacing: 0.5,

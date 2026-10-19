@@ -6,6 +6,8 @@ import * as Haptics from "expo-haptics";
 import { ShoppingBag } from "lucide-react-native";
 
 import Colors from "@/constants/colors";
+import { fonts } from "@/constants/design";
+import ScreenBackground from "@/components/ui/ScreenBackground";
 import { useMealPlan } from "@/providers/MealPlanProvider";
 import { useSavedPlans } from "@/providers/SavedPlansProvider";
 import SmartShoppingList from "@/components/SmartShoppingList";
@@ -27,6 +29,7 @@ export default function ShopScreen() {
 
   return (
     <View style={styles.container}>
+      <ScreenBackground />
       <ScrollView
         contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24 }]}
         showsVerticalScrollIndicator={false}
@@ -74,7 +77,7 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 16 },
   heading: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 22 },
   headingText: { flex: 1 },
-  eyebrow: { fontSize: 10, fontWeight: "700", letterSpacing: 1.8, color: Colors.primary, marginBottom: 7 },
+  eyebrow: { fontSize: 10, fontFamily: fonts.display, letterSpacing: 1.8, color: Colors.primary, marginBottom: 7 },
   headerTitle: { fontSize: 28, fontWeight: "800", color: Colors.text, letterSpacing: -0.8 },
   subtitle: { fontSize: 13, lineHeight: 19, color: Colors.textSecondary, marginTop: 5 },
   bag: { width: 48, height: 48, borderRadius: 16, backgroundColor: Colors.primaryLight, alignItems: "center", justifyContent: "center" },

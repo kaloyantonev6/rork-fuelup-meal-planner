@@ -4,7 +4,13 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
+import { useFonts } from "expo-font";
+import { Barlow_500Medium } from "@expo-google-fonts/barlow/500Medium";
+import { Barlow_600SemiBold } from "@expo-google-fonts/barlow/600SemiBold";
+import { Barlow_700Bold } from "@expo-google-fonts/barlow/700Bold";
+import { Barlow_800ExtraBold } from "@expo-google-fonts/barlow/800ExtraBold";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import Colors from "@/constants/colors";
 import { MealPlanProvider } from "@/providers/MealPlanProvider";
 import { TodayProvider } from "@/providers/TodayProvider";
 import { MealTrackingProvider } from "@/providers/MealTrackingProvider";
@@ -27,6 +33,7 @@ function RootLayoutNav() {
         headerBackTitle: "Back",
         animation: "fade_from_bottom",
         animationDuration: 250,
+        contentStyle: { backgroundColor: Colors.bg0 },
       }}
     >
       <Stack.Screen name="index" options={{ headerShown: false }} />
@@ -47,9 +54,21 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts({
+    Barlow_500Medium,
+    Barlow_600SemiBold,
+    Barlow_700Bold,
+    Barlow_800ExtraBold,
+  });
+  const ready = fontsLoaded || !!fontError;
+
   useEffect(() => {
-    void SplashScreen.hideAsync();
-  }, []);
+    if (ready) void SplashScreen.hideAsync();
+  }, [ready]);
+
+  // Hold the splash until the display fonts are registered so numerals never
+  // flash in the fallback face. A load error falls through to system fonts.
+  if (!ready) return null;
 
   return (
     <QueryClientProvider client={queryClient}>

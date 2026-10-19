@@ -35,6 +35,8 @@ import {
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
+import { fonts } from "@/constants/design";
+import ScreenBackground from "@/components/ui/ScreenBackground";
 import { useSavedPlans } from "@/providers/SavedPlansProvider";
 import { GeneratedMeal } from "@/utils/mealGenerator";
 import { kvGet, kvSet } from "@/lib/database";
@@ -779,6 +781,7 @@ export default function MealDetailScreen() {
 
   return (
     <View style={styles.container}>
+      <ScreenBackground />
       <Stack.Screen options={{ headerShown: false }} />
 
       <ScrollView
@@ -1290,7 +1293,7 @@ const styles = StyleSheet.create({
   },
   mealTypeBadgeText: {
     fontSize: 12,
-    fontWeight: "700" as const,
+    fontFamily: fonts.display,
     color: "#fff",
     textTransform: "uppercase" as const,
     letterSpacing: 0.8,
@@ -1335,7 +1338,7 @@ const styles = StyleSheet.create({
   },
   macroCardTitle: {
     fontSize: 14,
-    fontWeight: "700" as const,
+    fontFamily: fonts.display,
     color: Colors.textSecondary,
     textTransform: "uppercase" as const,
     letterSpacing: 0.5,
@@ -1364,7 +1367,7 @@ const styles = StyleSheet.create({
   },
   macroLabel: {
     fontSize: 11,
-    fontWeight: "600" as const,
+    fontFamily: fonts.display,
     color: Colors.textTertiary,
     textTransform: "uppercase" as const,
     letterSpacing: 0.3,
@@ -1457,7 +1460,7 @@ const styles = StyleSheet.create({
   },
   substitutesTitle: {
     fontSize: 12,
-    fontWeight: "700" as const,
+    fontFamily: fonts.display,
     color: Colors.primary,
     textTransform: "uppercase" as const,
     letterSpacing: 0.5,
@@ -1590,7 +1593,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderLeftWidth: 3,
-    borderLeftColor: "#2DD4A8",
+    borderLeftColor: "#2EE6B0",
     borderColor: "#1E2430",
     marginBottom: 20,
     gap: 8,
@@ -1774,7 +1777,7 @@ const styles = StyleSheet.create({
   },
   premiumModalUpgradeBtn: {
     width: "100%",
-    backgroundColor: "#2dd4a8",
+    backgroundColor: "#2EE6B0",
     borderRadius: 14,
     paddingVertical: 15,
     alignItems: "center" as const,

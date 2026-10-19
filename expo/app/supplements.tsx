@@ -4,6 +4,7 @@ import { Stack, router } from "expo-router";
 import { ArrowLeft } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Colors from "@/constants/colors";
+import ScreenBackground from "@/components/ui/ScreenBackground";
 import { useMealPlan } from "@/providers/MealPlanProvider";
 import {
   AIS_CATEGORY_META,
@@ -28,6 +29,7 @@ export default function SupplementsScreen() {
 
   return (
     <View style={styles.container}>
+      <ScreenBackground />
       <Stack.Screen options={{ headerShown: false }} />
       <ScrollView
         style={styles.scrollView}
@@ -266,7 +268,7 @@ const styles = StyleSheet.create({
     fontWeight: "600" as const,
   },
   batchBadge: {
-    backgroundColor: "#2DD4A818",
+    backgroundColor: "#2EE6B018",
     borderRadius: 999,
     paddingHorizontal: 8,
     paddingVertical: 3,

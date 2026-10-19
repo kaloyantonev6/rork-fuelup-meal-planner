@@ -10,10 +10,10 @@ export interface DayTypeMeta {
 
 /** Visual identity for each day type — muted 18% backgrounds, full-color accents. */
 export const DAY_TYPE_META: Record<DayType, DayTypeMeta> = {
-  training: { color: "#22C55E", bgColor: "#22C55E18", borderColor: "#22C55E", icon: "🏋️", label: "Training" },
-  match: { color: "#EF4444", bgColor: "#EF444418", borderColor: "#EF4444", icon: "⚽", label: "Match Day" },
-  rest: { color: "#6B7280", bgColor: "#6B728018", borderColor: "#6B7280", icon: "😴", label: "Rest" },
-  recovery: { color: "#F59E0B", bgColor: "#F59E0B18", borderColor: "#F59E0B", icon: "🧊", label: "Recovery" },
+  training: { color: "#3DDC84", bgColor: "#3DDC8418", borderColor: "#3DDC84", icon: "🏋️", label: "Training" },
+  match: { color: "#FF4D5E", bgColor: "#FF4D5E18", borderColor: "#FF4D5E", icon: "⚽", label: "Match Day" },
+  rest: { color: "#7E8A93", bgColor: "#7E8A9318", borderColor: "#7E8A93", icon: "😴", label: "Rest" },
+  recovery: { color: "#FFC93C", bgColor: "#FFC93C18", borderColor: "#FFC93C", icon: "🧊", label: "Recovery" },
 };
 
 export const DAY_TYPES: DayType[] = ["training", "match", "rest", "recovery"];

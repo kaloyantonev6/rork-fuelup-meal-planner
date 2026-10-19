@@ -11,6 +11,7 @@ import {
 import { Crown, Check, MapPin, Sparkles, Trophy, Tag, TrendingDown, Users, ShoppingBag, User, RefreshCw } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
+import { fonts } from "@/constants/design";
 import {
   SmartShoppingItem,
   ShoppingCategory,
@@ -924,7 +925,7 @@ const styles = StyleSheet.create({
   },
   budgetTitle: {
     fontSize: 13,
-    fontWeight: "700" as const,
+    fontFamily: fonts.display,
     color: Colors.textSecondary,
     textTransform: "uppercase" as const,
     letterSpacing: 0.5,

@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
   circleDue: {
     borderWidth: 2,
     borderColor: Colors.primary,
-    backgroundColor: "#2DD4A818",
+    backgroundColor: "#2EE6B018",
   },
   circleCompleted: {
     backgroundColor: Colors.primary,

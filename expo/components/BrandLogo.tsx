@@ -9,7 +9,7 @@ export function BrandLogo({ style }: { style?: StyleProp<TextStyle> }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center" }}>
       <Text style={[{ fontSize: 28, fontWeight: "700", color: "#F1F5F9" }, style]}>Fuel</Text>
-      <Text style={[{ fontSize: 28, fontWeight: "700", color: "#2DD4A8" }, style]}>ify</Text>
+      <Text style={[{ fontSize: 28, fontWeight: "700", color: "#2EE6B0" }, style]}>ify</Text>
     </View>
   );
 }

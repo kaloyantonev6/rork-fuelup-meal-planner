@@ -76,7 +76,7 @@ export default function MealProgressHeader({
         <View
           style={[
             styles.badge,
-            { backgroundColor: allDone ? "#22C55E18" : "#2DD4A818" },
+            { backgroundColor: allDone ? "#22C55E18" : "#2EE6B018" },
           ]}
         >
           <Text style={[styles.badgeText, { color: allDone ? Colors.success : Colors.primary }]}>

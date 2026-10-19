@@ -28,10 +28,10 @@ const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 function cellColor(cell: DayCell): string {
   if (cell.isFuture || !cell.tracking || cell.tracking.meals.length === 0) return Colors.bg3;
   const pct = cell.tracking.completionPercent;
-  if (pct >= 100) return "#2DD4A840";
-  if (pct >= 75) return "#2DD4A830";
-  if (pct >= 50) return "#2DD4A820";
-  if (pct > 0) return "#2DD4A810";
+  if (pct >= 100) return "#2EE6B040";
+  if (pct >= 75) return "#2EE6B030";
+  if (pct >= 50) return "#2EE6B020";
+  if (pct > 0) return "#2EE6B010";
   return "#EF444420";
 }
 

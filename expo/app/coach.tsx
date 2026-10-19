@@ -32,6 +32,8 @@ import {
 import * as Haptics from "expo-haptics";
 
 import Colors from "@/constants/colors";
+import { fonts } from "@/constants/design";
+import ScreenBackground from "@/components/ui/ScreenBackground";
 import { coachSystemPrompt } from "@/lib/coachPrompt";
 import { parseAIResponse, type ParsedSection } from "@/lib/parseAIResponse";
 import { useMealPlan } from "@/providers/MealPlanProvider";
@@ -331,6 +333,7 @@ export default function CoachScreen() {
 
   return (
     <View style={styles.container}>
+      <ScreenBackground />
       <Stack.Screen options={{ headerShown: false }} />
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <Pressable
@@ -644,7 +647,7 @@ const styles = StyleSheet.create({
   },
   macroPillName: {
     fontSize: 11,
-    fontWeight: "700" as const,
+    fontFamily: fonts.display,
     letterSpacing: 0.8,
     textTransform: "uppercase" as const,
   },

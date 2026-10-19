@@ -6,6 +6,7 @@ import { ArrowLeft } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 
 import Colors from "@/constants/colors";
+import ScreenBackground from "@/components/ui/ScreenBackground";
 import MealTimesSettings from "@/components/MealTimesSettings";
 
 /**
@@ -19,6 +20,7 @@ export default function MealTimesScreen() {
 
   return (
     <View style={styles.container}>
+      <ScreenBackground />
       <Stack.Screen options={{ headerShown: false }} />
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <Pressable

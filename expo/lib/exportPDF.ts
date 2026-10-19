@@ -65,17 +65,17 @@ function generateMealPlanHTML(plan: any): string {
       <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, Helvetica, Arial, sans-serif; color: #1a1a2e; background: #fff; padding: 40px; }
-        .header { background: linear-gradient(135deg, #2dd4a8, #0f766e); padding: 30px; border-radius: 16px; margin-bottom: 30px; color: white; }
+        .header { background: linear-gradient(135deg, #2EE6B0, #0f766e); padding: 30px; border-radius: 16px; margin-bottom: 30px; color: white; }
         .app-name { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; }
         .plan-title { font-size: 16px; opacity: 0.85; margin-top: 6px; }
         .plan-date { font-size: 13px; opacity: 0.7; margin-top: 4px; }
         .macros-summary { display: flex; gap: 12px; margin-bottom: 30px; }
-        .macro-box { flex: 1; background: #f0fdf9; border: 1px solid #2dd4a820; border-radius: 12px; padding: 16px; text-align: center; }
+        .macro-box { flex: 1; background: #f0fdf9; border: 1px solid #2EE6B020; border-radius: 12px; padding: 16px; text-align: center; }
         .macro-box .value { font-size: 22px; font-weight: 800; color: #0f766e; }
         .macro-box .label { font-size: 11px; color: #6b7280; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
         .meal-card { background: #fafafa; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; margin-bottom: 16px; page-break-inside: avoid; }
         .meal-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
-        .meal-number { font-size: 11px; font-weight: 700; color: #2dd4a8; text-transform: uppercase; letter-spacing: 1px; }
+        .meal-number { font-size: 11px; font-weight: 700; color: #2EE6B0; text-transform: uppercase; letter-spacing: 1px; }
         .meal-type { font-size: 11px; color: #9ca3af; text-transform: uppercase; }
         .meal-name { font-size: 18px; font-weight: 700; color: #111827; margin-bottom: 10px; }
         .macro-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
@@ -88,7 +88,7 @@ function generateMealPlanHTML(plan: any): string {
     </head>
     <body>
       <div class="header">
-        <div class="app-name">⚡ Fuel<span style="color:#2DD4A8">ify</span></div>
+        <div class="app-name">⚡ Fuel<span style="color:#2EE6B0">ify</span></div>
         <div class="plan-title">${plan.title ?? 'Your Meal Plan'}</div>
         <div class="plan-date">Generated on ${new Date().toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
       </div>
@@ -169,7 +169,7 @@ function generateShoppingListHTML(plan: any): string {
       <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, Helvetica, Arial, sans-serif; color: #1a1a2e; background: #fff; padding: 40px; }
-        .header { background: linear-gradient(135deg, #2dd4a8, #0f766e); padding: 30px; border-radius: 16px; margin-bottom: 30px; color: white; }
+        .header { background: linear-gradient(135deg, #2EE6B0, #0f766e); padding: 30px; border-radius: 16px; margin-bottom: 30px; color: white; }
         .app-name { font-size: 28px; font-weight: 800; }
         .list-title { font-size: 16px; opacity: 0.85; margin-top: 6px; }
         .list-date { font-size: 13px; opacity: 0.7; margin-top: 4px; }
@@ -185,7 +185,7 @@ function generateShoppingListHTML(plan: any): string {
     </head>
     <body>
       <div class="header">
-        <div class="app-name">⚡ Fuel<span style="color:#2DD4A8">ify</span></div>
+        <div class="app-name">⚡ Fuel<span style="color:#2EE6B0">ify</span></div>
         <div class="list-title">Shopping List — ${plan.title ?? 'Meal Plan'}</div>
         <div class="list-date">${new Date().toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
       </div>

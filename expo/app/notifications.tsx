@@ -28,6 +28,7 @@ import {
 } from "lucide-react-native";
 
 import Colors from "@/constants/colors";
+import ScreenBackground from "@/components/ui/ScreenBackground";
 import type { AppNotification, NotificationTab } from "@/lib/notificationFeed";
 import { useNotificationFeed } from "@/providers/NotificationFeedProvider";
 import BedtimeReminderSummary from "@/components/BedtimeReminderSummary";
@@ -273,6 +274,7 @@ export default function NotificationsScreen() {
 
   return (
     <View style={styles.container}>
+      <ScreenBackground />
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <Pressable

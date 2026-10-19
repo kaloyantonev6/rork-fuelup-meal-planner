@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { ChevronRight, MoonStar, Utensils } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
+import { fonts } from "@/constants/design";
 import { DAY_TYPE_META } from "@/constants/dayTypes";
 import {
   categoriesForDay,
@@ -132,12 +133,11 @@ export default function TomorrowOverview({ sleepLog }: { sleepLog: SleepLog }) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.surface,
-    borderRadius: 20,
+    backgroundColor: Colors.bg2,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
+    borderColor: "rgba(255,255,255,0.05)",
     padding: 16,
-    marginTop: 14,
   },
   header: {
     flexDirection: "row",
@@ -158,9 +158,10 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   dayBadgeText: {
+    fontFamily: fonts.display,
     fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 0.4,
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
   },
   dayName: {
     fontSize: 17,
@@ -179,10 +180,10 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   sectionTitle: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: Colors.textTertiary,
-    letterSpacing: 0.8,
+    fontFamily: fonts.display,
+    fontSize: 12,
+    color: Colors.textSecondary,
+    letterSpacing: 1.4,
   },
   mealRow: {
     flexDirection: "row",
@@ -209,9 +210,9 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   mealTime: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: Colors.textSecondary,
+    fontFamily: fonts.display,
+    fontSize: 15,
+    color: Colors.text,
     fontVariant: ["tabular-nums"],
   },
   divider: {

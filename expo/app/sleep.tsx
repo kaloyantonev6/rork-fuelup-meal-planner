@@ -19,6 +19,8 @@ import {
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
+import { fonts } from "@/constants/design";
+import ScreenBackground from "@/components/ui/ScreenBackground";
 import { getLocalDateString } from "@/constants/dayTypes";
 import SleepWheelPicker from "@/components/SleepWheelPicker";
 import SleepTrendChart from "@/components/SleepTrendChart";
@@ -131,6 +133,7 @@ export default function SleepScreen() {
 
   return (
     <View style={styles.container}>
+      <ScreenBackground />
       <Stack.Screen options={{ headerShown: false }} />
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <Pressable
@@ -412,7 +415,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 13,
-    fontWeight: "700",
+    fontFamily: fonts.display,
     color: "rgba(241,245,249,0.85)",
     letterSpacing: 2,
   },
@@ -451,7 +454,7 @@ const styles = StyleSheet.create({
   },
   editText: {
     fontSize: 12,
-    fontWeight: "700",
+    fontFamily: fonts.display,
     color: Colors.primary,
     letterSpacing: 1.2,
   },
@@ -468,7 +471,7 @@ const styles = StyleSheet.create({
   },
   lastNightLabel: {
     fontSize: 11,
-    fontWeight: "700",
+    fontFamily: fonts.display,
     color: "rgba(241,245,249,0.5)",
     letterSpacing: 1.4,
   },
@@ -502,7 +505,7 @@ const styles = StyleSheet.create({
   },
   bigValue: {
     fontSize: 40,
-    fontWeight: "700",
+    fontFamily: fonts.display,
     color: Colors.text,
     textAlign: "center",
     letterSpacing: 0.4,
@@ -588,7 +591,7 @@ const styles = StyleSheet.create({
   },
   diagnosisTag: {
     fontSize: 12,
-    fontWeight: "500",
+    fontFamily: fonts.display,
     color: Colors.textTertiary,
     marginTop: 12,
     textTransform: "uppercase",

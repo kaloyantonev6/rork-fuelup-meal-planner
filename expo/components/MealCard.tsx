@@ -4,7 +4,7 @@ import MealImage from "@/components/MealImage";
 import { Clock, Flame } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import Colors from "@/constants/colors";
-import { radius, spacing } from "@/constants/design";
+import { radius, spacing, fonts } from "@/constants/design";
 import PressableScale from "@/components/ui/PressableScale";
 import { Recipe } from "@/types";
 
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
   labelText: {
     color: Colors.accent,
     fontSize: 11,
-    fontWeight: "600" as const,
+    fontFamily: fonts.display,
     textTransform: "uppercase" as const,
     letterSpacing: 0.8,
   },
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
   },
   compactLabel: {
     fontSize: 10,
-    fontWeight: "600" as const,
+    fontFamily: fonts.display,
     color: Colors.accent,
     textTransform: "uppercase" as const,
     letterSpacing: 0.8,

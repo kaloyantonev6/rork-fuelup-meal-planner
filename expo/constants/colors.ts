@@ -1,77 +1,95 @@
 /**
  * Fuelify design system — color tokens.
  *
- * Layered dark palette for a premium performance-tool feel.
- * Legacy key names (background, surface, card, primary, ...) are kept
- * and remapped onto the new scale so the whole app inherits the
- * refined palette without touching every screen.
+ * Performance-wearable palette: a cool slate canvas that fades from a lit
+ * blue-grey at the top to near-black at the bottom, charcoal slate cards,
+ * crisp white type with cool grey secondaries, and a small set of saturated
+ * metric accents (sleep blue-grey, fuel mint, hydration blue).
+ *
+ * Legacy key names (background, surface, card, primary, ...) are kept and
+ * remapped onto the scale so the whole app inherits the palette without
+ * touching every screen.
  */
 const Colors = {
+  // ── Canvas gradient (top → bottom) ──────────────────────────
+  canvasTop: "#26323A",
+  canvasMid: "#161D22",
+  canvasBottom: "#0C1013",
+
   // ── Backgrounds (layered depth) ─────────────────────────────
-  bg0: "#0A0D11", // deepest background (behind everything)
-  bg1: "#0F1115", // primary screen background
-  bg2: "#161A20", // card background
-  bg3: "#1C2128", // elevated card / active states
-  bg4: "#242A33", // inputs, toggles off-state, dividers
+  bg0: "#0F1417", // deepest background (behind everything)
+  bg1: "#141A1E", // primary screen background
+  bg2: "#1C2328", // card background
+  bg3: "#242C32", // elevated card / active states
+  bg4: "#2F383F", // inputs, toggles off-state, tracks
 
   // ── Legacy surface aliases → new scale ──────────────────────
-  background: "#0F1115",
-  surface: "#161A20",
-  surfaceElevated: "#1C2128",
-  surfaceAlt: "#242A33",
-  card: "#161A20",
-  cardBorder: "#1E2430",
+  background: "#0F1417",
+  surface: "#1C2328",
+  surfaceElevated: "#242C32",
+  surfaceAlt: "#2F383F",
+  card: "#1C2328",
+  cardBorder: "#273037",
 
   // ── Borders ─────────────────────────────────────────────────
-  border: "#1E2430",
-  borderLight: "#2A3140",
+  border: "#273037",
+  borderLight: "#343E46",
 
   // ── Text ────────────────────────────────────────────────────
-  text: "#F1F5F9",
-  textSecondary: "#8B95A5",
-  textTertiary: "#505A6A",
-  textInverse: "#0A0D11",
-  textOnAccent: "#0A0D11",
+  text: "#FFFFFF",
+  textSecondary: "#9AA5AD",
+  textTertiary: "#5F6B74",
+  textInverse: "#0C1013",
+  textOnAccent: "#0C1013",
 
-  // ── Accent (teal) ───────────────────────────────────────────
-  primary: "#2DD4A8",
-  primaryDark: "#22B88E",
-  primaryLight: "#2DD4A820", // 12% teal — tint backgrounds
-  accentMuted: "#2DD4A820", // subtle glows, tag backgrounds
-  accentLight: "#2DD4A840", // progress tracks, pressed states
-  accentGradientStart: "#2DD4A8",
-  accentGradientEnd: "#22B88E",
+  // ── Brand accent (mint teal) ────────────────────────────────
+  primary: "#2EE6B0",
+  primaryDark: "#20C496",
+  primaryLight: "#2EE6B01F", // 12% — tint backgrounds
+  accentMuted: "#2EE6B01F", // subtle glows, tag backgrounds
+  accentLight: "#2EE6B040", // progress tracks, pressed states
+  accentGradientStart: "#2EE6B0",
+  accentGradientEnd: "#20C496",
+
+  // ── Metric accents (dial colours) ───────────────────────────
+  metricSleep: "#7BA1BB", // desaturated steel blue
+  metricFuel: "#2EE6B0", // brand mint
+  metricHydration: "#1E9BEA", // electric blue
+  metricTrack: "#2C353C", // dial track
+  insightStart: "#6E6AF0", // insight card gradient border
+  insightEnd: "#3BA7D9",
 
   // ── Day type accents ────────────────────────────────────────
-  match: "#EF4444",
-  matchLight: "#EF444420",
-  training: "#22C55E",
-  trainingLight: "#22C55E20",
-  recovery: "#F59E0B",
-  recoveryLight: "#F59E0B20",
-  rest: "#6B7280",
-  restLight: "#6B728020",
+  match: "#FF4D5E",
+  matchLight: "#FF4D5E20",
+  training: "#3DDC84",
+  trainingLight: "#3DDC8420",
+  recovery: "#FFC93C",
+  recoveryLight: "#FFC93C20",
+  rest: "#7E8A93",
+  restLight: "#7E8A9320",
 
   // ── Status ──────────────────────────────────────────────────
-  error: "#EF4444",
-  success: "#22C55E",
-  warning: "#F59E0B",
+  error: "#FF4D5E",
+  success: "#2EE6B0",
+  warning: "#F5A623",
 
   // ── Tab bar ─────────────────────────────────────────────────
-  tabIconDefault: "#505A6A",
-  tint: "#2DD4A8",
-  tabIconSelected: "#2DD4A8",
+  tabBar: "#0E1215",
+  tabIconDefault: "#6B7780",
+  tint: "#FFFFFF",
+  tabIconSelected: "#FFFFFF",
 
   // ── Premium ─────────────────────────────────────────────────
   premiumGold: "#D4A44C",
   premiumGoldLight: "#F0D68A",
 
   // ── Legacy compat ───────────────────────────────────────────
-  accent: "#2DD4A8",
-  discount: "#2DD4A8",
+  accent: "#2EE6B0",
+  discount: "#2EE6B0",
   overlay: "rgba(0,0,0,0.6)",
-  tagBg: "#2DD4A820",
-  tagText: "#2DD4A8",
+  tagBg: "#2EE6B01F",
+  tagText: "#2EE6B0",
 } as const;
 
 export default Colors;

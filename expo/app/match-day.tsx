@@ -32,6 +32,8 @@ import { useRouter, useLocalSearchParams, useSegments } from "expo-router";
 import * as Haptics from "expo-haptics";
 
 import Colors from "@/constants/colors";
+import { fonts } from "@/constants/design";
+import ScreenBackground from "@/components/ui/ScreenBackground";
 import { useMealPlan } from "@/providers/MealPlanProvider";
 import MealLockedModal from "@/components/MealLockedModal";
 import { calculateDayTargets } from "@/utils/dailyTargets";
@@ -399,6 +401,7 @@ export default function MatchDayScreen() {
 
   return (
     <View style={styles.container}>
+      <ScreenBackground />
       <LinearGradient
         colors={config.headerGradient}
         locations={[0, 0.4, 1]}
@@ -887,7 +890,7 @@ const styles = StyleSheet.create({
   },
   kickoffTime: {
     fontSize: 28,
-    fontWeight: "800" as const,
+    fontFamily: fonts.display,
     color: Colors.text,
     letterSpacing: -0.5,
   },
@@ -928,7 +931,7 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 10,
-    fontWeight: "600" as const,
+    fontFamily: fonts.display,
     color: "rgba(255,255,255,0.5)",
     textTransform: "uppercase" as const,
   },
@@ -1062,7 +1065,7 @@ const styles = StyleSheet.create({
   },
   entryLockedTag: {
     fontSize: 10,
-    fontWeight: "700" as const,
+    fontFamily: fonts.display,
     color: Colors.textTertiary,
     letterSpacing: 0.4,
     textTransform: "uppercase" as const,
@@ -1206,7 +1209,7 @@ const styles = StyleSheet.create({
   },
   totalTitle: {
     fontSize: 14,
-    fontWeight: "700" as const,
+    fontFamily: fonts.display,
     color: Colors.textSecondary,
     textTransform: "uppercase" as const,
     letterSpacing: 0.5,
@@ -1314,7 +1317,7 @@ const styles = StyleSheet.create({
   },
   timePickerLabel: {
     fontSize: 13,
-    fontWeight: "700" as const,
+    fontFamily: fonts.display,
     color: Colors.textSecondary,
     textTransform: "uppercase" as const,
   },
@@ -1340,14 +1343,14 @@ const styles = StyleSheet.create({
   },
   timeValue: {
     fontSize: 36,
-    fontWeight: "800" as const,
+    fontFamily: fonts.display,
     color: Colors.text,
     minWidth: 70,
     textAlign: "center" as const,
   },
   timeColon: {
     fontSize: 36,
-    fontWeight: "800" as const,
+    fontFamily: fonts.display,
     color: Colors.textSecondary,
     marginTop: 24,
   },

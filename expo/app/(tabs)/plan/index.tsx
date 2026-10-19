@@ -31,6 +31,7 @@ import {
 } from "lucide-react-native";
 
 import Colors from "@/constants/colors";
+import ScreenBackground from "@/components/ui/ScreenBackground";
 import { useMealPlan } from "@/providers/MealPlanProvider";
 import { useToday } from "@/providers/TodayProvider";
 import { useNotificationFeed } from "@/providers/NotificationFeedProvider";
@@ -516,6 +517,7 @@ export default function PlanScreen() {
 
   return (
     <View style={styles.container}>
+      <ScreenBackground />
       {/* Soft nudge — 1 free plan left (slides down from the top) */}
       {showNudge && !profile.isPremium ? (
         <Animated.View
@@ -1243,7 +1245,7 @@ const styles = StyleSheet.create({
     zIndex: 20,
     backgroundColor: Colors.bg3,
     borderWidth: 1,
-    borderColor: "rgba(45,212,168,0.3)",
+    borderColor: "rgba(46,230,176,0.3)",
     borderRadius: 12,
     overflow: "hidden",
   },

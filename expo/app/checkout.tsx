@@ -275,7 +275,7 @@ export default function CheckoutScreen() {
   }, [validate, selectedPlan, runSuccessAnimation, router]);
 
   const confettiColors = [
-    "#2dd4a8",
+    "#2EE6B0",
     "#0f766e",
     "#D4A44C",
     "#FF8C42",
@@ -381,7 +381,7 @@ export default function CheckoutScreen() {
           >
             <View style={styles.orderSummaryCard}>
               <LinearGradient
-                colors={["#2dd4a8", "#0f766e"]}
+                colors={["#2EE6B0", "#0f766e"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.orderSummaryHeader}
@@ -441,7 +441,7 @@ export default function CheckoutScreen() {
 
             <View style={styles.paymentCard}>
               <View style={styles.paymentHeader}>
-                <CreditCard size={20} color="#2dd4a8" />
+                <CreditCard size={20} color="#2EE6B0" />
                 <Text style={styles.paymentHeaderTitle}>Payment Details</Text>
               </View>
               <View style={styles.securityRow}>
@@ -644,7 +644,7 @@ export default function CheckoutScreen() {
               testID="complete-payment"
             >
               <LinearGradient
-                colors={["#2dd4a8", "#0f766e"]}
+                colors={["#2EE6B0", "#0f766e"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.payBtnGradient}
@@ -778,7 +778,7 @@ const styles = StyleSheet.create({
   lineItemDiscount: {
     fontSize: 14,
     fontWeight: "600" as const,
-    color: "#2dd4a8",
+    color: "#2EE6B0",
   },
   lineItemDivider: {
     height: 1,
@@ -793,10 +793,10 @@ const styles = StyleSheet.create({
   dueTodayValue: {
     fontSize: 22,
     fontWeight: "800" as const,
-    color: "#2dd4a8",
+    color: "#2EE6B0",
   },
   chargeNote: {
-    backgroundColor: "rgba(45,212,168,0.08)",
+    backgroundColor: "rgba(46,230,176,0.08)",
     borderRadius: 10,
     padding: 12,
     marginBottom: 16,
@@ -818,7 +818,7 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: "#2dd4a8",
+    backgroundColor: "#2EE6B0",
     justifyContent: "center" as const,
     alignItems: "center" as const,
   },
@@ -942,7 +942,7 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: "#2dd4a8",
+    backgroundColor: "#2EE6B0",
     justifyContent: "center" as const,
     alignItems: "center" as const,
     marginBottom: 24,

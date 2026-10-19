@@ -15,6 +15,8 @@ import { ArrowLeft, Clock3, Droplets, GlassWater, Info, Sunrise } from "lucide-r
 import * as Haptics from "expo-haptics";
 
 import Colors from "@/constants/colors";
+import { fonts } from "@/constants/design";
+import ScreenBackground from "@/components/ui/ScreenBackground";
 import SweatTestCard from "@/components/SweatTestCard";
 import { MetricLegend, MetricRow, RingHero, metricLevel } from "@/components/PerformanceScorecard";
 import { useToday } from "@/providers/TodayProvider";
@@ -114,6 +116,7 @@ export default function HydrationScreen() {
 
   return (
     <View style={styles.container}>
+      <ScreenBackground />
       <Stack.Screen options={{ headerShown: false }} />
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <Pressable
@@ -328,7 +331,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 13,
-    fontWeight: "700",
+    fontFamily: fonts.display,
     color: "rgba(241,245,249,0.85)",
     letterSpacing: 2,
   },
