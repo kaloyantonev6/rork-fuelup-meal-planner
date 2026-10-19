@@ -3,6 +3,7 @@ import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import { Apple, Beef, Carrot, ChevronDown, Milk, Package, Wheat, CookingPot } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
+import { fonts } from "@/constants/design";
 import type { CategoryConfig, ShoppingCategory, SmartShoppingItem } from "@/utils/shoppingListUtils";
 
 const CATEGORY_ICONS = {
@@ -139,17 +140,17 @@ const styles = StyleSheet.create({
   group: { marginBottom: 10 },
   row: { flexDirection: "row", gap: 10, alignItems: "stretch" },
   tileWrap: { flex: 1 },
-  tile: { flex: 1, padding: 16, borderRadius: 20, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.bg2, minHeight: 170 },
-  tileActive: { backgroundColor: Colors.primaryLight, borderColor: Colors.primary },
+  tile: { flex: 1, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: "rgba(255,255,255,0.05)", backgroundColor: Colors.bg2, minHeight: 170 },
+  tileActive: { backgroundColor: Colors.bg3, borderColor: "rgba(46,230,176,0.45)" },
   tileTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 14 },
-  icon: { width: 38, height: 38, borderRadius: 12, backgroundColor: Colors.bg3, alignItems: "center", justifyContent: "center" },
-  title: { fontSize: 15, fontWeight: "700", letterSpacing: -0.3, color: Colors.text },
+  icon: { width: 38, height: 38, borderRadius: 19, backgroundColor: Colors.bg3, alignItems: "center", justifyContent: "center" },
+  title: { fontFamily: fonts.display, fontSize: 13, letterSpacing: 1.3, textTransform: "uppercase", color: Colors.text },
   countRow: { flexDirection: "row", alignItems: "baseline", gap: 6, marginTop: 6 },
-  count: { fontSize: 26, fontWeight: "800", letterSpacing: -0.8, color: Colors.text, fontVariant: ["tabular-nums"] },
+  count: { fontFamily: fonts.displayHeavy, fontSize: 30, letterSpacing: -0.5, color: Colors.text, fontVariant: ["tabular-nums"] },
   caption: { fontSize: 11, color: Colors.textSecondary },
   progressTrack: { height: 3, borderRadius: 2, backgroundColor: Colors.bg4, marginTop: 12, overflow: "hidden" },
   progressFill: { height: 3, borderRadius: 2, backgroundColor: Colors.primary },
   hint: { fontSize: 10, fontWeight: "500", color: Colors.textTertiary, marginTop: 7 },
   drawerMeasure: { position: "absolute", top: 0, left: 0, right: 0, paddingTop: 10 },
-  drawer: { padding: 10, backgroundColor: Colors.bg2, borderRadius: 18, borderWidth: 1, borderColor: Colors.border },
+  drawer: { padding: 10, backgroundColor: Colors.bg2, borderRadius: 16, borderWidth: 1, borderColor: "rgba(255,255,255,0.05)" },
 });

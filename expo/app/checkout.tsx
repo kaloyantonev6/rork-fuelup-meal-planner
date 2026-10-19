@@ -15,6 +15,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { kvGet, kvSet } from "@/lib/database";
+import Colors from "@/constants/colors";
+import ScreenBackground from "@/components/ui/ScreenBackground";
 import {
   ArrowLeft,
   Lock,
@@ -345,6 +347,7 @@ export default function CheckoutScreen() {
 
   return (
     <View style={styles.container}>
+      <ScreenBackground />
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -679,7 +682,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: "#0F1115",
+    backgroundColor: Colors.bg0,
   },
   header: {
     flexDirection: "row" as const,
@@ -687,7 +690,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between" as const,
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: "#0F1115",
+    backgroundColor: Colors.bg0,
   },
   backBtn: {
     width: 40,
@@ -709,7 +712,7 @@ const styles = StyleSheet.create({
   orderSummaryCard: {
     borderRadius: 16,
     overflow: "hidden" as const,
-    backgroundColor: "#1A1D23",
+    backgroundColor: Colors.bg2,
     marginBottom: 16,
   },
   orderSummaryHeader: {
@@ -828,7 +831,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   paymentCard: {
-    backgroundColor: "#1A1D23",
+    backgroundColor: Colors.bg2,
     borderRadius: 16,
     padding: 18,
     marginBottom: 16,
@@ -859,7 +862,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   inlineInputContainer: {
-    backgroundColor: "#1A1D23",
+    backgroundColor: Colors.bg2,
     borderRadius: 10,
     height: 52,
     flexDirection: "row" as const,
@@ -930,7 +933,7 @@ const styles = StyleSheet.create({
   },
   successContainer: {
     flex: 1,
-    backgroundColor: "#0F1115",
+    backgroundColor: Colors.bg0,
     justifyContent: "center" as const,
     alignItems: "center" as const,
   },

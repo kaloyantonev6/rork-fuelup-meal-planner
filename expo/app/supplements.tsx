@@ -1,10 +1,11 @@
 import React from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Stack, router } from "expo-router";
-import { ArrowLeft } from "lucide-react-native";
+
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Colors from "@/constants/colors";
 import ScreenBackground from "@/components/ui/ScreenBackground";
+import { ScreenHeader } from "@/components/ui/Dashboard";
 import { useMealPlan } from "@/providers/MealPlanProvider";
 import {
   AIS_CATEGORY_META,
@@ -36,11 +37,8 @@ export default function SupplementsScreen() {
         contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}
         showsVerticalScrollIndicator={false}
       >
-        <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-          <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.7 }]}>
-            <ArrowLeft size={22} color={Colors.text} />
-          </Pressable>
-          <Text style={styles.headerTitle}>Supplements</Text>
+        <View style={{ paddingHorizontal: 16, paddingTop: insets.top + 4 }}>
+          <ScreenHeader title="Supplements" subtitle="AIS framework" onBack={() => router.back()} />
         </View>
 
         <Text style={styles.intro}>
@@ -156,27 +154,6 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
     paddingHorizontal: 16,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    marginBottom: 12,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: "800" as const,
-    color: Colors.text,
   },
   intro: {
     fontSize: 13,

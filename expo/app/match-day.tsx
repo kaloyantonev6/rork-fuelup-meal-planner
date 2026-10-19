@@ -13,9 +13,7 @@ import {
 } from "react-native";
 import { kvGet, kvSet } from "@/lib/database";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
 import {
-  ArrowLeft,
   Pencil,
   Trophy,
   Dumbbell,
@@ -25,7 +23,6 @@ import {
   Flame,
   Droplet,
   Check,
-  ChevronRight,
   Lock,
 } from "lucide-react-native";
 import { useRouter, useLocalSearchParams, useSegments } from "expo-router";
@@ -34,6 +31,8 @@ import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 import { fonts } from "@/constants/design";
 import ScreenBackground from "@/components/ui/ScreenBackground";
+import { ScreenHeader, SectionHeader } from "@/components/ui/Dashboard";
+import { RingHero, metricLevel } from "@/components/PerformanceScorecard";
 import { useMealPlan } from "@/providers/MealPlanProvider";
 import MealLockedModal from "@/components/MealLockedModal";
 import { calculateDayTargets } from "@/utils/dailyTargets";
@@ -106,14 +105,13 @@ const SLOT_ICONS: Record<TimelineEntry["mealSlot"], string> = {
   afternoon_snack: "🍎",
 };
 
-const DAY_PLAN_CONFIG: Record<DayType, { title: string; icon: React.ReactNode; sessionLabel: string; timeLabel: string; color: string; headerGradient: readonly [string, string, string]; accentColor: string }> = {
+const DAY_PLAN_CONFIG: Record<DayType, { title: string; icon: React.ReactNode; sessionLabel: string; timeLabel: string; color: string; accentColor: string }> = {
   training: {
     title: "Training Day Fuel Plan",
     icon: <Dumbbell size={22} color={Colors.training} />,
     sessionLabel: "TRAINING",
     timeLabel: "Training",
     color: Colors.training,
-    headerGradient: ["#0f2f1a", "#0f3d2a", "#0F1115"] as const,
     accentColor: Colors.training,
   },
   match: {
@@ -122,7 +120,6 @@ const DAY_PLAN_CONFIG: Record<DayType, { title: string; icon: React.ReactNode; s
     sessionLabel: "KICKOFF",
     timeLabel: "Kickoff",
     color: Colors.match,
-    headerGradient: ["#3a1a1a", "#2a1212", "#0F1115"] as const,
     accentColor: Colors.match,
   },
   rest: {
@@ -131,7 +128,6 @@ const DAY_PLAN_CONFIG: Record<DayType, { title: string; icon: React.ReactNode; s
     sessionLabel: "DAY",
     timeLabel: "Rest",
     color: Colors.rest,
-    headerGradient: ["#1f2229", "#1a1d23", "#0F1115"] as const,
     accentColor: Colors.primary,
   },
   recovery: {
@@ -140,7 +136,6 @@ const DAY_PLAN_CONFIG: Record<DayType, { title: string; icon: React.ReactNode; s
     sessionLabel: "DAY",
     timeLabel: "Recovery",
     color: Colors.recovery,
-    headerGradient: ["#2a1d0f", "#1f1a12", "#0F1115"] as const,
     accentColor: Colors.recovery,
   },
 };
@@ -401,26 +396,33 @@ export default function MatchDayScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenBackground />
-      <LinearGradient
-        colors={config.headerGradient}
-        locations={[0, 0.4, 1]}
-        style={[styles.headerGradient, { paddingTop: insets.top + 8 }]}
+      <ScreenBackground tint={config.color} />
+      <View style={[styles.headerBar, { paddingTop: insets.top + 4 }]}>
+        <ScreenHeader
+          title={config.title.replace(" Fuel Plan", "")}
+          subtitle="Fuel plan"
+          onBack={inTabs ? null : () => router.back()}
+        />
+      </View>
+
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24 }]}
+        showsVerticalScrollIndicator={false}
       >
-        <View style={styles.topBar}>
-          {inTabs ? (
-            <View style={styles.backBtn} />
-          ) : (
-            <Pressable
-              onPress={() => router.back()}
-              style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}
-            >
-              <ArrowLeft size={22} color={Colors.text} />
-            </Pressable>
-          )}
-          <Text style={styles.topBarTitle}>{config.title}</Text>
-          <View style={styles.backBtn} />
-        </View>
+        {/* Hero — share of today's fuel points completed */}
+        <RingHero
+          brand="FUELIFY"
+          percent={timeline.length > 0 ? Math.round((completedIndices.length / timeline.length) * 100) : null}
+          label={`${config.timeLabel.toUpperCase()} DAY\nFUEL`}
+          level={
+            timeline.length > 0
+              ? metricLevel(Math.round((completedIndices.length / timeline.length) * 100))
+              : null
+          }
+          ringColor={config.color}
+          subText={`${completedIndices.length} of ${timeline.length} fuel points complete`}
+        />
 
         <Animated.View style={[styles.headerContent, { opacity: fadeAnim }]}>
           <View style={styles.kickoffCard}>
@@ -480,13 +482,8 @@ export default function MatchDayScreen() {
             </View>
           )}
         </Animated.View>
-      </LinearGradient>
 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24 }]}
-        showsVerticalScrollIndicator={false}
-      >
+        <SectionHeader title="Timeline" />
         <View style={styles.timelineContainer}>
           {timeline.map((entry, idx) => {
             const isActive = idx === activeIdx;
@@ -832,29 +829,10 @@ export default function MatchDayScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.bg0,
   },
-  headerGradient: {
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-  },
-  topBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 16,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  topBarTitle: {
-    fontSize: 17,
-    fontWeight: "700" as const,
-    color: Colors.text,
+  headerBar: {
+    paddingHorizontal: 16,
   },
   headerContent: {
     gap: 14,
@@ -863,11 +841,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: Colors.bg2,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
+    borderColor: "rgba(255,255,255,0.05)",
   },
   kickoffLeft: {
     flexDirection: "row",
@@ -883,10 +861,10 @@ const styles = StyleSheet.create({
     alignItems: "center" as const,
   },
   kickoffLabel: {
-    fontSize: 11,
-    fontWeight: "700" as const,
-    color: "rgba(255,255,255,0.6)",
-    letterSpacing: 1,
+    fontFamily: fonts.display,
+    fontSize: 12,
+    color: Colors.textSecondary,
+    letterSpacing: 1.6,
   },
   kickoffTime: {
     fontSize: 28,
@@ -898,25 +876,27 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
-    backgroundColor: Colors.primary + "20",
+    backgroundColor: "rgba(255,255,255,0.08)",
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.primary + "40",
+    borderRadius: 16,
   },
   editKickoffText: {
-    fontSize: 13,
-    fontWeight: "700" as const,
-    color: Colors.primary,
+    fontFamily: fonts.display,
+    fontSize: 12,
+    letterSpacing: 1.4,
+    textTransform: "uppercase" as const,
+    color: Colors.text,
   },
   summaryRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderRadius: 14,
-    paddingVertical: 12,
+    backgroundColor: Colors.bg2,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.05)",
+    paddingVertical: 14,
     paddingHorizontal: 16,
   },
   summaryItem: {
@@ -925,14 +905,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   summaryValue: {
-    fontSize: 18,
-    fontWeight: "800" as const,
+    fontFamily: fonts.display,
+    fontSize: 20,
     color: Colors.text,
+    fontVariant: ["tabular-nums"],
   },
   summaryLabel: {
     fontSize: 10,
-    fontFamily: fonts.display,
-    color: "rgba(255,255,255,0.5)",
+    fontFamily: fonts.label,
+    letterSpacing: 1.3,
+    color: Colors.textSecondary,
     textTransform: "uppercase" as const,
   },
   summaryDivider: {
@@ -941,8 +923,8 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.12)",
   },
   macroText: {
-    fontSize: 13,
-    fontWeight: "700" as const,
+    fontFamily: fonts.display,
+    fontSize: 14,
     color: Colors.text,
   },
   notMatchDayNote: {

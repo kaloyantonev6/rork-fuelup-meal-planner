@@ -73,7 +73,7 @@ export default function PremiumScreen() {
     <View style={styles.container}>
       <ScreenBackground />
       <LinearGradient
-        colors={["#134A2D", "#1B5E3A", "#2D8B56"]}
+        colors={["rgba(110,106,240,0.38)", "rgba(59,167,217,0.16)", "transparent"]}
         style={[styles.headerBg, { paddingTop: insets.top + 8 }]}
       >
         <Pressable
@@ -89,7 +89,7 @@ export default function PremiumScreen() {
           <View style={styles.crownBadge}>
             <Crown size={28} color="#D4A44C" />
           </View>
-          <Text style={styles.headerTitle}>Fuelify Pro</Text>
+          <Text style={styles.headerTitle}>FUELIFY PRO</Text>
           <Text style={styles.headerSubtitle}>
             Fuel like a pro footballer.{"\n"}Match-day ready, every week.
           </Text>
@@ -275,8 +275,9 @@ const styles = StyleSheet.create({
     borderColor: "rgba(212,164,76,0.3)",
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: "800" as const,
+    fontFamily: fonts.displayHeavy,
+    fontSize: 32,
+    letterSpacing: 1.5,
     color: "#fff",
   },
   headerSubtitle: {

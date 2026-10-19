@@ -6,7 +6,7 @@ import * as Haptics from "expo-haptics";
 import { ShoppingBag } from "lucide-react-native";
 
 import Colors from "@/constants/colors";
-import { fonts } from "@/constants/design";
+import { ScreenHeader, HeaderIconButton } from "@/components/ui/Dashboard";
 import ScreenBackground from "@/components/ui/ScreenBackground";
 import { useMealPlan } from "@/providers/MealPlanProvider";
 import { useSavedPlans } from "@/providers/SavedPlansProvider";
@@ -31,19 +31,20 @@ export default function ShopScreen() {
     <View style={styles.container}>
       <ScreenBackground />
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24 }]}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 4, paddingBottom: insets.bottom + 24 }]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.heading}>
-          <View style={styles.headingText}>
-            <Text style={styles.eyebrow}>YOUR WEEK, SORTED</Text>
-            <Text style={styles.headerTitle}>Shop essentials</Text>
-            <Text style={styles.subtitle}>Less scrolling. More time for your game.</Text>
-          </View>
-          <Pressable accessibilityRole="button" accessibilityLabel="Open meal plan" onPress={() => router.push("/(tabs)/plan" as never)} style={styles.bag}>
-            <ShoppingBag size={24} color={Colors.primary} />
-          </Pressable>
-        </View>
+        <ScreenHeader
+          title="Shop"
+          subtitle={latestPlan ? latestPlan.title : "Essentials"}
+          onBack={null}
+          right={
+            <HeaderIconButton label="Open meal plan" onPress={() => router.push("/(tabs)/plan" as never)}>
+              <ShoppingBag size={18} color={Colors.text} />
+            </HeaderIconButton>
+          }
+        />
+        <Text style={styles.subtitle}>Your week, sorted. Less scrolling, more time for your game.</Text>
         {latestPlan ? (
           <SmartShoppingList
             plans={latestPlan.plans}
@@ -75,11 +76,6 @@ export default function ShopScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg0 },
   content: { paddingHorizontal: 16 },
-  heading: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 22 },
-  headingText: { flex: 1 },
-  eyebrow: { fontSize: 10, fontFamily: fonts.display, letterSpacing: 1.8, color: Colors.primary, marginBottom: 7 },
-  headerTitle: { fontSize: 28, fontWeight: "800", color: Colors.text, letterSpacing: -0.8 },
-  subtitle: { fontSize: 13, lineHeight: 19, color: Colors.textSecondary, marginTop: 5 },
-  bag: { width: 48, height: 48, borderRadius: 16, backgroundColor: Colors.primaryLight, alignItems: "center", justifyContent: "center" },
+  subtitle: { fontSize: 13, lineHeight: 19, color: Colors.textSecondary, textAlign: "center", marginTop: 4, marginBottom: 18 },
   emptyWrap: { paddingTop: 40 },
 });

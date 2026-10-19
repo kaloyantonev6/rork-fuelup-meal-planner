@@ -39,6 +39,7 @@ import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 import { fonts } from "@/constants/design";
 import ScreenBackground from "@/components/ui/ScreenBackground";
+import { ScreenHeader } from "@/components/ui/Dashboard";
 import { useMealPlan } from "@/providers/MealPlanProvider";
 import { useAuth } from "@/providers/AuthProvider";
 import { useNotifications } from "@/providers/NotificationProvider";
@@ -162,23 +163,24 @@ export default function ProfileScreen() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
+      <ScreenHeader title="Profile" subtitle="Settings" onBack={null} style={{ paddingHorizontal: 16 }} />
       <View style={styles.header}>
         <Pressable onPress={pickProfileImage} style={styles.avatarContainer}>
           {profile.profileImage ? (
             <Image source={{ uri: profile.profileImage }} style={styles.avatar} />
           ) : (
             <LinearGradient
-              colors={["#1B5E3A", "#2D8B56"]}
+              colors={[Colors.bg4, Colors.bg2]}
               style={styles.avatar}
             >
-              <Leaf size={28} color="#fff" />
+              <Leaf size={30} color={Colors.primary} />
             </LinearGradient>
           )}
           <View style={styles.avatarCameraBadge}>
             <Camera size={14} color="#fff" />
           </View>
         </Pressable>
-        <Text style={styles.name}>{profile.name || "Fuelify Player"}</Text>
+        <Text style={styles.name}>{(profile.name || "Fuelify Player").toUpperCase()}</Text>
         <Text style={styles.goalText}>
           {FOOTBALL_POSITIONS.find((p) => p.id === profile.position)?.icon ?? "⚽"} {positionLabel ?? "Player"}
         </Text>
@@ -603,21 +605,21 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: "center",
-    paddingTop: 12,
-    paddingBottom: 20,
-    gap: 8,
+    paddingTop: 8,
+    paddingBottom: 24,
+    gap: 6,
   },
   avatarContainer: {
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    padding: 3,
+    borderRadius: 48,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+    marginBottom: 6,
   },
   avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 84,
+    height: 84,
+    borderRadius: 42,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -630,22 +632,22 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     backgroundColor: Colors.primary,
     borderWidth: 2,
-    borderColor: Colors.background,
+    borderColor: Colors.bg0,
     justifyContent: "center",
     alignItems: "center",
   },
   name: {
-    fontSize: 24,
-    fontWeight: "700" as const,
+    fontFamily: fonts.displayHeavy,
+    fontSize: 26,
     color: Colors.text,
-    letterSpacing: -0.3,
+    letterSpacing: 1,
   },
   goalText: {
     fontSize: 14,
     color: Colors.textSecondary,
   },
   premiumCard: {
-    marginHorizontal: 20,
+    marginHorizontal: 16,
     borderRadius: 16,
     overflow: "hidden",
     marginBottom: 20,
@@ -671,7 +673,7 @@ const styles = StyleSheet.create({
   },
 
   section: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     marginBottom: 20,
   },
   sectionHeader: {
@@ -744,7 +746,7 @@ const styles = StyleSheet.create({
   playerIconWrap: {
     width: 40,
     height: 40,
-    borderRadius: 12,
+    borderRadius: 20,
     backgroundColor: "rgba(255,255,255,0.07)",
     justifyContent: "center",
     alignItems: "center",
@@ -1020,10 +1022,10 @@ const styles = StyleSheet.create({
     color: Colors.error,
   },
   programCard: {
-    backgroundColor: Colors.bg3,
+    backgroundColor: Colors.bg2,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: Colors.borderLight,
+    borderColor: "rgba(255,255,255,0.05)",
     padding: 16,
   },
   programHeader: {

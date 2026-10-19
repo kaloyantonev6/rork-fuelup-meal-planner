@@ -634,10 +634,10 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: Colors.surface,
-    borderRadius: 14,
-    padding: 14,
+    borderRadius: 16,
+    padding: 16,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
+    borderColor: "rgba(255,255,255,0.05)",
     marginBottom: 10,
   },
   headerTop: {
@@ -648,7 +648,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: "700" as const,
     letterSpacing: -0.3,
     color: Colors.text,
@@ -663,8 +663,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   aiBadgeText: {
+    fontFamily: fonts.display,
     fontSize: 10,
-    fontWeight: "700" as const,
+    letterSpacing: 1.2,
     color: Colors.primary,
   },
   locationRow: {
@@ -686,7 +687,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
+    borderColor: "rgba(255,255,255,0.05)",
     marginBottom: 10,
   },
   priceToggleLeft: {
@@ -703,9 +704,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   aisleHeading: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 4, marginBottom: 8 },
-  aisleTitle: { fontSize: 12, fontWeight: "600", color: Colors.textSecondary, letterSpacing: 0.2 },
+  aisleTitle: { fontFamily: fonts.display, fontSize: 12, color: Colors.textSecondary, letterSpacing: 1.5, textTransform: "uppercase" },
   refreshButton: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: 6, paddingLeft: 10 },
-  refreshText: { fontSize: 11, fontWeight: "600", color: Colors.primary },
+  refreshText: { fontFamily: fonts.display, fontSize: 11, letterSpacing: 1.2, textTransform: "uppercase", color: Colors.primary },
   drawerHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 4, paddingTop: 4, paddingBottom: 12 },
   drawerCount: { fontSize: 11, color: Colors.textSecondary },
   categorySection: {
@@ -721,12 +722,14 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
+    borderColor: "rgba(255,255,255,0.05)",
     marginBottom: 6,
   },
   categoryTitle: {
+    fontFamily: fonts.display,
     fontSize: 14,
-    fontWeight: "700" as const,
+    letterSpacing: 1.2,
+    textTransform: "uppercase" as const,
     color: Colors.text,
   },
   categoryCountBadge: {
@@ -735,8 +738,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   categoryCount: {
+    fontFamily: fonts.display,
     fontSize: 12,
-    fontWeight: "700" as const,
   },
   ingredientRow: {
     flexDirection: "row",
@@ -747,7 +750,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 4,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
+    borderColor: "rgba(255,255,255,0.05)",
     gap: 10,
   },
   ingredientRowChecked: {
@@ -803,9 +806,10 @@ const styles = StyleSheet.create({
     gap: 1,
   },
   priceText: {
-    fontSize: 13,
-    fontWeight: "700" as const,
+    fontFamily: fonts.display,
+    fontSize: 14,
     color: Colors.text,
+    fontVariant: ["tabular-nums"],
   },
   retailerText: {
     fontSize: 10,
@@ -839,7 +843,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 10,
     borderWidth: 1,
     borderTopWidth: 0,
-    borderColor: Colors.cardBorder,
+    borderColor: "rgba(255,255,255,0.05)",
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
@@ -914,7 +918,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
+    borderColor: "rgba(255,255,255,0.05)",
     marginBottom: 10,
   },
   budgetHeader: {
@@ -964,7 +968,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
+    borderColor: "rgba(255,255,255,0.05)",
     marginTop: 6,
     marginBottom: 14,
   },
@@ -1139,7 +1143,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
+    borderColor: "rgba(255,255,255,0.05)",
     marginBottom: 10,
   },
   splitToggleLeft: {
@@ -1154,10 +1158,10 @@ const styles = StyleSheet.create({
   },
   splitPanel: {
     backgroundColor: Colors.surface,
-    borderRadius: 14,
-    padding: 14,
+    borderRadius: 16,
+    padding: 16,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
+    borderColor: "rgba(255,255,255,0.05)",
     marginBottom: 10,
     gap: 10,
   },

@@ -322,7 +322,8 @@ export default function HomeScreen() {
         {/* WORDMARK + greeting */}
         <Text style={styles.wordmark}>FUELIFY</Text>
         <Text style={styles.greeting}>
-          {todayData?.dayName ?? "Today"} · {meta.label} · {firstName}
+          {todayData?.dayName ?? "Today"} · {meta.label}
+          {profile.name ? ` · ${firstName}` : ""}
         </Text>
 
         {/* THREE DIALS — Sleep · Fuel · Hydration */}

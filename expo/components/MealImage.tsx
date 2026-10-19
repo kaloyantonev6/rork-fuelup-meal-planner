@@ -107,7 +107,7 @@ export default function MealImage({
           />
           {/* Bottom gradient keeps overlaid text readable */}
           <LinearGradient
-            colors={["transparent", "#0F1115"]}
+            colors={["transparent", Colors.bg0]}
             locations={[0.55, 1]}
             style={StyleSheet.absoluteFill}
           />

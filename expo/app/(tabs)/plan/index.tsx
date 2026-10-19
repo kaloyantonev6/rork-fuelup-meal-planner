@@ -19,19 +19,26 @@ import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import {
   AlertTriangle,
+  Beef,
   Bookmark,
   Calendar,
   Check,
   ChevronRight,
   Crown,
+  Droplet,
+  Flame,
   Heart,
   Lock,
   RefreshCw,
+  Wheat,
   Zap,
 } from "lucide-react-native";
 
 import Colors from "@/constants/colors";
+import { fonts } from "@/constants/design";
 import ScreenBackground from "@/components/ui/ScreenBackground";
+import { HeaderIconButton, ScreenHeader, SectionHeader } from "@/components/ui/Dashboard";
+import { MetricLegend, MetricRow, RingHero, metricLevel } from "@/components/PerformanceScorecard";
 import { useMealPlan } from "@/providers/MealPlanProvider";
 import { useToday } from "@/providers/TodayProvider";
 import { useNotificationFeed } from "@/providers/NotificationFeedProvider";
@@ -515,6 +522,17 @@ export default function PlanScreen() {
       : DEFAULT_WEEKLY_SCHEDULE;
   const todayIndex = getMondayIndex();
 
+  // ── Scorecard values — computed from logged meals only ──
+  const planCalTarget = todayData?.calorieTarget ?? 0;
+  const planFuelPct =
+    planCalTarget > 0 ? Math.min(Math.round((stats.caloriesConsumed / planCalTarget) * 100), 100) : 0;
+  const eaten = (tracking?.meals ?? []).filter((m) => m.completedAt);
+  const macroRows = [
+    { label: "PROTEIN", icon: Beef, eaten: Math.round(eaten.reduce((a, m) => a + (m.protein ?? 0), 0)), target: todayData?.proteinGrams ?? 0 },
+    { label: "CARBS", icon: Wheat, eaten: Math.round(eaten.reduce((a, m) => a + (m.carbs ?? 0), 0)), target: todayData?.carbsGrams ?? 0 },
+    { label: "FATS", icon: Droplet, eaten: Math.round(eaten.reduce((a, m) => a + (m.fats ?? 0), 0)), target: todayData?.fatsGrams ?? 0 },
+  ];
+
   return (
     <View style={styles.container}>
       <ScreenBackground />
@@ -557,72 +575,101 @@ export default function PlanScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerText}>
-            <Text style={styles.headerTitle}>Today&apos;s Plan</Text>
-            <Text style={styles.headerSubtitle}>
-              {todayData?.calorieTarget.toLocaleString() ?? "–"} kcal · P:
-              {todayData?.proteinGrams ?? 0}g C:{todayData?.carbsGrams ?? 0}g F:
-              {todayData?.fatsGrams ?? 0}g
-            </Text>
-          </View>
-          <View style={styles.headerActions}>
-            <Pressable
-              onPress={() => {
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                router.push("/(tabs)/home/favorites" as never);
-              }}
-              style={({ pressed }) => [styles.headerIconBtn, pressed && { opacity: 0.7 }]}
-            >
-              <Heart size={18} color="#EF4444" />
-              {favorites.length > 0 ? <View style={styles.headerDot} /> : null}
-            </Pressable>
-            <Pressable
-              onPress={() => {
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                router.push("/(tabs)/home/saved-plans" as never);
-              }}
-              style={({ pressed }) => [styles.headerIconBtn, pressed && { opacity: 0.7 }]}
-            >
-              <Bookmark size={18} color={Colors.primary} />
-            </Pressable>
-            <Pressable
-              onPress={() => void handleGenerate("daily")}
-              style={({ pressed }) => [styles.headerIconBtn, pressed && { opacity: 0.7 }]}
-            >
-              <RefreshCw size={18} color={Colors.text} />
-            </Pressable>
-          </View>
+        {/* Header — tracked caps title with favourites / saved / regenerate */}
+        <ScreenHeader
+          title="Today's Plan"
+          subtitle={`${todayData?.dayName ?? "Today"} · ${(DAY_TYPE_META[todayData?.dayType ?? "training"] ?? DAY_TYPE_META.training).label}`}
+          onBack={router.canGoBack() ? () => router.back() : null}
+          right={
+            <>
+              <HeaderIconButton
+                label="Favourites"
+                badge={favorites.length > 0}
+                onPress={() => router.push("/(tabs)/home/favorites" as never)}
+              >
+                <Heart size={17} color={Colors.text} />
+              </HeaderIconButton>
+              <HeaderIconButton label="Saved plans" onPress={() => router.push("/(tabs)/home/saved-plans" as never)}>
+                <Bookmark size={17} color={Colors.text} />
+              </HeaderIconButton>
+            </>
+          }
+        />
+
+        {/* Hero — today's fuel performance */}
+        <RingHero
+          brand="FUELIFY"
+          percent={planCalTarget > 0 ? planFuelPct : null}
+          label={"FUEL\nPERFORMANCE"}
+          level={planCalTarget > 0 ? metricLevel(planFuelPct) : null}
+          ringColor={Colors.metricFuel}
+          subText={
+            planCalTarget > 0
+              ? `${stats.caloriesConsumed.toLocaleString()} of ${planCalTarget.toLocaleString()} kcal`
+              : "Generate a plan to set today's target"
+          }
+        />
+
+        {/* Macro scorecard */}
+        <View style={styles.metricCard}>
+          <MetricRow
+            icon={Flame}
+            label="CALORIES"
+            value={planCalTarget > 0 ? `${planFuelPct}%` : "–"}
+            level={planCalTarget > 0 ? metricLevel(planFuelPct) : null}
+          />
+          {macroRows.map((m) => (
+            <MetricRow
+              key={m.label}
+              icon={m.icon}
+              label={m.label}
+              value={m.target > 0 ? `${m.eaten}/${m.target}g` : "–"}
+              level={m.target > 0 ? metricLevel(Math.round((m.eaten / m.target) * 100)) : null}
+            />
+          ))}
+          <MetricRow
+            icon={Check}
+            label="MEALS LOGGED"
+            value={`${stats.completedCount}/${stats.totalMeals}`}
+            level={stats.totalMeals > 0 ? metricLevel(Math.round((stats.completedCount / stats.totalMeals) * 100)) : null}
+            last
+          />
+          <MetricLegend />
         </View>
 
-        {/* Day strip */}
+        {/* Week strip — day types at a glance */}
         <View style={styles.dayStrip}>
           {weeklySchedule.map((type, i) => {
             const dayMeta = DAY_TYPE_META[type] ?? DAY_TYPE_META.rest;
             const isToday = i === todayIndex;
             return (
               <View key={`strip-${i}`} style={styles.dayStripDay}>
-                <View
-                  style={[
-                    styles.dayStripDot,
-                    {
-                      backgroundColor: dayMeta.color,
-                      width: isToday ? 14 : 10,
-                      height: isToday ? 14 : 10,
-                      borderRadius: isToday ? 7 : 5,
-                      borderWidth: isToday ? 2 : 0,
-                      borderColor: Colors.text,
-                    },
-                  ]}
-                />
                 <Text style={[styles.dayStripLabel, isToday && styles.dayStripLabelActive]}>
                   {DAY_LETTERS[i]}
                 </Text>
+                <View
+                  style={[
+                    styles.dayStripDot,
+                    isToday
+                      ? { backgroundColor: Colors.text }
+                      : { borderWidth: 1.5, borderColor: dayMeta.color },
+                  ]}
+                >
+                  {isToday ? <View style={[styles.dayStripInner, { backgroundColor: dayMeta.color }]} /> : null}
+                </View>
               </View>
             );
           })}
         </View>
+
+        <SectionHeader
+          title="Meals"
+          action={
+            <HeaderIconButton label="Regenerate today's plan" onPress={() => void handleGenerate("daily")}>
+              <RefreshCw size={16} color={Colors.text} />
+            </HeaderIconButton>
+          }
+        />
 
         {/* Meal-type filter */}
         <ScrollView
@@ -705,7 +752,12 @@ export default function PlanScreen() {
         )}
 
         {/* Weekly history */}
-        {tracking ? <WeeklyHistoryStrip history={history} today={tracking} /> : null}
+        {tracking ? (
+          <>
+            <SectionHeader title="This Week" />
+            <WeeklyHistoryStrip history={history} today={tracking} />
+          </>
+        ) : null}
 
         {/* Free-tier warning — one generation left before the limit */}
         {!profile.isPremium && freeRemaining === 1 ? (
@@ -730,6 +782,7 @@ export default function PlanScreen() {
         ) : null}
 
         {/* Generate buttons */}
+        <SectionHeader title="New Plan" />
         <View style={styles.generateSection}>
           <Pressable
             onPress={() => void handleGenerate("daily")}
@@ -846,76 +899,52 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
 
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingTop: 8,
-    paddingBottom: 14,
-  },
-  headerText: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: "800" as const,
-    color: Colors.text,
-    letterSpacing: -0.3,
-  },
-  headerSubtitle: {
-    fontSize: 13,
-    fontWeight: "600" as const,
-    color: Colors.textSecondary,
-    marginTop: 3,
-  },
-  headerActions: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  headerIconBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+  metricCard: {
     backgroundColor: Colors.bg2,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: Colors.border,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerDot: {
-    position: "absolute",
-    top: 6,
-    right: 6,
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: "#EF4444",
+    borderColor: "rgba(255,255,255,0.05)",
+    paddingHorizontal: 16,
+    paddingTop: 2,
+    paddingBottom: 14,
+    marginTop: 8,
+    marginBottom: 10,
   },
 
   dayStrip: {
     flexDirection: "row",
-    justifyContent: "space-around",
-    paddingVertical: 10,
-    paddingHorizontal: 10,
+    justifyContent: "space-between",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     backgroundColor: Colors.bg2,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: Colors.border,
-    marginBottom: 12,
+    borderColor: "rgba(255,255,255,0.05)",
   },
   dayStripDay: {
     alignItems: "center",
-    gap: 4,
+    gap: 7,
   },
-  dayStripDot: {},
+  dayStripDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dayStripInner: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
   dayStripLabel: {
-    fontSize: 10,
-    fontWeight: "500" as const,
+    fontFamily: fonts.label,
+    fontSize: 11,
+    letterSpacing: 1.2,
     color: Colors.textTertiary,
   },
   dayStripLabelActive: {
     color: Colors.text,
-    fontWeight: "700" as const,
   },
 
   filterRow: {
@@ -931,24 +960,26 @@ const styles = StyleSheet.create({
     height: 36,
     paddingHorizontal: 14,
     borderRadius: 18,
-    backgroundColor: Colors.bg2,
+    backgroundColor: "rgba(255,255,255,0.07)",
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: "transparent",
   },
   filterChipActive: {
-    backgroundColor: Colors.primaryLight,
-    borderColor: Colors.accentLight,
+    backgroundColor: Colors.text,
+    borderColor: Colors.text,
   },
   filterChipIcon: {
     fontSize: 13,
   },
   filterChipText: {
+    fontFamily: fonts.display,
     fontSize: 12,
-    fontWeight: "600" as const,
+    letterSpacing: 1,
+    textTransform: "uppercase" as const,
     color: Colors.textSecondary,
   },
   filterChipTextActive: {
-    color: Colors.primary,
+    color: Colors.textInverse,
   },
   filterEmpty: {
     alignItems: "center" as const,
@@ -1017,7 +1048,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: "rgba(255,255,255,0.05)",
     gap: 12,
   },
   checkCircle: {
@@ -1066,15 +1097,16 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   mealCategory: {
-    fontSize: 10,
-    fontWeight: "700" as const,
-    color: Colors.textTertiary,
-    letterSpacing: 0.5,
+    fontFamily: fonts.display,
+    fontSize: 11,
+    color: Colors.textSecondary,
+    letterSpacing: 1.3,
   },
   mealCalories: {
-    fontSize: 12,
-    fontWeight: "600" as const,
-    color: Colors.textSecondary,
+    fontFamily: fonts.display,
+    fontSize: 13,
+    color: Colors.text,
+    fontVariant: ["tabular-nums"],
   },
   mealTitle: {
     fontSize: 15,
@@ -1114,15 +1146,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: Colors.bg2,
     borderWidth: 1,
-    borderColor: Colors.accentLight,
+    borderColor: "rgba(46,230,176,0.35)",
     borderRadius: 16,
     padding: 14,
   },
   generateCardAlt: {
     backgroundColor: Colors.bg2,
-    borderColor: Colors.border,
+    borderColor: "rgba(255,255,255,0.05)",
   },
   generateIconWrap: {
     width: 42,
@@ -1133,7 +1165,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   generateIconWrapAlt: {
-    backgroundColor: "#0f766e",
+    backgroundColor: Colors.metricHydration,
   },
   generateTextWrap: {
     flex: 1,

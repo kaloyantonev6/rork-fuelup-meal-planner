@@ -16,7 +16,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Stack, useRouter } from "expo-router";
 import {
-  ArrowLeft,
   Clock,
   Droplet,
   Lightbulb,
@@ -32,6 +31,7 @@ import {
 import * as Haptics from "expo-haptics";
 
 import Colors from "@/constants/colors";
+import { ScreenHeader } from "@/components/ui/Dashboard";
 import { fonts } from "@/constants/design";
 import ScreenBackground from "@/components/ui/ScreenBackground";
 import { coachSystemPrompt } from "@/lib/coachPrompt";
@@ -335,21 +335,12 @@ export default function CoachScreen() {
     <View style={styles.container}>
       <ScreenBackground />
       <Stack.Screen options={{ headerShown: false }} />
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <Pressable
-          onPress={() => {
-            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.back();
-          }}
-          style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}
-        >
-          <ArrowLeft size={22} color={Colors.text} />
-        </Pressable>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>AI Coach</Text>
-          <Text style={styles.headerSubtitle}>Food-first · Source-aware</Text>
-        </View>
-        <View style={styles.backBtn} />
+      <View style={{ paddingHorizontal: 16, paddingTop: insets.top + 4 }}>
+        <ScreenHeader
+          title="AI Coach"
+          subtitle="Food-first · Source-aware"
+          onBack={() => router.back()}
+        />
       </View>
 
       <KeyboardAvoidingView
@@ -463,33 +454,6 @@ const styles = StyleSheet.create({
   },
   flex: {
     flex: 1,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingBottom: 10,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerCenter: {
-    flex: 1,
-    alignItems: "center",
-  },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: "700" as const,
-    color: Colors.text,
-  },
-  headerSubtitle: {
-    fontSize: 11,
-    color: Colors.primary,
-    fontWeight: "600" as const,
   },
   scroll: {
     flex: 1,

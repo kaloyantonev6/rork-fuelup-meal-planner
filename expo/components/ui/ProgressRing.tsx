@@ -86,9 +86,18 @@ export default function ProgressRing({
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
         />
       </Svg>
-      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      {/* Children are centred both ways inside the ring */}
+      <View style={styles.center} pointerEvents="none">
         {children}
       </View>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  center: {
+    ...StyleSheet.absoluteFill,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+});

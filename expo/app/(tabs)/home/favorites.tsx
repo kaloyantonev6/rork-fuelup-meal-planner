@@ -15,7 +15,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Image } from "expo-image";
 import {
-  ArrowLeft,
   Heart,
   Search,
   Flame,
@@ -23,15 +22,19 @@ import {
 import * as Haptics from "expo-haptics";
 import { useSavedPlans, FavoriteMeal } from "@/providers/SavedPlansProvider";
 import EmptyState from "@/components/ui/EmptyState";
+import Colors from "@/constants/colors";
+import { fonts } from "@/constants/design";
+import ScreenBackground from "@/components/ui/ScreenBackground";
+import { ScreenHeader } from "@/components/ui/Dashboard";
 
 const DARK = {
-  bg: "#0F1115",
-  card: "#1A1D23",
-  elevated: "#242830",
-  border: "#2A2E38",
-  text: "#FFFFFF",
-  textSecondary: "#9CA3AF",
-  teal: "#2dd4a8",
+  bg: Colors.bg0,
+  card: Colors.bg2,
+  elevated: Colors.bg3,
+  border: "rgba(255,255,255,0.06)",
+  text: Colors.text,
+  textSecondary: Colors.textSecondary,
+  teal: Colors.primary,
 };
 
 const FILTER_OPTIONS = ["All", "Breakfast", "Lunch", "Dinner", "Snack"] as const;
@@ -123,16 +126,9 @@ export default function FavoritesScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <Pressable
-          onPress={() => router.back()}
-          style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}
-          hitSlop={8}
-        >
-          <ArrowLeft size={22} color={DARK.text} />
-        </Pressable>
-        <Text style={styles.headerTitle}>My Favorites</Text>
-        <View style={{ width: 40 }} />
+      <ScreenBackground />
+      <View style={{ paddingHorizontal: 16, paddingTop: 4 }}>
+        <ScreenHeader title="Favourites" onBack={() => router.back()} />
       </View>
 
       <ScrollView
@@ -307,26 +303,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: DARK.bg,
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: DARK.card,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "700" as const,
-    color: DARK.text,
-  },
   filterScroll: {
     maxHeight: 46,
     marginBottom: 10,
@@ -346,16 +322,18 @@ const styles = StyleSheet.create({
     borderColor: DARK.border,
   },
   filterChipActive: {
-    backgroundColor: DARK.teal + "22",
-    borderColor: DARK.teal,
+    backgroundColor: Colors.text,
+    borderColor: Colors.text,
   },
   filterChipText: {
-    fontSize: 13,
-    fontWeight: "600" as const,
+    fontFamily: fonts.display,
+    fontSize: 12,
+    letterSpacing: 1.1,
+    textTransform: "uppercase" as const,
     color: DARK.textSecondary,
   },
   filterChipTextActive: {
-    color: DARK.teal,
+    color: Colors.textInverse,
   },
   searchWrap: {
     flexDirection: "row",

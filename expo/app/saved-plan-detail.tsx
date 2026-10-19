@@ -11,7 +11,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import {
-  ArrowLeft,
   Heart,
   Flame,
   ShoppingCart,
@@ -21,6 +20,8 @@ import {
 import * as Haptics from "expo-haptics";
 import Colors from "@/constants/colors";
 import { fonts } from "@/constants/design";
+import ScreenBackground from "@/components/ui/ScreenBackground";
+import { ScreenHeader } from "@/components/ui/Dashboard";
 import { GeneratedPlan, GeneratedMeal, compileShoppingList, ShoppingIngredient } from "@/utils/mealGenerator";
 import { useSavedPlans } from "@/providers/SavedPlansProvider";
 import { useMealPlan } from "@/providers/MealPlanProvider";
@@ -94,12 +95,9 @@ export default function SavedPlanDetailScreen() {
   if (!plan || !activeDayPlan) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
-        <View style={styles.topBar}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn}>
-            <ArrowLeft size={22} color={Colors.text} />
-          </Pressable>
-          <Text style={styles.topBarTitle}>Plan Not Found</Text>
-          <View style={styles.backBtn} />
+        <ScreenBackground />
+        <View style={{ paddingHorizontal: 16 }}>
+          <ScreenHeader title="Saved Plan" onBack={() => router.back()} />
         </View>
         <View style={styles.emptyState}>
           <Text style={styles.emptyIcon}>📋</Text>
@@ -119,20 +117,13 @@ export default function SavedPlanDetailScreen() {
 
   return (
     <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
-      <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
-        <Pressable
-          onPress={() => router.back()}
-          style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}
-        >
-          <ArrowLeft size={22} color={Colors.text} />
-        </Pressable>
-        <View style={styles.topBarTitleWrap}>
-          <Text style={styles.topBarTitle} numberOfLines={1}>{plan.title}</Text>
-          <Text style={styles.topBarSubtitle}>
-            {plan.duration} · {plan.mealsPerDay} meals/day
-          </Text>
-        </View>
-        <View style={styles.backBtn} />
+      <ScreenBackground />
+      <View style={{ paddingHorizontal: 16, paddingTop: insets.top + 4 }}>
+        <ScreenHeader
+          title={plan.title}
+          subtitle={`${plan.duration} · ${plan.mealsPerDay} meals/day`}
+          onBack={() => router.back()}
+        />
       </View>
 
       <View style={styles.macroCard}>
@@ -306,39 +297,7 @@ function MacroBar({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
-  },
-  topBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    backgroundColor: Colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.borderLight,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  topBarTitleWrap: {
-    flex: 1,
-    alignItems: "center",
-  },
-  topBarTitle: {
-    fontSize: 17,
-    fontWeight: "700" as const,
-    color: Colors.text,
-  },
-  topBarSubtitle: {
-    fontSize: 12,
-    fontWeight: "500" as const,
-    color: Colors.textSecondary,
-    marginTop: 2,
+    backgroundColor: Colors.bg0,
   },
   macroCard: {
     backgroundColor: Colors.surface,

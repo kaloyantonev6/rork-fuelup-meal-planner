@@ -2,7 +2,7 @@ import React, { useRef } from "react";
 import { Animated, Pressable, StyleSheet, Text, View, type ViewStyle } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
-import { ArrowRight, ChevronRight } from "lucide-react-native";
+import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react-native";
 import Colors from "@/constants/colors";
 import { fonts } from "@/constants/design";
 import ProgressRing from "@/components/ui/ProgressRing";
@@ -80,6 +80,8 @@ const dial = StyleSheet.create({
     color: Colors.text,
     fontVariant: ["tabular-nums"],
     letterSpacing: -0.5,
+    textAlign: "center",
+    includeFontPadding: false,
   },
   unit: {
     fontFamily: fonts.label,
@@ -354,5 +356,160 @@ const pill = StyleSheet.create({
     borderRadius: 18,
     paddingHorizontal: 12,
     height: 32,
+  },
+});
+
+// ── Screen header ────────────────────────────────────────────────────────────
+
+interface ScreenHeaderProps {
+  /** Tracked caps title, centred. */
+  title: string;
+  /** Optional small caps line under the title (e.g. a date range). */
+  subtitle?: string;
+  /** Show the circular back button on the left (default true). */
+  onBack?: (() => void) | null;
+  /** Right-side accessory (icon buttons). */
+  right?: React.ReactNode;
+  style?: ViewStyle;
+}
+
+/**
+ * Detail-screen header: circular back button, centred tracked caps title with
+ * an optional caps subtitle, and right-side icon actions. Height is fixed so
+ * every screen's content starts at the same line.
+ */
+export function ScreenHeader({ title, subtitle, onBack, right, style }: ScreenHeaderProps) {
+  return (
+    <View style={[header.row, style]}>
+      <View style={header.side}>
+        {onBack ? (
+          <Pressable
+            onPress={() => {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onBack();
+            }}
+            hitSlop={8}
+            style={({ pressed }) => [header.iconBtn, pressed && { opacity: 0.6 }]}
+            accessibilityRole="button"
+            accessibilityLabel="Back"
+          >
+            <ChevronLeft size={22} color={Colors.text} strokeWidth={2.4} />
+          </Pressable>
+        ) : null}
+      </View>
+      <View style={header.center}>
+        <Text style={header.title} numberOfLines={1}>
+          {title.toUpperCase()}
+        </Text>
+        {subtitle ? (
+          <Text style={header.subtitle} numberOfLines={1}>
+            {subtitle.toUpperCase()}
+          </Text>
+        ) : null}
+      </View>
+      <View style={[header.side, header.sideRight]}>{right}</View>
+    </View>
+  );
+}
+
+/** Round, translucent icon button for header actions. */
+export function HeaderIconButton({
+  children,
+  onPress,
+  label,
+  badge = false,
+}: {
+  children: React.ReactNode;
+  onPress: () => void;
+  label: string;
+  badge?: boolean;
+}) {
+  return (
+    <Pressable
+      onPress={() => {
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        onPress();
+      }}
+      hitSlop={6}
+      style={({ pressed }) => [header.iconBtn, pressed && { opacity: 0.6 }]}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      {children}
+      {badge ? <View style={header.badge} /> : null}
+    </Pressable>
+  );
+}
+
+const header = StyleSheet.create({
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    minHeight: 48,
+    marginBottom: 6,
+  },
+  side: {
+    minWidth: 40,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  sideRight: {
+    justifyContent: "flex-end",
+  },
+  center: {
+    flex: 1,
+    alignItems: "center",
+    paddingHorizontal: 6,
+  },
+  title: {
+    fontFamily: fonts.display,
+    fontSize: 15,
+    letterSpacing: 1.8,
+    color: Colors.text,
+  },
+  subtitle: {
+    fontFamily: fonts.label,
+    fontSize: 11,
+    letterSpacing: 1.4,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  iconBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(255,255,255,0.07)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  badge: {
+    position: "absolute",
+    top: 7,
+    right: 8,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.primary,
+    borderWidth: 1.5,
+    borderColor: Colors.canvasTop,
+  },
+});
+
+// ── Slate card ───────────────────────────────────────────────────────────────
+
+/** Standard slate surface — the base of every list/section card. */
+export function SlateCard({ children, style }: { children: React.ReactNode; style?: ViewStyle | ViewStyle[] }) {
+  return <View style={[slate.card, style]}>{children}</View>;
+}
+
+const slate = StyleSheet.create({
+  card: {
+    backgroundColor: Colors.bg2,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.05)",
+    paddingHorizontal: 16,
+    paddingVertical: 4,
   },
 });

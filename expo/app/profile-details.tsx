@@ -13,7 +13,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Stack, useRouter } from "expo-router";
 import {
-  ArrowLeft,
   User,
   Flame,
   Weight,
@@ -28,6 +27,7 @@ import {
 import * as Haptics from "expo-haptics";
 
 import Colors from "@/constants/colors";
+import { ScreenHeader } from "@/components/ui/Dashboard";
 import ScreenBackground from "@/components/ui/ScreenBackground";
 import { useMealPlan } from "@/providers/MealPlanProvider";
 import {
@@ -294,18 +294,12 @@ export default function ProfileDetailsScreen() {
     <View style={styles.container}>
       <ScreenBackground />
       <Stack.Screen options={{ headerShown: false }} />
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <Pressable
-          onPress={() => {
-            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.back();
-          }}
-          style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}
-        >
-          <ArrowLeft size={22} color={Colors.text} />
-        </Pressable>
-        <Text style={styles.headerTitle}>Player Profile</Text>
-        <View style={styles.backBtn} />
+      <View style={{ paddingHorizontal: 16, paddingTop: insets.top + 4 }}>
+        <ScreenHeader
+          title="Player Profile"
+          subtitle="Body & football"
+          onBack={() => router.back()}
+        />
       </View>
 
       <ScrollView
@@ -442,25 +436,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.bg1,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingBottom: 10,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: "700" as const,
-    color: Colors.text,
   },
   scroll: {
     flex: 1,

@@ -18,7 +18,6 @@ import {
   BarChart3,
   BellOff,
   CheckCircle2,
-  ChevronLeft,
   Droplets,
   Flame,
   Rocket,
@@ -28,6 +27,7 @@ import {
 } from "lucide-react-native";
 
 import Colors from "@/constants/colors";
+import { ScreenHeader } from "@/components/ui/Dashboard";
 import ScreenBackground from "@/components/ui/ScreenBackground";
 import type { AppNotification, NotificationTab } from "@/lib/notificationFeed";
 import { useNotificationFeed } from "@/providers/NotificationFeedProvider";
@@ -276,31 +276,25 @@ export default function NotificationsScreen() {
     <View style={styles.container}>
       <ScreenBackground />
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <Pressable
-          onPress={() => {
-            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.back();
-          }}
-          style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.7 }]}
-        >
-          <ChevronLeft size={24} color={Colors.text} />
-        </Pressable>
-        <Text style={styles.headerTitle}>Notifications</Text>
-        {unreadCount > 0 ? (
-          <Pressable
-            onPress={() => {
-              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              void markAllRead();
-            }}
-            style={({ pressed }) => [styles.markAllBtn, pressed && { opacity: 0.7 }]}
-            hitSlop={8}
-          >
-            <Text style={styles.markAllText}>Mark all read</Text>
-          </Pressable>
-        ) : (
-          <View style={styles.headerSpacer} />
-        )}
+      <View style={{ paddingHorizontal: 16, paddingTop: insets.top + 4 }}>
+        <ScreenHeader
+          title="Notifications"
+          onBack={() => router.back()}
+          right={
+            unreadCount > 0 ? (
+              <Pressable
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  void markAllRead();
+                }}
+                style={({ pressed }) => [styles.markAllBtn, pressed && { opacity: 0.7 }]}
+                hitSlop={8}
+              >
+                <Text style={styles.markAllText}>Read all</Text>
+              </Pressable>
+            ) : null
+          }
+        />
       </View>
 
       {/* Tab switcher */}
@@ -380,30 +374,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.bg0,
   },
 
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 4,
-  },
-  headerTitle: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    textAlign: "center",
-    fontSize: 16,
-    fontWeight: "600" as const,
-    color: Colors.text,
-    pointerEvents: "none",
-  },
   markAllBtn: {
     minHeight: 44,
     justifyContent: "center",
@@ -412,9 +382,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600" as const,
     color: Colors.primary,
-  },
-  headerSpacer: {
-    width: 40,
   },
 
   tabContainer: {

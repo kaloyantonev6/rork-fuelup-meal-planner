@@ -14,32 +14,34 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import {
-  ArrowLeft,
   Plus,
   MoreVertical,
   Eye,
   FolderInput,
   Trash2,
   Flame,
-  Zap,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { useSavedPlans, SavedPlanData } from "@/providers/SavedPlansProvider";
 import EmptyState from "@/components/ui/EmptyState";
+import Colors from "@/constants/colors";
+import { fonts } from "@/constants/design";
+import ScreenBackground from "@/components/ui/ScreenBackground";
+import { ScreenHeader } from "@/components/ui/Dashboard";
 
 const DARK = {
-  bg: "#0F1115",
-  card: "#1A1D23",
-  elevated: "#242830",
-  border: "#2A2E38",
-  text: "#FFFFFF",
-  textSecondary: "#9CA3AF",
-  teal: "#2dd4a8",
-  tealDark: "#1a9e7a",
+  bg: Colors.bg0,
+  card: Colors.bg2,
+  elevated: Colors.bg3,
+  border: "rgba(255,255,255,0.06)",
+  text: Colors.text,
+  textSecondary: Colors.textSecondary,
+  teal: Colors.primary,
+  tealDark: "#1FB98C",
 };
 
 const FOLDER_EMOJIS = ["📋", "🥗", "💪", "🔥", "🥩", "🌱", "⚡", "🎯"];
-const FOLDER_COLORS = ["#2dd4a8", "#3B82F6", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899"];
+const FOLDER_COLORS = ["#2EE6B0", "#3B82F6", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899"];
 
 export default function SavedPlansScreen() {
   const insets = useSafeAreaInsets();
@@ -56,7 +58,7 @@ export default function SavedPlansScreen() {
   const [showCreateFolder, setShowCreateFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [newFolderEmoji, setNewFolderEmoji] = useState("📋");
-  const [newFolderColor, setNewFolderColor] = useState("#2dd4a8");
+  const [newFolderColor, setNewFolderColor] = useState("#2EE6B0");
   const [menuPlanId, setMenuPlanId] = useState<string | null>(null);
   const [showMoveFolder, setShowMoveFolder] = useState(false);
   const [movePlanTarget, setMovePlanTarget] = useState<string | null>(null);
@@ -134,7 +136,7 @@ export default function SavedPlansScreen() {
     setShowCreateFolder(false);
     setNewFolderName("");
     setNewFolderEmoji("📋");
-    setNewFolderColor("#2dd4a8");
+    setNewFolderColor("#2EE6B0");
   }, [newFolderName, newFolderEmoji, newFolderColor, createFolder]);
 
   const getTimeAgo = (dateStr: string) => {
@@ -147,16 +149,9 @@ export default function SavedPlansScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <Pressable
-          onPress={() => router.back()}
-          style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}
-          hitSlop={8}
-        >
-          <ArrowLeft size={22} color={DARK.text} />
-        </Pressable>
-        <Text style={styles.headerTitle}>My Saved Plans</Text>
-        <View style={{ width: 40 }} />
+      <ScreenBackground />
+      <View style={{ paddingHorizontal: 16, paddingTop: 4 }}>
+        <ScreenHeader title="Saved Plans" onBack={() => router.back()} />
       </View>
 
       <ScrollView
@@ -434,26 +429,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: DARK.bg,
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: DARK.card,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "700" as const,
-    color: DARK.text,
-  },
   folderScroll: {
     maxHeight: 48,
     marginBottom: 8,
@@ -473,16 +448,18 @@ const styles = StyleSheet.create({
     borderColor: DARK.border,
   },
   folderChipActive: {
-    backgroundColor: DARK.teal + "22",
-    borderColor: DARK.teal,
+    backgroundColor: Colors.text,
+    borderColor: Colors.text,
   },
   folderChipText: {
-    fontSize: 13,
-    fontWeight: "600" as const,
+    fontFamily: fonts.display,
+    fontSize: 12,
+    letterSpacing: 1.1,
+    textTransform: "uppercase" as const,
     color: DARK.textSecondary,
   },
   folderChipTextActive: {
-    color: DARK.teal,
+    color: Colors.textInverse,
   },
   addFolderBtn: {
     width: 36,

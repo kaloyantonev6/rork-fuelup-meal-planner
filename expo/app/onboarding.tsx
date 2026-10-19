@@ -19,6 +19,7 @@ import { ArrowLeft, ArrowRight, Check, ChevronDown, Sparkles, Search } from "luc
 import * as Haptics from "expo-haptics";
 
 import Colors from "@/constants/colors";
+import ScreenBackground from "@/components/ui/ScreenBackground";
 import { fonts } from "@/constants/design";
 import { BrandLogo } from "@/components/BrandLogo";
 import { useMealPlan } from "@/providers/MealPlanProvider";
@@ -299,7 +300,7 @@ export default function OnboardingScreen() {
         </View>
         {isSelected && (
           <View style={styles.chipCheck}>
-            <Check size={14} color="#0F1115" />
+            <Check size={14} color={Colors.textInverse} />
           </View>
         )}
       </Pressable>
@@ -606,6 +607,7 @@ export default function OnboardingScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <ScreenBackground />
       <View style={styles.topBar}>
         {step > 0 ? (
           <Pressable onPress={goBack} style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}>
@@ -664,7 +666,7 @@ export default function OnboardingScreen() {
                 pressed && canProceed() && { opacity: 0.9, transform: [{ scale: 0.98 }] },
               ]}
             >
-              <Sparkles size={18} color={canProceed() ? "#0F1115" : Colors.textTertiary} />
+              <Sparkles size={18} color={canProceed() ? Colors.textInverse : Colors.textTertiary} />
               <Text style={[styles.finishBtnText, !canProceed() && styles.nextBtnTextDisabled]}>
                 Generate My Fuel Plan
               </Text>
@@ -682,7 +684,7 @@ export default function OnboardingScreen() {
               <Text style={[styles.nextBtnText, !canProceed() && styles.nextBtnTextDisabled]}>
                 {step === 0 ? "Get Started" : "Continue"}
               </Text>
-              <ArrowRight size={18} color={canProceed() ? "#0F1115" : Colors.textTertiary} />
+              <ArrowRight size={18} color={canProceed() ? Colors.textInverse : Colors.textTertiary} />
             </Pressable>
           )}
         </View>
@@ -1157,7 +1159,7 @@ const styles = StyleSheet.create({
   nextBtnText: {
     fontSize: 16,
     fontWeight: "700" as const,
-    color: "#0F1115",
+    color: Colors.textInverse,
   },
   nextBtnTextDisabled: {
     color: Colors.textTertiary,
@@ -1179,7 +1181,7 @@ const styles = StyleSheet.create({
   finishBtnText: {
     fontSize: 17,
     fontWeight: "700" as const,
-    color: "#0F1115",
+    color: Colors.textInverse,
   },
   welcomeContainer: {
     alignItems: "center",

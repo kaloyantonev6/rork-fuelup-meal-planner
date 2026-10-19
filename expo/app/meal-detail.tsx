@@ -1734,7 +1734,7 @@ const styles = StyleSheet.create({
   },
   premiumModalCard: {
     width: SCREEN_WIDTH - 48,
-    backgroundColor: "#1A1D23",
+    backgroundColor: Colors.bg2,
     borderRadius: 24,
     padding: 28,
     alignItems: "center" as const,
@@ -1786,7 +1786,7 @@ const styles = StyleSheet.create({
   premiumModalUpgradeBtnText: {
     fontSize: 16,
     fontWeight: "700" as const,
-    color: "#0F1115",
+    color: Colors.textInverse,
   },
   premiumModalDismissBtn: {
     paddingVertical: 10,
