@@ -1,7 +1,7 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Animated, Easing, StyleSheet, View, ViewStyle } from "react-native";
+import React from "react";
+import { Animated, StyleSheet, View, ViewStyle } from "react-native";
 import Svg, { Circle } from "react-native-svg";
-import { motion } from "@/constants/design";
+import { useRingFill } from "@/hooks/useRingFill";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -17,9 +17,9 @@ interface ProgressRingProps {
 }
 
 /**
- * Circular progress ring with a smooth animated fill (rolls from the
- * previous value over 600ms, Easing.out cubic). Center content is
- * rendered via children.
+ * Circular progress ring. On first load the fill eases out from empty to
+ * its value (600ms, ease-out cubic); later updates animate from the current
+ * fill. Centre content is rendered via children.
  */
 export default function ProgressRing({
   progress,
@@ -33,33 +33,13 @@ export default function ProgressRing({
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
 
-  const anim = useRef(new Animated.Value(0)).current;
-  const reachedRef = useRef(0);
-  const [range, setRange] = useState({ from: 0, to: progress });
+  const clamped = Number.isFinite(progress) ? Math.min(Math.max(progress, 0), 1) : 0;
+  const fill = useRingFill(clamped);
 
-  useEffect(() => {
-    const from = reachedRef.current;
-    if (Math.abs(from - progress) < 0.001) {
-      return;
-    }
-    setRange({ from, to: progress });
-    anim.setValue(0);
-    const animation = Animated.timing(anim, {
-      toValue: 1,
-      duration: motion.progressDuration,
-      delay: motion.progressDelay,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: false,
-    });
-    animation.start(() => {
-      reachedRef.current = progress;
-    });
-    return () => animation.stop();
-  }, [progress, anim]);
-
-  const dashoffset = anim.interpolate({
+  const dashoffset = fill.interpolate({
     inputRange: [0, 1],
-    outputRange: [circumference * (1 - range.from), circumference * (1 - range.to)],
+    outputRange: [circumference, 0],
+    extrapolate: "clamp",
   });
 
   return (

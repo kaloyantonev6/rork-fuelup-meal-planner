@@ -1,8 +1,8 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Animated, Easing, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import { Animated, StyleSheet, Text, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 import Colors from "@/constants/colors";
-import { motion } from "@/constants/design";
+import { useRingFill } from "@/hooks/useRingFill";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -16,41 +16,31 @@ interface NutritionRingProps {
 }
 
 /**
- * Macro ring with an animated fill (0 → target over 600ms) and a
- * number that counts up in sync with the stroke.
+ * Macro ring: the fill eases out from empty on first load and the number
+ * counts up in sync with the stroke.
  */
 export default function NutritionRing({ current, target, label, color, size = 72, unit = "g" }: NutritionRingProps) {
   const strokeWidth = 5;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  const progress = target > 0 ? Math.min(current / target, 1) : 0;
-  const targetOffset = circumference * (1 - progress);
+  const safeCurrent = Number.isFinite(current) ? Math.max(current, 0) : 0;
 
-  const anim = useRef(new Animated.Value(0)).current;
+  const fill = useRingFill(safeCurrent);
   const [displayValue, setDisplayValue] = useState(0);
 
   useEffect(() => {
-    const id = anim.addListener(({ value }) => {
-      setDisplayValue(Math.round(current * value));
-    });
-    const animation = Animated.timing(anim, {
-      toValue: 1,
-      duration: motion.progressDuration,
-      delay: motion.progressDelay,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: false,
-    });
-    animation.start();
-    return () => {
-      animation.stop();
-      anim.removeListener(id);
-    };
-  }, [anim, current]);
+    const id = fill.addListener(({ value }) => setDisplayValue(Math.round(value)));
+    return () => fill.removeListener(id);
+  }, [fill]);
 
-  const dashoffset = anim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [circumference, targetOffset],
-  });
+  const dashoffset =
+    target > 0
+      ? fill.interpolate({
+          inputRange: [0, target],
+          outputRange: [circumference, 0],
+          extrapolate: "clamp",
+        })
+      : circumference;
 
   return (
     <View style={styles.container}>
