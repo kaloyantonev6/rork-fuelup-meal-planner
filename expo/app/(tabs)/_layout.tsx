@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { Home, ShoppingCart, Trophy, User } from "lucide-react-native";
+import { Home, User, Users } from "lucide-react-native";
 import { StyleSheet, Text } from "react-native";
 import React from "react";
 
@@ -38,26 +38,17 @@ export default function TabLayout() {
       />
       {/* Plan stays reachable via "Open Plan" on Today's Fuel — just not shown as a tab */}
       <Tabs.Screen name="plan" options={{ href: null }} />
+      {/* Match and Shop stay reachable via the Home page tiles — just not shown as tabs */}
+      <Tabs.Screen name="match" options={{ href: null }} />
+      <Tabs.Screen name="shop" options={{ href: null }} />
       <Tabs.Screen
-        name="match"
+        name="team"
         options={{
-          title: "Match",
-          tabBarLabel: ({ color }) => <Text style={[tabStyles.label, { color }]}>Match</Text>,
+          title: "Team",
+          tabBarLabel: ({ color }) => <Text style={[tabStyles.label, { color }]}>Team</Text>,
           tabBarIcon: ({ color, focused }) => (
             <AnimatedTabIcon focused={!!focused}>
-              <Trophy size={22} color={color} />
-            </AnimatedTabIcon>
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="shop"
-        options={{
-          title: "Shop",
-          tabBarLabel: ({ color }) => <Text style={[tabStyles.label, { color }]}>Shop</Text>,
-          tabBarIcon: ({ color, focused }) => (
-            <AnimatedTabIcon focused={!!focused}>
-              <ShoppingCart size={22} color={color} />
+              <Users size={22} color={color} />
             </AnimatedTabIcon>
           ),
         }}
